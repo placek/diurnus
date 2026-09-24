@@ -41,7 +41,7 @@ Klasy wejścia, które spec zakłada, a które łatwo przeoczyć:
 
 ---
 
-## Zadanie 1: Szkielet projektu, Nix i Makefile
+## Task 1: Szkielet projektu, Nix i Makefile
 
 Nic z logiki aplikacji. Cel: `make dev`, `make build`, `make test` i `make check` działają na pustej stronie.
 
@@ -309,7 +309,7 @@ array indexed by number, and an unchecked read there is a real bug class."
 
 ---
 
-## Zadanie 2: Typy i arytmetyka czasu
+## Task 2: Typy i arytmetyka czasu
 
 **Files:**
 - Create: `src/lib/types.ts`, `src/lib/time.ts`, `test/time.test.ts`
@@ -554,7 +554,7 @@ Both DST days are covered by tests."
 
 ---
 
-## Zadanie 3: Model stanu i migracje
+## Task 3: Model stanu i migracje
 
 **Files:**
 - Create: `src/lib/model.ts`, `test/model.test.ts`
@@ -728,7 +728,7 @@ block back rather than reveal that it was silently deleted."
 
 ---
 
-## Zadanie 4: Zajętość siatki
+## Task 4: Zajętość siatki
 
 **Files:**
 - Create: `src/lib/occupancy.ts`, `test/occupancy.test.ts`
@@ -859,7 +859,7 @@ rejected suggestion stay rejected without blocking the slot."
 
 ---
 
-## Zadanie 5: Hierarchia kategorii i segmenty bloków
+## Task 5: Hierarchia kategorii i segmenty bloków
 
 **Files:**
 - Create: `src/lib/categories.ts`, `src/lib/segments.ts`, `test/categories.test.ts`, `test/segments.test.ts`
@@ -1062,7 +1062,7 @@ visible window happens here too, so components never compute geometry."
 
 ---
 
-## Zadanie 6: Magazyn stanu, trwałość i historia
+## Task 6: Magazyn stanu, trwałość i historia
 
 Pierwsze zadanie dotykające Svelte. `state.svelte.ts` jest jedynym miejscem, gdzie żyje
 mutowalny stan aplikacji.
@@ -1266,7 +1266,7 @@ is small, and snapshots cannot drift out of sync with the operations."
 
 ---
 
-## Zadanie 7: Warstwa prezentacji — style, ikony, czcionki
+## Task 7: Warstwa prezentacji — style, ikony, czcionki
 
 **Files:**
 - Create: `src/app.css`, `src/lib/icons.ts`, `src/components/Icon.svelte`
@@ -1387,7 +1387,7 @@ category's first letter instead of nothing."
 
 ---
 
-## Zadanie 8: Siatka
+## Task 8: Siatka
 
 **Files:**
 - Create: `src/components/Grid.svelte`, `src/components/HourRow.svelte`, `src/components/Block.svelte`, `src/components/NowIndicator.svelte`
@@ -1502,7 +1502,7 @@ arithmetic on quanta."
 
 ---
 
-## Zadanie 9: Nagłówek i pasek tokenów
+## Task 9: Nagłówek i pasek tokenów
 
 **Files:**
 - Create: `src/components/Header.svelte`, `src/components/TokenPips.svelte`, `src/lib/stats.ts`, `test/stats.test.ts`
@@ -1585,7 +1585,7 @@ backwards the moment a block completes."
 
 ---
 
-## Zadanie 10: Menu radialne i tworzenie bloków
+## Task 10: Menu radialne i tworzenie bloków
 
 **Files:**
 - Create: `src/components/RadialMenu.svelte`, `src/lib/actions.ts`, `test/actions.test.ts`
@@ -1635,7 +1635,7 @@ user already rejected."
 
 ---
 
-## Zadanie 11: Arkusz edycji, toast i klawiatura
+## Task 11: Arkusz edycji, toast i klawiatura
 
 **Files:**
 - Create: `src/components/EditSheet.svelte`, `src/components/Toast.svelte`, `src/components/Help.svelte`, `src/lib/keys.ts`, `test/keys.test.ts`
@@ -1683,7 +1683,7 @@ dialog for anything that can actually be undone."
 
 ---
 
-## Zadanie 12: Ustawienia — kategorie i dzień
+## Task 12: Ustawienia — kategorie i dzień
 
 **Files:**
 - Create: `src/components/settings/Settings.svelte`, `src/components/settings/CategoriesTab.svelte`, `src/components/settings/DayTab.svelte`
@@ -1727,7 +1727,7 @@ so widening it again brings them back."
 
 ---
 
-## Zadanie 13: Kopia zapasowa
+## Task 13: Kopia zapasowa
 
 **Files:**
 - Create: `src/lib/backup.ts`, `src/components/settings/DataTab.svelte`, `test/backup.test.ts`
@@ -1855,7 +1855,7 @@ The exported bundle is the input format for the future database importer."
 
 ---
 
-## Zadanie 14: Wdrożenie na GitHub Pages i usunięcie prototypu
+## Task 14: Wdrożenie na GitHub Pages i usunięcie prototypu
 
 **Files:**
 - Create: `.github/workflows/pages.yml`, `README.md`
