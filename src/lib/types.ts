@@ -40,6 +40,8 @@ export interface Item {
   created: number;
   /** dzień docelowy, gdy pozycja została przeniesiona; inaczej brak */
   movedTo?: string;
+  /** NOWE w v4: identyfikator bloku, którego ta pozycja jest odbiciem */
+  block?: string;
 }
 
 export interface DaySettings {
