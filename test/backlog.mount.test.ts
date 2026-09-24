@@ -93,3 +93,33 @@ test('pusty backlog mówi, że nic nie czeka', async () => {
   await mountApp();
   expect(document.querySelector('#backlog .list-empty')!.textContent).toContain('Nic nie czeka');
 });
+
+test('Enter w backlogu tworzy kolejną pozycję TAM, nie w dzisiejszych notatkach', async () => {
+  // Znalezione w przeglądzie: addItemAfter zawsze nadawało dzisiejszą datę,
+  // więc nowa pozycja znikała z panelu, w którym się pisało.
+  const d = shiftDay(today(), 2);
+  seed([{ id: 'a', day: d, text: 'Pierwsza', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  const input = rows()[0]!.querySelector<HTMLInputElement>('.item-text')!;
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  flush();
+
+  expect(rows()).toHaveLength(2);
+  expect(app.S.items).toHaveLength(2);
+  expect(app.S.items.every((i) => i.day === d)).toBe(true);
+});
+
+test('Enter po pozycji bez daty też tworzy pozycję bez daty', async () => {
+  seed([{ id: 'a', day: null, text: 'Kiedyś', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  const input = rows()[0]!.querySelector<HTMLInputElement>('.item-text')!;
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  flush();
+
+  expect(rows()).toHaveLength(2);
+  expect(app.S.items.every((i) => i.day === null)).toBe(true);
+});

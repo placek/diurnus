@@ -13,7 +13,7 @@ export const dayItems = (items: readonly Item[], day: string): Item[] =>
   items.filter((i) => i.day === day);
 
 export const newItem = (
-  day: string,
+  day: string | null,
   type: ItemType,
   created: number,
   makeId: () => string,

@@ -169,7 +169,10 @@ export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
 export function addItemAfter(afterId: string | null): void {
   const prev = afterId ? app.S.items.find((i) => i.id === afterId) : undefined;
   const type = prev ? typeAfterEnter(prev.type) : 'task';
-  const item = newItem(currentDay.value, type, Date.now(), uid);
+  // Nowa pozycja dziedziczy dzień poprzedniej, nie „dziś": Enter w backlogu ma
+  // tworzyć pozycję tam, gdzie się pisze, a nie przerzucać ją do notatek.
+  const day = prev ? prev.day : currentDay.value;
+  const item = newItem(day, type, Date.now(), uid);
   commit(() => (app.S.items = insertAfter(app.S.items, afterId, item)));
   ui.focusItem = item.id;
 }
