@@ -35,7 +35,7 @@ test('import przepuszcza starszą wersję schematu przez normalize', () => {
     },
   });
   const back = bundleParse(old);
-  expect(back.state.v).toBe(4);
+  expect(back.state.v).toBe(5);
   expect(back.state.blocks[0]!.q).toBe(24);
 });
 

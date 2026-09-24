@@ -123,5 +123,4 @@
     onblur={() => (dirty = false)}
     onkeydown={onKeydown}
   />
-  {#if item.movedTo}<span class="item-moved">→ {item.movedTo.slice(5)}</span>{/if}
 </div>

@@ -1,3 +1,4 @@
+import type { Repeat } from './repeat';
 export const QDAY = 96; // kwanty 15-minutowe w dobie
 
 export type Status = 'suggested' | 'planned' | 'active' | 'confirmed' | 'discarded';
@@ -30,18 +31,25 @@ export interface Block {
   created: number;
 }
 
-export type ItemType = 'task' | 'done' | 'note' | 'scheduled' | 'migrated';
+export type ItemType = 'task' | 'done' | 'note';
+
+export type { Repeat } from './repeat';
 
 export interface Item {
   id: string;
-  day: string; // 'YYYY-MM-DD', czas lokalny
+  /** `null` = pozycja backlogu bez zadeklarowanej daty */
+  day: string | null;
   text: string;
   type: ItemType;
   created: number;
-  /** dzień docelowy, gdy pozycja została przeniesiona; inaczej brak */
-  movedTo?: string;
-  /** NOWE w v4: identyfikator bloku, którego ta pozycja jest odbiciem */
+  /** identyfikator bloku, którego ta pozycja jest odbiciem */
   block?: string;
+  /** NOWE w v5: kwant 0–95 — pora bez bloku */
+  at?: number;
+  /** NOWE w v5: wzorzec powtarzania; wyłącznie pozycje backlogu */
+  repeat?: Repeat;
+  /** NOWE w v5: data najbliższego wystąpienia pozycji powtarzalnej */
+  nextOn?: string;
 }
 
 export interface DaySettings {

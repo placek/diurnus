@@ -92,9 +92,21 @@ export function normalize(x: unknown): State {
     s.v = 4;
   }
 
-  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 4 || !Array.isArray(s.blocks)) {
+  // v4 znało znaczniki przeniesienia; v5 przenosi pozycje dosłownie, więc
+  // znaczniki nie mają czego opisywać.
+  if (s && typeof s === 'object' && s.v === 4) {
+    s.items = ((s.items ?? []) as Item[]).map((i) => {
+      const { movedTo, ...rest } = i as unknown as Record<string, unknown>;
+      const raw = rest['type'];
+      const type = raw === 'migrated' || raw === 'scheduled' ? 'task' : raw;
+      return { ...rest, type } as unknown as Item;
+    });
+    s.v = 5;
+  }
+
+  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 5 || !Array.isArray(s.blocks)) {
     return {
-      v: 4,
+      v: 5,
       cats: clone(DEFAULT_CATS) as Category[],
       day: clone(DEFAULT_DAY) as DaySettings,
       blocks: [],

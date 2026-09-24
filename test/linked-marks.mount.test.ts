@@ -117,14 +117,29 @@ test('Tab na pozycji swobodnej nadal cykluje jej znacznik', async () => {
   expect(bullet.textContent).toBe('×');
 });
 
-test('menu pozycji powiązanej oferuje tylko przeniesienia', async () => {
+test('menu pozycji powiązanej nie oferuje żadnych znaczników', async () => {
+  // Znacznik pozycji powiązanej JEST statusem bloku, a przenoszenie między
+  // dniami odbywa się przeciągnięciem do backlogu — menu nie ma co pokazać.
   const flush = await mountApp();
   await createFutureBlock(flush);
 
   linkedBullet().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   flush();
+  expect(document.querySelectorAll('.bullet-menu button')).toHaveLength(0);
+});
+
+test('menu pozycji swobodnej oferuje trzy znaczniki', async () => {
+  const flush = await mountApp();
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const bullet = document.querySelector<HTMLElement>('#list .item:not(.is-linked):not(.is-draft) .bullet')!;
+  bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
   const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) => b.textContent?.trim());
-  expect(labels).toEqual(['>Na jutro', '<Na dzień…']);
+  expect(labels).toEqual(['·Zadanie', '×Wykonane', '–Notatka']);
 });
 
 test('zegar domykający blok aktualizuje też znacznik na liście', async () => {

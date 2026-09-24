@@ -1,14 +1,7 @@
 <script lang="ts">
   import { MARK } from '../../lib/items';
-  import {
-    migrateItem,
-    migrateToTomorrow,
-    moveItemTo,
-    setItemType,
-    toggleBlockDone,
-  } from '../../actions.svelte';
+  import { moveItemTo, setItemType, toggleBlockDone } from '../../actions.svelte';
   import { app, ui } from '../../state.svelte';
-  import { shiftDay } from '../../lib/time';
   import type { Item, ItemType } from '../../lib/types';
 
   interface Props {
@@ -30,19 +23,16 @@
     return () => removeEventListener('click', close);
   });
 
+  // Pozycja powiązana nie ma własnych znaczników — jej znacznik jest statusem
+  // bloku, więc menu jest dla niej puste. Przenoszenie odbywa się
+  // przeciągnięciem do backlogu, nie z tego menu.
   const IN_PLACE: { type: ItemType; label: string }[] = [
     { type: 'task', label: 'Zadanie' },
     { type: 'done', label: 'Wykonane' },
     { type: 'note', label: 'Notatka' },
   ];
-  const MOVES: { type: ItemType; label: string }[] = [
-    { type: 'migrated', label: 'Na jutro' },
-    { type: 'scheduled', label: 'Na dzień…' },
-  ];
 
-  // Pozycja powiązana nie ma własnych znaczników „na miejscu" — jej znacznik
-  // jest statusem bloku. Zostają tylko przeniesienia, które nadal mają sens.
-  const TYPES = $derived(item.block ? MOVES : [...IN_PLACE, ...MOVES]);
+  const TYPES = $derived(item.block ? [] : IN_PLACE);
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -114,12 +104,6 @@
 
   function choose(type: ItemType) {
     menu = false;
-    if (type === 'migrated') return migrateToTomorrow(item.id);
-    if (type === 'scheduled') {
-      const target = prompt('Na który dzień? (RRRR-MM-DD)', shiftDay(app.viewDay, 1));
-      if (target && /^\d{4}-\d{2}-\d{2}$/.test(target)) migrateItem(item.id, target, 'scheduled');
-      return;
-    }
     setItemType(item.id, type);
   }
 </script>

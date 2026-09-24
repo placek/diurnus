@@ -6,7 +6,6 @@ import { reconcile, slotFree } from './lib/link';
 import {
   cycleType,
   insertAfter,
-  migrateTo,
   moveItem,
   newItem,
   removeById,
@@ -138,9 +137,6 @@ export function setItemType(id: string, type: ItemType): void {
   if (!item || item.type === type) return;
   commit(() => {
     item.type = type;
-    // Wyjście ze stanu przeniesionego czyści ślad, ale NIE kasuje kopii
-    // w dniu docelowym — to osobna pozycja, którą użytkownik usuwa sam.
-    if (type !== 'migrated' && type !== 'scheduled') delete item.movedTo;
   });
 }
 
@@ -161,55 +157,6 @@ export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
   if (item.block) return toggleBlockDone(id);
   setItemType(id, cycleType(item.type, dir));
 };
-
-export function migrateItem(
-  id: string,
-  targetDay: string,
-  type: 'migrated' | 'scheduled',
-): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item || item.movedTo) {
-    app.toast = { msg: 'Ta pozycja została już przeniesiona', undoable: false };
-    return;
-  }
-
-  const block = item.block ? app.S.blocks.find((b) => b.id === item.block) : undefined;
-
-  // Pozycja swobodna: kopiujemy ją, jak dotąd.
-  if (!block) {
-    const before = app.S.items;
-    const after = migrateTo(before, id, targetDay, Date.now(), uid, type);
-    if (after.length === before.length) return;
-    commit(() => (app.S.items = after), `Przeniesiono na ${targetDay}`, true);
-    return;
-  }
-
-  // Pozycja powiązana: przenosi się BLOK, a pozycję w dniu docelowym
-  // materializuje reconcile — nie ma tu osobnego kopiowania.
-  if (!slotFree(app.S.blocks, targetDay, block.q, block.len, block.id)) {
-    app.toast = {
-      msg: `W dniu ${targetDay} o ${fmtQ(targetDay, block.q)} jest już zajęte`,
-      undoable: false,
-    };
-    return;
-  }
-
-  commit(
-    () => {
-      block.day = targetDay;
-      item.block = undefined;
-      item.type = type;
-      item.movedTo = targetDay;
-      // commit() uzgadnia tylko dzień oglądany; dzień docelowy trzeba osobno.
-      app.S.items = reconcile(app.S.items, app.S.blocks, targetDay, Date.now(), uid);
-    },
-    `Przeniesiono na ${targetDay}`,
-    true,
-  );
-}
-
-export const migrateToTomorrow = (id: string): void =>
-  migrateItem(id, shiftDay(app.viewDay, 1), 'migrated');
 
 /** Nowa pozycja pod wskazaną (albo na końcu listy dnia, gdy `afterId` jest null). */
 export function addItemAfter(afterId: string | null): void {

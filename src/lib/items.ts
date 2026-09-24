@@ -5,8 +5,6 @@ export const MARK: Record<ItemType, string> = {
   task: '·',
   done: '×',
   note: '–',
-  scheduled: '<',
-  migrated: '>',
 };
 
 /** Lista jednego dnia. `filter` zachowuje kolejność tablicy, więc pozycja
@@ -43,9 +41,8 @@ export function insertAfter(
 export const removeById = (items: readonly Item[], id: string): Item[] =>
   items.filter((i) => i.id !== id);
 
-// Tab cykluje TYLKO znaczniki opisujące stan pozycji w tym dniu. `scheduled`
-// i `migrated` są poza cyklem, bo ich ustawienie zapisuje do listy innego
-// dnia — dwa naciśnięcia w tę i z powrotem zostawiłyby tam duplikaty.
+// Trzy znaczniki opisujące stan pozycji tutaj. Przenoszenie między dniami
+// odbywa się przeciągnięciem do backlogu, nie zmianą znacznika.
 export const CYCLE = ['task', 'done', 'note'] as const;
 
 export function cycleType(type: ItemType, dir: 1 | -1 = 1): ItemType {
@@ -58,34 +55,6 @@ export function cycleType(type: ItemType, dir: 1 | -1 = 1): ItemType {
 export const typeAfterEnter = (type: ItemType): ItemType =>
   type === 'note' ? 'note' : 'task';
 
-// Kopia trafia na koniec listy dnia docelowego, źródło dostaje znacznik
-// i `movedTo`. Ustawione `movedTo` blokuje powtórkę: bez tego ponowny wybór
-// tego samego typu dosypywałby kopie do dnia, na który nikt nie patrzy.
-export function migrateTo(
-  items: readonly Item[],
-  id: string,
-  targetDay: string,
-  created: number,
-  makeId: () => string,
-  type: 'migrated' | 'scheduled' = 'migrated',
-): Item[] {
-  const src = items.find((i) => i.id === id);
-  if (!src || src.movedTo) return [...items];
-
-  const copy: Item = { id: makeId(), day: targetDay, text: src.text, type: 'task', created };
-  const withCopy = insertAfter(items, null, copy);
-  return withCopy.map((i) => (i.id === id ? { ...i, type, movedTo: targetDay } : i));
-}
-
-// Przestawienie w obrębie jednego dnia.
-//
-// `toIndex` jest indeksem w liście dnia POMNIEJSZONEJ o przeciąganą pozycję —
-// czyli odpowiedzią na pytanie „przed którym z pozostałych ma stanąć". Taki
-// układ współrzędnych bierze się stąd, że interfejs liczy miejsce wstawienia
-// po wyjęciu elementu, i pozwala `toIndex === długość` oznaczać „na koniec".
-//
-// Przestawiać trzeba pełną tablicę, w której dni się przeplatają, więc indeks
-// z listy dnia tłumaczymy na sąsiada i szukamy go w tablicy pełnej.
 export function moveItem(
   items: readonly Item[],
   id: string,
