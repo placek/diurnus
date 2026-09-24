@@ -416,3 +416,25 @@ kbd{
 @media (prefers-reduced-motion:reduce){
   *,*::before{animation:none !important;transition:none !important}
 }
+
+/* ───────────── Lista notatek ───────────── */
+.bullet{
+  flex:none;width:22px;height:22px;border:0;border-radius:6px;background:transparent;
+  color:var(--fg-dim);cursor:pointer;display:grid;place-items:center;
+  font:600 15px var(--sans);line-height:1;
+}
+.bullet:hover{background:var(--line)}
+.bullet.t-done{color:var(--green)}
+.bullet.t-migrated,.bullet.t-scheduled{color:var(--yellow)}
+.bullet-menu{
+  position:absolute;z-index:40;margin-top:2px;background:var(--raise);
+  border:1px solid var(--line-2);border-radius:10px;padding:4px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;min-width:150px;
+}
+.bullet-menu button{
+  display:flex;align-items:center;gap:8px;border:0;background:transparent;cursor:pointer;
+  padding:6px 8px;border-radius:6px;font:500 14px var(--sans);color:var(--fg);text-align:left;
+}
+.bullet-menu button:hover{background:var(--line)}
+.bullet-menu button.sel{color:var(--fg);background:var(--line)}
+.bm-mark{width:14px;text-align:center;color:var(--fg-dim)}

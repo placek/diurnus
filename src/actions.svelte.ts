@@ -2,8 +2,9 @@ import { app, commit, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
-import { fmtQ, rel } from './lib/time';
-import type { Block } from './lib/types';
+import { cycleType, migrateTo } from './lib/items';
+import { fmtQ, rel, shiftDay } from './lib/time';
+import type { Block, ItemType } from './lib/types';
 
 function stopOtherActive(exceptId: string): void {
   for (const b of app.S.blocks) {
@@ -120,3 +121,38 @@ export function assignDigit(n: number, cursorQ: number | null): void {
   }
   createAt(cursorQ, cat.id);
 }
+
+/* ───────────── Lista notatek ───────────── */
+
+export function setItemType(id: string, type: ItemType): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item || item.type === type) return;
+  commit(() => {
+    item.type = type;
+    // Wyjście ze stanu przeniesionego czyści ślad, ale NIE kasuje kopii
+    // w dniu docelowym — to osobna pozycja, którą użytkownik usuwa sam.
+    if (type !== 'migrated' && type !== 'scheduled') delete item.movedTo;
+  });
+}
+
+export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
+  const item = app.S.items.find((i) => i.id === id);
+  if (item) setItemType(id, cycleType(item.type, dir));
+};
+
+export function migrateItem(
+  id: string,
+  targetDay: string,
+  type: 'migrated' | 'scheduled',
+): void {
+  const before = app.S.items;
+  const after = migrateTo(before, id, targetDay, Date.now(), uid, type);
+  if (after.length === before.length) {
+    app.toast = { msg: 'Ta pozycja została już przeniesiona', undoable: false };
+    return;
+  }
+  commit(() => (app.S.items = after), `Przeniesiono na ${targetDay}`, true);
+}
+
+export const migrateToTomorrow = (id: string): void =>
+  migrateItem(id, shiftDay(app.viewDay, 1), 'migrated');
