@@ -447,7 +447,7 @@ kbd{
 /* ───────────── Stałe ───────────── */
 const QDAY = 96;            // kwanty 15 min w dobie; bloki trzymają q liczone od północy
 let START_H = 6, END_H = 22, HOURS = 16, Q0 = 24, Q1 = 88, BANDS = [];   // widoczne okno dnia (z ustawień)
-const KEY = 'semigrid.v1', PREF = 'semigrid.prefs';
+const KEY = 'gridday.v1', PREF = 'gridday.prefs';
 const DEFAULT_CATS = [          // parent: null = kategoria główna; kolor dziedziczą podkategorie
   { id:'work',   name:'Praca',     icon:'laptop-code',   color:'yellow', parent:null },
   { id:'work-a', name:'Projekt A', icon:null,            parent:'work' },
@@ -535,6 +535,14 @@ function normalize(x){
   if (!x.day || !(x.day.start < x.day.end) || !Array.isArray(x.day.bands)) x.day = JSON.parse(JSON.stringify(DEFAULT_DAY));
   return x;
 }
+/* jednorazowe przeniesienie stanu z poprzedniej nazwy aplikacji (semigrid → gridday) */
+try {
+  for (const [from, to] of [['semigrid.v1', KEY], ['semigrid.prefs', PREF]]){
+    const v = localStorage.getItem(from);
+    if (v !== null && localStorage.getItem(to) === null){ localStorage.setItem(to, v); localStorage.removeItem(from); }
+  }
+} catch {}
+
 let S = normalize(lsGet(KEY, null));
 let prefs = Object.assign({ theme:'auto', seenHelp:false }, lsGet(PREF, {}));
 
