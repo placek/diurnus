@@ -21,6 +21,14 @@ export const app = $state({
   toast: null as Toast | null,
 });
 
+// Stan wyłącznie widokowy: nie trafia do localStorage i nie ma go w State.
+// Mieszka tu, bo dzieli go rodzeństwo komponentów, które nie ma wspólnego rodzica
+// bliżej niż App.
+export const ui = $state({
+  hover: null as string | null,
+  cursor: { q: 0, visible: false },
+});
+
 export const save = () => writeJSON(localStorage, KEY, $state.snapshot(app.S));
 export const savePrefs = () => writeJSON(localStorage, PREF, $state.snapshot(app.prefs));
 
