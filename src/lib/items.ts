@@ -42,3 +42,37 @@ export function insertAfter(
 
 export const removeById = (items: readonly Item[], id: string): Item[] =>
   items.filter((i) => i.id !== id);
+
+// Tab cykluje TYLKO znaczniki opisujące stan pozycji w tym dniu. `scheduled`
+// i `migrated` są poza cyklem, bo ich ustawienie zapisuje do listy innego
+// dnia — dwa naciśnięcia w tę i z powrotem zostawiłyby tam duplikaty.
+export const CYCLE = ['task', 'done', 'note'] as const;
+
+export function cycleType(type: ItemType, dir: 1 | -1 = 1): ItemType {
+  const i = CYCLE.indexOf(type as (typeof CYCLE)[number]);
+  if (i < 0) return 'task'; // wyjście ze stanu przeniesionego
+  return CYCLE[(i + dir + CYCLE.length) % CYCLE.length]!;
+}
+
+/** Nowa pozycja dziedziczy typ, ale nigdy nie rodzi się w stanie końcowym. */
+export const typeAfterEnter = (type: ItemType): ItemType =>
+  type === 'note' ? 'note' : 'task';
+
+// Kopia trafia na koniec listy dnia docelowego, źródło dostaje znacznik
+// i `movedTo`. Ustawione `movedTo` blokuje powtórkę: bez tego ponowny wybór
+// tego samego typu dosypywałby kopie do dnia, na który nikt nie patrzy.
+export function migrateTo(
+  items: readonly Item[],
+  id: string,
+  targetDay: string,
+  created: number,
+  makeId: () => string,
+  type: 'migrated' | 'scheduled' = 'migrated',
+): Item[] {
+  const src = items.find((i) => i.id === id);
+  if (!src || src.movedTo) return [...items];
+
+  const copy: Item = { id: makeId(), day: targetDay, text: src.text, type: 'task', created };
+  const withCopy = insertAfter(items, null, copy);
+  return withCopy.map((i) => (i.id === id ? { ...i, type, movedTo: targetDay } : i));
+}

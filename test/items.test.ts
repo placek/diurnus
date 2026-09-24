@@ -81,3 +81,70 @@ test('newItem tworzy pozycję z pustym tekstem i podanym typem', () => {
     id: 'id-1', day: A, text: '', type: 'note', created: 99,
   });
 });
+
+import { CYCLE, cycleType, typeAfterEnter, migrateTo } from '../src/lib/items';
+
+test('Tab cykluje wyłącznie znaczniki opisujące stan pozycji tutaj', () => {
+  expect(CYCLE).toEqual(['task', 'done', 'note']);
+  expect(cycleType('task')).toBe('done');
+  expect(cycleType('done')).toBe('note');
+  expect(cycleType('note')).toBe('task');
+});
+
+test('Shift+Tab cykluje w drugą stronę', () => {
+  expect(cycleType('task', -1)).toBe('note');
+  expect(cycleType('note', -1)).toBe('done');
+});
+
+test('cykl z typu przeniesionego wraca do zadania', () => {
+  expect(cycleType('migrated')).toBe('task');
+  expect(cycleType('scheduled')).toBe('task');
+  expect(cycleType('migrated', -1)).toBe('task');
+});
+
+test('Enter dziedziczy typ zadania i notatki', () => {
+  expect(typeAfterEnter('task')).toBe('task');
+  expect(typeAfterEnter('note')).toBe('note');
+});
+
+test('Enter po stanie końcowym daje zwykłe zadanie', () => {
+  expect(typeAfterEnter('done')).toBe('task');
+  expect(typeAfterEnter('scheduled')).toBe('task');
+  expect(typeAfterEnter('migrated')).toBe('task');
+});
+
+test('migrateTo dopisuje kopię na koniec listy dnia docelowego', () => {
+  const all = [{ ...it('1', A), text: 'Zadzwonić' }];
+  expect(dayItems(migrateTo(all, '1', B, 5, () => 'kopia'), B)).toEqual([
+    { id: 'kopia', day: B, text: 'Zadzwonić', type: 'task', created: 5 },
+  ]);
+});
+
+test('migrateTo oznacza pozycję źródłową i zapisuje dzień docelowy', () => {
+  const src = migrateTo([it('1', A)], '1', B, 5, () => 'kopia').find((x) => x.id === '1')!;
+  expect(src.type).toBe('migrated');
+  expect(src.movedTo).toBe(B);
+});
+
+test('migrateTo na jutro daje typ migrated, na inny dzień scheduled', () => {
+  expect(migrateTo([it('1', A)], '1', B, 5, () => 'k', 'migrated').find((x) => x.id === '1')!.type).toBe('migrated');
+  expect(migrateTo([it('1', A)], '1', '2026-10-01', 5, () => 'k', 'scheduled').find((x) => x.id === '1')!.type).toBe('scheduled');
+});
+
+test('migrateTo wykonane dwa razy nie dopisuje drugiej kopii', () => {
+  const once = migrateTo([it('1', A)], '1', B, 5, () => 'k1');
+  const twice = migrateTo(once, '1', B, 6, () => 'k2');
+  expect(dayItems(twice, B)).toHaveLength(1);
+  expect(twice).toEqual(once);
+});
+
+test('migrateTo z nieznanym id nie zmienia niczego', () => {
+  const all = [it('1', A)];
+  expect(migrateTo(all, 'nie-ma', B, 5, () => 'k')).toEqual(all);
+});
+
+test('migrateTo nie mutuje wejścia', () => {
+  const all = [it('1', A)];
+  migrateTo(all, '1', B, 5, () => 'k');
+  expect(all[0]!.type).toBe('task');
+});
