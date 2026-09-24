@@ -106,8 +106,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
      color-mix daje przezroczystość, więc nie trzeba osobnej reguły. */
   background:color-mix(in srgb, var(--band) 16%, transparent);
 }
-.hour .h{font:500 14px var(--mono);color:var(--fg-dim)}
-.hour .bn{font:400 12px/1.1 var(--sans);color:var(--fg-faint);white-space:nowrap;margin-top:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+/* Godzina i nazwa pory dnia stoją jedna nad drugą, więc muszą różnić się
+   czymś więcej niż odcieniem. Godzina jest treścią: pełny kontrast, większa,
+   półgruba. Nazwa pory jest etykietą: mniejsza, wersalikami, rozstrzelona
+   i wyraźnie przygaszona — ten sam zabieg, co przy dacie w nagłówku. */
+.hour .h{font:600 16px var(--mono);color:var(--fg)}
+.hour .bn{
+  font:500 10px/1.1 var(--sans);color:var(--fg-faint);
+  text-transform:uppercase;letter-spacing:.07em;
+  white-space:nowrap;margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
 .row.is-now .hour .h{color:var(--now);font-weight:600}
 
 .cell{grid-row:1;min-width:0;cursor:pointer;border-left:1px solid var(--line)}
@@ -374,7 +382,7 @@ kbd{
   #date{font-size:16px;padding:6px 4px}
   #clock{font-size:16px;margin-left:6px}
   .hour{padding:0 2px}
-  .hour .h{font-size:11px}
+  .hour .h{font-size:13px}
   .hour .bn{display:none}
   .blk{margin:3px 2px;padding:0 6px;gap:5px;font-size:12px}
   #top{position:relative}
