@@ -64,3 +64,16 @@ test('menu znacznika nie może być obcinane przez przewijane panele', () => {
   expect(rule).toContain('max-height');
   expect(rule).not.toContain('position:absolute');
 });
+
+test('siatka nie rysuje linii — strukturę niosą bloki i kolumna godzin', () => {
+  const rule = (sel: string) => new RegExp(`\\${sel}\\{[^}]*\\}`).exec(css)?.[0] ?? '';
+  for (const sel of ['.row', '.cell', '.hour']) {
+    expect(rule(sel), sel).not.toMatch(/border(-top|-left|-right|-bottom)?:\s*[^0]/);
+  }
+});
+
+test('nie zostały martwe reguły po liniach siatki', () => {
+  for (const dead of ['.cell.q0', '.cell.q2', '.row.band-start']) {
+    expect(css, dead).not.toContain(dead);
+  }
+});

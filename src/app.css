@@ -132,15 +132,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .row{
   position:relative;min-height:0;display:grid;
   grid-template-columns:var(--hourw) repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);
-  border-top:1px solid var(--line);
 }
-.row:first-child{border-top:0}
-.row.band-start{border-top-color:var(--line-2)}
 .hour{
   grid-column:1;grid-row:1;position:relative;min-width:0;overflow:hidden;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:0 4px;text-align:center;
-  border-right:1px solid var(--line);
   /* Pora dnia barwi całą kolumnę godziny. Wcześniej był to 3-pikselowy pasek
      przy lewej krawędzi — łatwy do przeoczenia przy kilku porach z rzędu.
      --band to `transparent`, gdy godzina nie należy do żadnej pory, a wtedy
@@ -159,9 +155,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 }
 .row.is-now .hour .h{color:var(--now);font-weight:600}
 
-.cell{grid-row:1;min-width:0;cursor:pointer;border-left:1px solid var(--line)}
-.cell.q0{border-left:0}
-.cell.q2{border-left-color:var(--line-2)}
+.cell{grid-row:1;min-width:0;cursor:pointer}
 .cell.c-past{background:var(--past)}
 .cell.c-now{background:linear-gradient(90deg,var(--past) calc(var(--f) * 100%),transparent 0)}
 @media (hover:hover){ .cell:hover{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--fg) 5%,transparent)} }

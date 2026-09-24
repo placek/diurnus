@@ -52,7 +52,6 @@
 <div
   class="row"
   class:is-now={nowLeft !== null}
-  class:band-start={bandStart && row > 0}
   style="--band:{band ? `var(--${band.color})` : 'transparent'}"
 >
   <div class="hour">
