@@ -6,6 +6,7 @@
   import Icon from '../Icon.svelte';
   import CategoriesTab from './CategoriesTab.svelte';
   import DayTab from './DayTab.svelte';
+  import DataTab from './DataTab.svelte';
 
   interface Props {
     tab: 'cats' | 'day' | 'data';
@@ -59,19 +60,26 @@
     <div class="tabs" role="tablist">
       <button class="tab" class:sel={tab === 'cats'} onclick={() => (ui.settings = 'cats')} role="tab">Kategorie</button>
       <button class="tab" class:sel={tab === 'day'} onclick={() => (ui.settings = 'day')} role="tab">Dzień</button>
+      <button class="tab" class:sel={tab === 'data'} onclick={() => (ui.settings = 'data')} role="tab">Dane</button>
     </div>
     <button class="ib" onclick={closeAll} aria-label="Zamknij"><Icon name="xmark" fallback="×" /></button>
   </div>
 
   {#if tab === 'day'}
     <DayTab {day} setDay={(d) => (day = d)} />
+  {:else if tab === 'data'}
+    <DataTab />
   {:else}
     <CategoriesTab {draft} setDraft={(d) => (draft = d)} />
   {/if}
 
   <div class="sh-actions">
     <span class="sp"></span>
-    <button class="btn" onclick={closeAll}>Anuluj</button>
-    <button class="btn primary" onclick={save}>Zapisz</button>
+    {#if tab === 'data'}
+      <button class="btn primary" onclick={closeAll}>Zamknij</button>
+    {:else}
+      <button class="btn" onclick={closeAll}>Anuluj</button>
+      <button class="btn primary" onclick={save}>Zapisz</button>
+    {/if}
   </div>
 </div>
