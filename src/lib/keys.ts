@@ -23,7 +23,6 @@ export type KeyAction =
   | { type: 'delete' }
   | { type: 'day'; delta: number }
   | { type: 'today' }
-  | { type: 'suggest' }
   | { type: 'settings'; tab: 'cats' | 'day' }
   | { type: 'help' }
   | { type: 'menuPick'; n: number }
@@ -90,7 +89,6 @@ export function keyAction(key: string, ctx: KeyContext): KeyAction | null {
   if (key === '[' || key === ',') return { type: 'day', delta: -1 };
   if (key === ']' || key === '.') return { type: 'day', delta: 1 };
   if (lower === 't') return { type: 'today' };
-  if (lower === 's') return { type: 'suggest' };
   if (lower === 'c') return { type: 'settings', tab: 'cats' };
   if (lower === 'd') return { type: 'settings', tab: 'day' };
   if (key === '?') return { type: 'help' };

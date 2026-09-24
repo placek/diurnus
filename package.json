@@ -13,7 +13,6 @@
     "fmt": "prettier --write ."
   },
   "dependencies": {
-    "@fontsource/ibm-plex-mono": "^5.1.0",
     "@fontsource/ibm-plex-sans-condensed": "^5.1.0",
     "@fortawesome/free-solid-svg-icons": "^6.7.1"
   },

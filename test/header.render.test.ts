@@ -52,23 +52,25 @@ test('pasek ma jeden pip na każde pół godziny widocznego okna', () => {
   expect(htmlToday.match(/class="pip"/g)).toHaveLength(32); // 16 h × 2
 });
 
-test('licznik liczy w półgodzinach: 4 kwanty wykonane to 2 z 32', () => {
-  expect(htmlToday).toContain('<b>2</b>/32');
+test('nagłówek nie pokazuje już licznika w postaci n/32', () => {
+  expect(htmlToday).not.toContain('id="count"');
+  expect(htmlToday).not.toMatch(/\/\s*32/);
+  expect(htmlToday).not.toContain('w planie');
 });
 
-test('zaplanowane półgodziny pokazują się osobno', () => {
-  expect(htmlToday).toContain('+1 w planie');
-});
-
-test('dzień bez bloków nie pokazuje członu o planie', () => {
-  expect(htmlOther).not.toContain('w planie');
-  expect(htmlOther).toContain('<b>0</b>/32');
-});
-
-test('etykieta daty jest polska i pozbawiona przecinka po dniu tygodnia', () => {
+test('data jest pełna: dzień tygodnia, liczba i nazwa miesiąca', () => {
   const label = /id="date"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
-  expect(label).not.toBe('');
-  expect(label).not.toContain(',');
+  expect(label).toMatch(/^(poniedziałek|wtorek|środa|czwartek|piątek|sobota|niedziela), \d{1,2} \p{L}+$/u);
+});
+
+test('wersaliki są zadaniem CSS, nie treści — czytnik słyszy naturalny zapis', () => {
+  const label = /id="date"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
+  expect(label).toBe(label.toLocaleLowerCase('pl-PL'));
+});
+
+test('zegar pokazuje godzinę i minutę obok daty', () => {
+  const clock = /id="clock"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
+  expect(clock).toMatch(/^\d{2}:\d{2}$/);
 });
 
 test('dzisiejsza data dostaje klasę is-today, inna nie', () => {
@@ -76,8 +78,11 @@ test('dzisiejsza data dostaje klasę is-today, inna nie', () => {
   expect(htmlOther).not.toContain('is-today');
 });
 
-test('wszystkie cztery narzędzia są w nagłówku', () => {
-  for (const label of ['Sugestie z zeszłego tygodnia', 'Ustawienia', 'Motyw', 'Pomoc']) {
-    expect(htmlToday, label).toContain(`aria-label="${label}"`);
-  }
+test('narzędzia stoją w kolejności: pomoc, motyw, ustawienia (czyli od prawej: ustawienia, motyw, pomoc)', () => {
+  const order = [...htmlToday.matchAll(/aria-label="(Pomoc|Motyw|Ustawienia)"/g)].map((m) => m[1]);
+  expect(order).toEqual(['Pomoc', 'Motyw', 'Ustawienia']);
+});
+
+test('nie ma już przycisku sugestii z zeszłego tygodnia', () => {
+  expect(htmlToday).not.toContain('Sugestie');
 });

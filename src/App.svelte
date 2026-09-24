@@ -12,7 +12,6 @@
   } from './state.svelte';
   import {
     actAt,
-    applySuggestions,
     assignDigit,
     cellCenter,
     chooseCat,
@@ -146,9 +145,6 @@
         app.viewDay = today();
         closeAll();
         break;
-      case 'suggest':
-        applySuggestions();
-        break;
       case 'settings':
         ui.settings = action.tab;
         break;
@@ -175,7 +171,11 @@
 
 <svelte:window onkeydown={onKeydown} onresize={() => ui.menu && closeMenu()} />
 
-<Header onTheme={cycleTheme} onSuggest={applySuggestions} onHelp={() => (ui.help = true)} onSettings={() => (ui.settings = 'cats')} />
+<Header
+  onTheme={cycleTheme}
+  onHelp={() => (ui.help = true)}
+  onSettings={() => (ui.settings = 'cats')}
+/>
 <Grid />
 
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}

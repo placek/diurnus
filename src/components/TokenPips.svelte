@@ -24,8 +24,6 @@
     Array.from({ length: Math.ceil(cells.length / 2) }, (_, i) => cells.slice(i * 2, i * 2 + 2)),
   );
 
-  const fmtNum = (x: number) => (Number.isInteger(x) ? String(x) : String(x).replace('.', ','));
-
   const tip = $derived(
     stats.perCat.length
       ? stats.perCat
@@ -50,10 +48,5 @@
         {/each}
       </span>
     {/each}
-  </div>
-  <div class="count" id="count">
-    <b>{fmtNum(stats.done.length / 2)}</b>/{stats.totalQ / 2}{#if stats.plan.length}<span
-        class="pl">+{fmtNum(stats.plan.length / 2)} w planie</span
-      >{/if}
   </div>
 </div>

@@ -4,7 +4,7 @@ import { ICONS } from '../src/lib/model';
 
 // Ikony interfejsu — nie ma ich w ICONS, bo użytkownik nie wybiera ich dla kategorii.
 const UI_ICONS = [
-  'wand-magic-sparkles', 'circle-half-stroke', 'sliders', 'keyboard', 'chevron-left',
+  'question', 'circle-half-stroke', 'sliders', 'keyboard', 'chevron-left',
   'chevron-right', 'xmark', 'trash-can', 'plus', 'arrow-up', 'check', 'rotate-left',
   'download', 'upload',
 ];

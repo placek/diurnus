@@ -1,6 +1,5 @@
 import { app, commit, ui, uid } from './state.svelte';
-import { win } from './state.svelte';
-import { acceptTarget, newBlock, statusFor, suggestionsFromLastWeek } from './lib/actions';
+import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
 import { fmtQ, rel } from './lib/time';
@@ -51,26 +50,6 @@ export function removeBlock(id: string): void {
     true,
   );
 }
-
-export function applySuggestions(): void {
-  const add = suggestionsFromLastWeek(
-    app.S.blocks,
-    app.viewDay,
-    win.q0,
-    win.q1,
-    Date.now(),
-    () => uid(),
-  );
-  if (!add.length) {
-    app.toast = { msg: 'Brak wolnych miejsc na sugestie', undoable: false };
-    return;
-  }
-  const n = add.length;
-  commit(() => app.S.blocks.push(...add), `Dodano ${n} ${plural(n)}`, true);
-}
-
-const plural = (n: number) =>
-  n === 1 ? 'sugestię' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'sugestie' : 'sugestii';
 
 export function openMenu(q: number, x: number, y: number): void {
   if (!topCats(app.S.cats).length) return;

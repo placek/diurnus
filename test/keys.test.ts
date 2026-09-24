@@ -45,10 +45,14 @@ test('nawigacja po dniach', () => {
 });
 
 test('skróty narzędzi', () => {
-  expect(k('s')).toEqual({ type: 'suggest' });
   expect(k('c')).toEqual({ type: 'settings', tab: 'cats' });
   expect(k('d')).toEqual({ type: 'settings', tab: 'day' });
   expect(k('?')).toEqual({ type: 'help' });
+});
+
+test('s nie jest już skrótem — sugestie z zeszłego tygodnia usunięto', () => {
+  expect(k('s')).toBeNull();
+  expect(k('S')).toBeNull();
 });
 
 test('Enter i spacja działają tylko przy widocznym kursorze', () => {

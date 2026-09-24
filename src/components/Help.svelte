@@ -46,8 +46,6 @@
     <dd class="kb">ustawienia: kategorie, dzień</dd>
     <dt class="kb"><kbd>[</kbd> <kbd>]</kbd> <kbd>T</kbd></dt>
     <dd class="kb">poprzedni dzień, następny, dziś</dd>
-    <dt class="kb"><kbd>S</kbd></dt>
-    <dd class="kb">sugestie z tego samego dnia tydzień temu</dd>
     <dt class="kb"><kbd>Ctrl</kbd> <kbd>Z</kbd></dt>
     <dd class="kb">cofnij</dd>
   </dl>

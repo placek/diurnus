@@ -3,9 +3,6 @@
 import '@fontsource/ibm-plex-sans-condensed/400.css';
 import '@fontsource/ibm-plex-sans-condensed/500.css';
 import '@fontsource/ibm-plex-sans-condensed/600.css';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
-import '@fontsource/ibm-plex-mono/600.css';
 import './app.css';
 
 import { mount } from 'svelte';
