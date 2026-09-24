@@ -1,11 +1,11 @@
-# SemiGrid — plan implementacji
+# GridDay — plan implementacji
 
-**SemiGrid** to aplikacja do kwantowania doby na 15-minutowe tokeny: cała aktywna część dnia
+**GridDay** to aplikacja do kwantowania doby na 15-minutowe tokeny: cała aktywna część dnia
 mieści się w jednym oknie przeglądarki (`100dvh`, zero scrollowania), a każdy blok czasu jest
 jednym kliknięciem oznaczany jako zaplanowany, trwający lub wykonany.
 
 > **Faza obecna: aplikacja bezserwerowa.**
-> Całość to **jeden plik `semigrid.html`** — bez backendu, bez build-stepu, bez `node_modules`,
+> Całość to **jeden plik `gridday.html`** — bez backendu, bez build-stepu, bez `node_modules`,
 > bez zależności runtime. Stan żyje w `localStorage` przeglądarki. Kalendarze wchodzą do
 > aplikacji jako pliki **iCalendar (`.ics`)** pobierane po URL-u.
 >
@@ -22,12 +22,12 @@ jednym kliknięciem oznaczany jako zaplanowany, trwający lub wykonany.
 
 | Warstwa | Wybór | Uzasadnienie |
 |---|---|---|
-| Format dystrybucji | pojedynczy `semigrid.html` | kopiujesz jeden plik i działa; brak pipeline'u |
+| Format dystrybucji | pojedynczy `gridday.html` | kopiujesz jeden plik i działa; brak pipeline'u |
 | JS | vanilla ES2022, IIFE, `'use strict'` | zero zależności, zero transpilacji |
 | CSS | custom properties + CSS Grid | paleta Gruvbox light/dark przez `prefers-color-scheme` + `[data-theme]` |
 | Typografia | IBM Plex Mono / Sans Condensed (Google Fonts) | jedyny zasób zewnętrzny obok ikon |
 | Ikony | FontAwesome 6 (CDN, `data-auto-replace-svg="nest"`) | renderowane przez `icon()` z cache'em w `iconCache` |
-| Trwałość | `localStorage` (`semigrid.v1`, `semigrid.prefs`) | synchroniczna, prosta, wystarczająca |
+| Trwałość | `localStorage` (`gridday.v1`, `gridday.prefs`) | synchroniczna, prosta, wystarczająca |
 | Kalendarze | `fetch()` pliku `.ics` + własny parser | brak biblioteki, brak backendu |
 | Offline | Service Worker (`sw.js`) + `manifest.json` | opcjonalnie, tylko przy self-hostingu na HTTPS |
 
@@ -51,7 +51,7 @@ być jawnie widoczne w UI:
 
 ## 2. Stan faktyczny prototypu
 
-`semigrid.html` (~1380 linii) **realizuje już całość silnika siatki i interakcji**. Poniższa
+`gridday.html` (~1380 linii) **realizuje już całość silnika siatki i interakcji**. Poniższa
 lista to inwentaryzacja, nie plan — te rzeczy są zrobione:
 
 - [x] Kontener `100dvh` bez scrolla, `HOURS` rzędów CSS Grid, `flex:1;min-height:0`.
@@ -80,16 +80,16 @@ lista to inwentaryzacja, nie plan — te rzeczy są zrobione:
 
 ## 3. Model danych (localStorage)
 
-Źródłem prawdy jest jeden obiekt JSON pod kluczem `semigrid.v1`. Kluczowa decyzja: **`q` to
+Źródłem prawdy jest jeden obiekt JSON pod kluczem `gridday.v1`. Kluczowa decyzja: **`q` to
 indeks kwantu 15-minutowego liczony od północy** (0–95, `QDAY = 96`), a nie od początku
 widocznego okna. Dzięki temu zmiana godzin pracy dnia nie przesuwa istniejących danych.
 
-Uwaga na dwie różne „wersje": **`semigrid.v1` to nazwa klucza** w `localStorage` (stała `KEY`
+Uwaga na dwie różne „wersje": **`gridday.v1` to nazwa klucza** w `localStorage` (stała `KEY`
 w kodzie, nigdy się nie zmienia), a **`S.v` to wersja schematu** danych pod tym kluczem —
 obecnie `2`, integracja iCal podnosi ją do `3`.
 
 ```js
-// localStorage['semigrid.v1']   ← nazwa klucza; wersję schematu trzyma pole S.v
+// localStorage['gridday.v1']   ← nazwa klucza; wersję schematu trzyma pole S.v
 S = {
   v: 3,                          // wersja schematu; migracje w normalize()
   cats: [                        // kategorie, płasko, hierarchia przez `parent`
@@ -131,7 +131,7 @@ S = {
   ]
 }
 
-// localStorage['semigrid.prefs']
+// localStorage['gridday.prefs']
 prefs = { theme:'auto', seenHelp:true, syncOnOpen:true }
 ```
 
@@ -174,7 +174,7 @@ Q1    = END_H * 4                    // pierwszy kwant poza oknem (88 dla 22:00)
 
 Kalendarz jest **źródłem intencji, nie prawdą o wykonaniu**. Zdarzenia wchodzą wyłącznie jako
 `status:'suggested'` i dopiero kliknięcie użytkownika zamienia je w `confirmed`. Integracja
-jest **jednokierunkowa, tylko do odczytu** — SemiGrid nigdy nie zapisuje niczego do kalendarza
+jest **jednokierunkowa, tylko do odczytu** — GridDay nigdy nie zapisuje niczego do kalendarza
 ani nie eksportuje `.ics`.
 
 ### 5.1. Pobieranie: URL jako ścieżka podstawowa
@@ -182,13 +182,13 @@ ani nie eksportuje `.ics`.
 Aplikacja robi zwykły `fetch(cal.url)`. Żeby to zadziałało, `.ics` musi być osiągalny dla
 przeglądarki. Trzy scenariusze, od najpewniejszego:
 
-**A. Same-origin (zalecany).** Hostujesz `semigrid.html` u siebie i kładziesz obok plik `.ics`.
+**A. Same-origin (zalecany).** Hostujesz `gridday.html` u siebie i kładziesz obok plik `.ics`.
 Zewnętrzny proces (cron + `curl`) odświeża go niezależnie od aplikacji:
 
 ```cron
 */15 * * * * curl -fsS "https://calendar.google.com/calendar/ical/…/basic.ics" \
-               -o /var/www/semigrid/cal/work.ics.tmp \
-             && mv /var/www/semigrid/cal/work.ics{.tmp,}
+               -o /var/www/gridday/cal/work.ics.tmp \
+             && mv /var/www/gridday/cal/work.ics{.tmp,}
 ```
 
 W aplikacji wpisujesz ścieżkę względną `/cal/work.ics`. Brak CORS, brak wycieku sekretnego
@@ -326,7 +326,7 @@ kilku kalendarzach, a łatwo ją dodać później.
 ### P — PWA
 
 - [ ] **P1.** `manifest.json` + `sw.js` obok pliku HTML. **Uwaga na napięcie z zasadą
-      „jeden plik":** sam `semigrid.html` działa samodzielnie (także z `file://`), ale
+      „jeden plik":** sam `gridday.html` działa samodzielnie (także z `file://`), ale
       instalowalne PWA wymaga dwóch dodatkowych plików i HTTPS. Ponieważ scenariusz A z §5.1
       i tak zakłada self-hosting, to nie jest realny koszt — trzeba to tylko jawnie opisać.
 - [ ] **P2.** Strategia cache'u: `cache-first` dla powłoki aplikacji, `network-first` dla `.ics`.
