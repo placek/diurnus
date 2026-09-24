@@ -1,4 +1,5 @@
 import { normalize, uid } from './lib/model';
+import { reconcile } from './lib/link';
 import { readJSON, writeJSON } from './lib/persist';
 import { dayKey, qTime, today } from './lib/time';
 import type { Block, Prefs, State } from './lib/types';
@@ -102,6 +103,9 @@ export function commit(fn: () => void, msg?: string, undoable = false): void {
   history.push($state.snapshot(app.S) as State);
   if (history.length > HISTORY_MAX) history.shift();
   fn();
+  // Niezmiennik utrzymywany w jednym miejscu: żaden z mutatorów bloków nie
+  // musi pamiętać o liście, bo każdy i tak przechodzi tędy.
+  app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
   if (!save()) {
     app.toast = { msg: 'Zapis nieudany — pobierz kopię zapasową', undoable: false };
     return;
