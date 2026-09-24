@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 function seed(items: unknown[]) {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   localStorage.setItem(
     'gridday.v1',
     JSON.stringify({

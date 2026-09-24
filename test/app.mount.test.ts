@@ -43,11 +43,11 @@ test('aplikacja montuje się i rysuje siatkę z domyślnego stanu', async () => 
 test('pierwsze uruchomienie pokazuje ekran pomocy i zapamiętuje to', async () => {
   await mountApp();
   expect(document.querySelector('#helpbox')).not.toBeNull();
-  expect(JSON.parse(localStorage.getItem('gridday.prefs') ?? '{}').seenHelp).toBe(true);
+  expect(JSON.parse(localStorage.getItem('diurnus.prefs') ?? '{}').seenHelp).toBe(true);
 });
 
 test('kliknięcie w pustą komórkę otwiera menu radialne z kategoriami', async () => {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   const { flushSync } = await import('svelte');
   await mountApp();
 
@@ -63,7 +63,7 @@ test('kliknięcie w pustą komórkę otwiera menu radialne z kategoriami', async
 });
 
 test('wybór kategorii bez podkategorii tworzy blok i utrwala go', async () => {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   const { flushSync } = await import('svelte');
   await mountApp();
 
@@ -82,14 +82,14 @@ test('wybór kategorii bez podkategorii tworzy blok i utrwala go', async () => {
   expect(document.querySelectorAll('#grid .blk:not(.ghost)')).toHaveLength(1);
   expect(document.querySelector('#radial')).toBeNull();
 
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.blocks).toHaveLength(1);
   expect(saved.blocks[0].q).toBe(32);
   expect(saved.blocks[0].cat).toBe('learn');
 });
 
 test('kategoria z podkategoriami otwiera drugi pierścień zamiast zapisywać', async () => {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   const { flushSync } = await import('svelte');
   await mountApp();
 
@@ -105,7 +105,7 @@ test('kategoria z podkategoriami otwiera drugi pierścień zamiast zapisywać', 
 });
 
 test('motyw ustawiony na ciemny trafia na element html', async () => {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'dark', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'dark', seenHelp: true }));
   await mountApp();
   expect(document.documentElement.dataset.theme).toBe('dark');
 });

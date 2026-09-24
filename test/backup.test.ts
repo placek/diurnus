@@ -68,3 +68,17 @@ test('tablica JSON zamiast obiektu jest odrzucana', () => {
 test('eksport jest czytelny dla człowieka (wcięcia)', () => {
   expect(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0)).toContain('\n  "magic"');
 });
+
+test('kopia zapisana pod starą nazwą projektu nadal się wczytuje', () => {
+  // Zmiana nazwy nie może unieważnić plików, które ktoś już pobrał.
+  const old = JSON.stringify({
+    magic: 'gridday.backup',
+    state: { v: 5, cats: [], blocks: [], items: [], day: { start: 6, end: 22, bands: [] } },
+  });
+  expect(() => bundleParse(old)).not.toThrow();
+});
+
+test('nowa kopia nosi nową nazwę', () => {
+  const o = JSON.parse(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0));
+  expect(o.magic).toBe('diurnus.backup');
+});

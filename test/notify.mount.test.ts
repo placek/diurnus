@@ -29,8 +29,8 @@ beforeEach(() => {
 });
 
 function seed(notify: boolean, blocks: unknown[]) {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true, notify }));
-  localStorage.setItem('gridday.v1', JSON.stringify({
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true, notify }));
+  localStorage.setItem('diurnus.v1', JSON.stringify({
     v: 5,
     cats: [{ id: 'learn', name: 'Nauka', icon: 'book-open', color: 'blue', parent: null }],
     day: { start: 6, end: 22, bands: [] }, blocks, items: [],

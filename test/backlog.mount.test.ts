@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 function seed(items: unknown[]) {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   localStorage.setItem(
     'gridday.v1',
     JSON.stringify({
@@ -172,6 +172,6 @@ test('Backspace na pustej pozycji backlogu usuwa ją', async () => {
 test('pole początkowe backlogu nie tworzy pozycji dopóki się nie pisze', async () => {
   seed([]);
   await mountApp();
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{"items":[]}');
   expect(saved.items ?? []).toEqual([]);
 });
