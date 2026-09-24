@@ -144,9 +144,22 @@ export function setItemType(id: string, type: ItemType): void {
   });
 }
 
+/** Pozycja powiązana: znacznik JEST statusem bloku, więc przełączamy status. */
+export function toggleBlockDone(id: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  const block = item?.block ? app.S.blocks.find((b) => b.id === item.block) : undefined;
+  if (!block) return;
+  commit(() => {
+    block.status = block.status === 'confirmed' ? 'planned' : 'confirmed';
+  });
+}
+
 export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
   const item = app.S.items.find((i) => i.id === id);
-  if (item) setItemType(id, cycleType(item.type, dir));
+  if (!item) return;
+  // Znacznik pozycji powiązanej nie ma własnego cyklu — odbija status bloku.
+  if (item.block) return toggleBlockDone(id);
+  setItemType(id, cycleType(item.type, dir));
 };
 
 export function migrateItem(

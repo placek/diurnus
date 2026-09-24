@@ -1,5 +1,5 @@
 import { occ } from './occupancy';
-import type { Block, Item } from './types';
+import type { Block, Item, ItemType, Status } from './types';
 
 /** Blok, którego odbiciem jest ta pozycja. */
 export const blockOfItem = (blocks: readonly Block[], item: Item): Block | undefined =>
@@ -9,6 +9,14 @@ export const blockOfItem = (blocks: readonly Block[], item: Item): Block | undef
 // i nie dostają pozycji.
 const live = (blocks: readonly Block[], day: string | null) =>
   blocks.filter((b) => b.status !== 'discarded' && (day === null || b.day === day));
+
+/**
+ * Znacznik pozycji powiązanej jest odbiciem statusu bloku, nie osobnym stanem:
+ * blok potwierdzony czyta się na liście jako wykonany, każdy inny jako otwarte
+ * zadanie. Dzięki temu odhaczyć można z dowolnej połowy ekranu.
+ */
+export const markForStatus = (status: Status): ItemType =>
+  status === 'confirmed' ? 'done' : 'task';
 
 /**
  * Cały niezmiennik: każdy blok ma dokładnie jedną pozycję, każda pozycja
@@ -31,20 +39,30 @@ export function reconcile(
   // 1. Usuń pozycje wskazujące na blok, którego nie ma (albo już nie liczy się jako blok).
   const kept = items.filter((i) => !i.block || !inScope(i.day) || alive.has(i.block));
 
-  // 2. Dołóż pozycje dla bloków, które jeszcze swojej nie mają.
-  const taken = new Set(kept.map((i) => i.block).filter(Boolean) as string[]);
+  // 2. Uzgodnij znacznik pozycji powiązanych ze statusem ich bloków.
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+  const synced = kept.map((i) => {
+    if (!i.block || !inScope(i.day)) return i;
+    const b = byId.get(i.block);
+    if (!b) return i;
+    const want = markForStatus(b.status);
+    return i.type === want ? i : { ...i, type: want };
+  });
+
+  // 3. Dołóż pozycje dla bloków, które jeszcze swojej nie mają.
+  const taken = new Set(synced.map((i) => i.block).filter(Boolean) as string[]);
   const added: Item[] = live(blocks, day)
     .filter((b) => !taken.has(b.id))
     .map((b) => ({
       id: makeId(),
       day: b.day,
       text: b.title,
-      type: 'task' as const,
+      type: markForStatus(b.status),
       created,
       block: b.id,
     }));
 
-  return added.length ? [...kept, ...added] : kept;
+  return added.length ? [...synced, ...added] : synced;
 }
 
 /** Pozycje powiązane danego dnia, w kolejności godzin swoich bloków. */
