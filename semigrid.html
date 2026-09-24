@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SemiGrid</title>
+<title>GridDay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
@@ -431,10 +431,10 @@ kbd{
 
 <script>
 /*
-  SemiGrid — tygodnie 1–2: silnik siatki + interakcje + localStorage.
+  GridDay — tygodnie 1–2: silnik siatki + interakcje + localStorage.
 
   PWA: przy self-hostingu połóż obok plik sw.js:
-    const C='semigrid-v1';
+    const C='gridday-v1';
     self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['./']))));
     self.addEventListener('fetch',e=>e.respondWith(
       caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
@@ -777,7 +777,7 @@ function renderHeader(){
 /* Aktualizacje co sekundę: odliczanie i postęp aktywnego bloku */
 function live(){
   const now = Date.now();
-  let title = 'SemiGrid';
+  let title = 'GridDay';
   document.querySelectorAll('#grid .blk.st-active').forEach(el => {
     const b = byId(el.dataset.id); if (!b) return;
     const t0 = qTime(b.day, +el.dataset.s0), t1 = qTime(b.day, +el.dataset.s1);
@@ -1140,7 +1140,7 @@ function openHelp(){
   closeAll(true);
   const el = $('#helpbox');
   el.innerHTML = `
-    <h2>SemiGrid</h2>
+    <h2>GridDay</h2>
     <p>Dzień od ${pad(START_H)} do ${pad(END_H)} to ${HOURS * 2} ${plural(HOURS * 2, 'slot', 'sloty', 'slotów')} po 30 minut. Kliknij pole, wybierz kategorię. To, co kliknięcie zrobi, zależy od czasu: przeszłość zapisuje wykonanie, teraźniejszość uruchamia odliczanie, przyszłość planuje.</p>
     <div class="legend">
       <div class="blk st-suggested first last">sugestia</div>
