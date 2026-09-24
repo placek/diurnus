@@ -95,6 +95,7 @@
 <div
   class="item t-{item.type}"
   class:is-linked={!!block}
+  class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}

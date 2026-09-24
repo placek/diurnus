@@ -2,6 +2,12 @@
 :root{
   color-scheme: light;
   --hourw: 48px;
+  /* Wspólny kształt bloku na siatce i wiersza na liście: ten sam promień,
+     ta sama grubość akcentu, ta sama siła podbarwienia. Zmiana tu zmienia
+     obie połowy ekranu naraz — o to chodziło w ujednoliceniu. */
+  --shape-r: 8px;
+  --accent-w: 3px;
+  --tint: 12%;
   --hdr: 76px;
   --bg:#fbf1c7; --raise:#fffbe8; --fg:#3c3836; --fg-dim:#7c6f64; --fg-faint:#a89984;
   --line:rgba(60,56,54,.09); --line-2:rgba(60,56,54,.17);
@@ -164,12 +170,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .blk{
   grid-row:1;position:relative;z-index:2;min-width:0;margin:4px 3px;padding:0 8px;
   display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;
-  font:500 15px/1.1 var(--sans);cursor:pointer;
+  font:500 16px/1.1 var(--sans);cursor:pointer;
   border:1.5px solid transparent;
   transition:filter .15s, box-shadow .15s, opacity .15s;
 }
-.blk.first{border-top-left-radius:7px;border-bottom-left-radius:7px}
-.blk.last{border-top-right-radius:7px;border-bottom-right-radius:7px}
+.blk.first{border-top-left-radius:var(--shape-r);border-bottom-left-radius:var(--shape-r)}
+.blk.last{border-top-right-radius:var(--shape-r);border-bottom-right-radius:var(--shape-r)}
 .blk:not(.first){margin-left:0;border-left-width:0;padding-left:7px}
 .blk:not(.last){margin-right:0;border-right-width:0}
 .blk .ic{flex:none;font-size:11px}
@@ -438,9 +444,9 @@ kbd{
 
 /* ───────────── Lista notatek ───────────── */
 .bullet{
-  flex:none;width:26px;height:26px;border:0;border-radius:6px;background:transparent;
+  flex:none;width:24px;height:24px;border:0;border-radius:6px;background:transparent;
   color:var(--fg-dim);cursor:pointer;display:grid;place-items:center;
-  font:600 18px var(--sans);line-height:1;
+  font:600 17px var(--sans);line-height:1;
 }
 .bullet:hover{background:var(--line)}
 .bullet.t-done{color:var(--green)}
@@ -457,10 +463,21 @@ kbd{
 .bullet-menu button:hover{background:var(--line)}
 .bullet-menu button.sel{color:var(--fg);background:var(--line)}
 .bm-mark{width:14px;text-align:center;color:var(--fg-dim)}
-.item{display:flex;align-items:center;gap:7px;position:relative;padding:2px 0}
+/* Wiersz listy ma ten sam kształt co blok: promień, akcent i podbarwienie.
+   Notatka bez kategorii zostaje samym tekstem — środkowy panel jest
+   powierzchnią do pisania i obramowanie każdej linii walczyłoby z tym. */
+.item{
+  display:flex;align-items:center;gap:7px;position:relative;
+  margin:2px 0;padding:2px 6px 2px 0;border-radius:var(--shape-r);
+}
+.item.has-cat{
+  background:color-mix(in srgb, var(--c) var(--tint), transparent);
+  box-shadow:inset var(--accent-w) 0 0 var(--c);
+  padding-left:calc(var(--accent-w) + 4px);
+}
 .item-text{
   flex:1;min-width:0;border:0;background:transparent;outline:0;padding:4px 2px;
-  font:500 18px var(--sans);color:var(--fg);
+  font:500 16px var(--sans);color:var(--fg);
 }
 .item-text:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
 .item.t-done .item-text{color:var(--fg-faint);text-decoration:line-through}
@@ -477,7 +494,7 @@ kbd{
 }
 .item.is-linked .item-hour{
   flex:none;font:600 14px var(--sans);color:var(--c,var(--fg-dim));
-  min-width:44px;font-variant-numeric:tabular-nums;
+  min-width:42px;font-variant-numeric:tabular-nums;
 }
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
 .item.is-linked .item-text{color:var(--fg)}
@@ -489,7 +506,7 @@ kbd{
 /* Pozycja powtarzalna: kółko zamiast kropki. */
 .bullet.is-repeat{
   border:2px solid currentColor;border-radius:50%;
-  width:20px;height:20px;font-size:0;
+  width:18px;height:18px;font-size:0;
 }
 .date-prompt{
   position:fixed;z-index:60;min-width:220px;padding:12px;

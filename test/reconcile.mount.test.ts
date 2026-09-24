@@ -168,3 +168,21 @@ test('strzałki nawigują przez obie grupy w kolejności wyświetlania', async (
   expect(down.defaultPrevented).toBe(true);
   expect(document.activeElement).toBe(all[1]);
 });
+
+test('pozycja powiązana niesie kategorię i wspólny kształt, swobodna zostaje tekstem', async () => {
+  const flush = await mountApp();
+  await createBlock(flush);
+
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Zwykła notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const linked = document.querySelector('#list .item.is-linked')!;
+  expect(linked.classList.contains('has-cat')).toBe(true);
+  // jsdom normalizuje styl inline, więc porównujemy bez białych znaków.
+  expect(linked.getAttribute('style')!.replace(/\s+/g, '')).toContain('--c:var(--blue)');
+
+  const free = document.querySelector('#list .item:not(.is-linked):not(.is-draft)')!;
+  expect(free.classList.contains('has-cat')).toBe(false);
+});
