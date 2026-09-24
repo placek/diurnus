@@ -1,4 +1,4 @@
-# GridDay — powiązanie bloków z pozycjami (faza B): plan wdrożenia
+# Diurnus — powiązanie bloków z pozycjami (faza B): plan wdrożenia
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Svelte 5 (runy), TypeScript, Vitest (projekty `unit` i `mount`).
 
-**Spec:** [`docs/superpowers/specs/2026-09-24-gridday-block-item-link-design.md`](../specs/2026-09-24-gridday-block-item-link-design.md)
+**Spec:** [`docs/superpowers/specs/2026-09-24-diurnus-block-item-link-design.md`](../specs/2026-09-24-diurnus-block-item-link-design.md)
 
 ## Global Constraints
 
@@ -404,7 +404,7 @@ import { today } from '../src/lib/time';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -447,7 +447,7 @@ test('utworzenie bloku tworzy powiązaną pozycję', async () => {
 test('powiązana pozycja utrwala się razem ze stanem', async () => {
   const flush = await mountApp();
   await createBlock(flush);
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].block).toBe(saved.blocks[0].id);
 });
@@ -690,7 +690,7 @@ import { test, expect, beforeEach, vi } from 'vitest';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -860,7 +860,7 @@ import { shiftDay, today } from '../src/lib/time';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;

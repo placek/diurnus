@@ -1,6 +1,6 @@
-# GridDay — specyfikacja projektu
+# Diurnus — specyfikacja projektu
 
-**GridDay** to aplikacja do kwantowania doby na 15-minutowe tokeny: cała aktywna część dnia
+**Diurnus** to aplikacja do kwantowania doby na 15-minutowe tokeny: cała aktywna część dnia
 mieści się w jednym oknie przeglądarki (`100dvh`, zero scrollowania), a każdy blok czasu jest
 jednym kliknięciem oznaczany jako zaplanowany, trwający lub wykonany.
 
@@ -15,7 +15,7 @@ jednym kliknięciem oznaczany jako zaplanowany, trwający lub wykonany.
 
 ## Historia projektu
 
-Punktem wyjścia był prototyp `gridday.html` — jeden samowystarczalny plik vanilla JS
+Punktem wyjścia był prototyp `diurnus.html` — jeden samowystarczalny plik vanilla JS
 (~1380 linii), który zrealizował cały silnik siatki i warstwę interakcji. Prototyp jest
 **dowodem, że mechanika działa**; ten dokument opisuje przeniesienie jej do projektu, który
 da się rozwijać, testować i wdrażać. Prototyp pozostaje w historii gita jako odniesienie przy
@@ -50,7 +50,7 @@ Po porcie aplikacja nie odpytuje żadnego obcego hosta.
 ## 2. Struktura projektu
 
 ```
-gridday/
+diurnus/
 ├── flake.nix, flake.lock, shell.nix      # środowisko deweloperskie
 ├── Makefile                              # dev / build / serve / test / check / fmt / clean
 ├── package.json, vite.config.ts, tsconfig.json, svelte.config.js
@@ -115,7 +115,7 @@ z automatyczną instalacją zależności, gdy `node_modules` jest nieaktualne.
 
 ## 4. Model danych
 
-Źródłem prawdy jest jeden obiekt pod kluczem `localStorage['gridday.v1']`. Kluczowa decyzja:
+Źródłem prawdy jest jeden obiekt pod kluczem `localStorage['diurnus.v1']`. Kluczowa decyzja:
 **`q` to indeks kwantu 15-minutowego liczony od północy** (0–95, `QDAY = 96`), a nie od
 początku widocznego okna — zmiana godzin pracy dnia nie przesuwa istniejących danych.
 
@@ -159,7 +159,7 @@ export interface State {
 export interface Prefs { theme: 'auto' | 'light' | 'dark'; seenHelp: boolean; }
 ```
 
-Uwaga na dwie różne „wersje": **`gridday.v1` to nazwa klucza** w `localStorage` (nigdy się nie
+Uwaga na dwie różne „wersje": **`diurnus.v1` to nazwa klucza** w `localStorage` (nigdy się nie
 zmienia), a **`State.v` to wersja schematu** danych pod tym kluczem.
 
 ### Niezmienniki
@@ -220,18 +220,18 @@ Kliknięcie w komórkę zależy od relacji do czasu systemowego:
 
 ### Ścieżka bazowa
 
-Witryna projektowa żyje pod `https://<użytkownik>.github.io/gridday/`, więc Vite musi budować
-z `base: '/gridday/'`. Pomyłka tutaj daje stronę, która ładuje HTML i zwraca 404 na każdy
+Witryna projektowa żyje pod `https://<użytkownik>.github.io/diurnus/`, więc Vite musi budować
+z `base: '/diurnus/'`. Pomyłka tutaj daje stronę, która ładuje HTML i zwraca 404 na każdy
 zasób — klasyczne „lokalnie działa, na produkcji biała strona".
 
 `base` bierze się ze zmiennej `BASE_PATH`, którą ustawia Makefile: `/` dla `make dev` i
-`make serve`, `/gridday/` dla budowy wdrożeniowej. Domena własna albo repozytorium nazwane
+`make serve`, `/diurnus/` dla budowy wdrożeniowej. Domena własna albo repozytorium nazwane
 `<użytkownik>.github.io` znosi ten problem — wtedy `BASE_PATH=/`.
 
 ### Workflow
 
 `.github/workflows/pages.yml` na push do `main`: instalacja zależności, `npm run check`,
-`npm run test`, `npm run build` z `BASE_PATH=/gridday/`, wdrożenie przez `actions/deploy-pages`.
+`npm run test`, `npm run build` z `BASE_PATH=/diurnus/`, wdrożenie przez `actions/deploy-pages`.
 Budowa wchodzi na Pages **tylko gdy testy i sprawdzenie typów przejdą** — statyczny hosting nie
 daje żadnego mechanizmu wycofania poza kolejnym wdrożeniem.
 

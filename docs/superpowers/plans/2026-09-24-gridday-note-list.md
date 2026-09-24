@@ -1,4 +1,4 @@
-# GridDay — lista notatek (faza A): plan wdrożenia
+# Diurnus — lista notatek (faza A): plan wdrożenia
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Svelte 5 (runy), TypeScript, Vitest (projekty `unit` i `mount`), istniejący harness jsdom.
 
-**Spec:** [`docs/superpowers/specs/2026-09-24-gridday-note-list-design.md`](../specs/2026-09-24-gridday-note-list-design.md)
+**Spec:** [`docs/superpowers/specs/2026-09-24-diurnus-note-list-design.md`](../specs/2026-09-24-diurnus-note-list-design.md)
 
 ## Global Constraints
 
@@ -813,7 +813,7 @@ import { today } from '../src/lib/time';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -864,7 +864,7 @@ test('wpisanie tekstu utrwala pozycję w localStorage', async () => {
   await typeInto(inputs()[0]!, 'Kupić chleb', flush);
   inputs()[0]!.dispatchEvent(new Event('blur', { bubbles: true }));
   flush();
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Kupić chleb');
   expect(saved.items[0].day).toBe(today());

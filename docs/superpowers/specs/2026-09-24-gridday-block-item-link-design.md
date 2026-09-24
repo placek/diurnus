@@ -1,6 +1,6 @@
-# GridDay — powiązanie bloków z pozycjami listy (faza B): projekt
+# Diurnus — powiązanie bloków z pozycjami listy (faza B): projekt
 
-**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednia faza:** [lista notatek](2026-09-24-gridday-note-list-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
+**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednia faza:** [lista notatek](2026-09-24-diurnus-note-list-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Cel
 

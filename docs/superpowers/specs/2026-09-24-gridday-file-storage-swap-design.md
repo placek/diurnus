@@ -1,6 +1,6 @@
-# GridDay — podmiana trwałości na pliki (faza 3 z 3): projekt
+# Diurnus — podmiana trwałości na pliki (faza 3 z 3): projekt
 
-**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednie fazy:** [serwer](2026-09-24-gridday-diary-server-design.md), [format](2026-09-24-gridday-markdown-format-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
+**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednie fazy:** [serwer](2026-09-24-diurnus-diary-server-design.md), [format](2026-09-24-diurnus-markdown-format-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Cel
 
@@ -98,7 +98,7 @@ rozjechanie się z plikami i konflikt do rozstrzygnięcia przy każdym powrocie.
 
 ## 6. Co znika
 
-**`localStorage` jako magazyn stanu.** `lib/persist.ts` i cała ścieżka `gridday.v1` wychodzą.
+**`localStorage` jako magazyn stanu.** `lib/persist.ts` i cała ścieżka `diurnus.v1` wychodzą.
 
 **Kopia zapasowa JSON.** `lib/backup.ts` i zakładka „Dane" znikają. Dziennik jest katalogiem
 plików tekstowych — kopią zapasową jest `git` albo cokolwiek innego, czym użytkownik już się
@@ -114,7 +114,7 @@ aplikacja potrzebuje serwera, więc statyczny hosting nie ma jej gdzie obsłuży
 ## 7. Co zostaje w przeglądarce
 
 **Wyłącznie preferencje interfejsu** — motyw i to, czy pomoc została już pokazana — pod
-kluczem `gridday.prefs`. To ustawienia urządzenia, nie treść dziennika: telefon może mieć
+kluczem `diurnus.prefs`. To ustawienia urządzenia, nie treść dziennika: telefon może mieć
 ciemny motyw, a komputer jasny, i nie jest to niezgodność do uzgodnienia.
 
 **Stan widokowy** (`ui`) pozostaje ulotny, jak dotąd.

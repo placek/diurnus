@@ -1,6 +1,6 @@
-# GridDay — format markdown dziennika (faza 2 z 3): projekt
+# Diurnus — format markdown dziennika (faza 2 z 3): projekt
 
-**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednia faza:** [serwer plików](2026-09-24-gridday-diary-server-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
+**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednia faza:** [serwer plików](2026-09-24-diurnus-diary-server-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Cel
 
@@ -133,7 +133,7 @@ kolidowałoby z czymś wcześniejszym, a przesunięcie w przód mogłoby.
 
 ## 5. Konfiguracja dziennika
 
-Kategorie i ustawienia doby przenoszą się z `localStorage` do pliku **`.gridday.json`**
+Kategorie i ustawienia doby przenoszą się z `localStorage` do pliku **`.diurnus.json`**
 w katalogu dziennika:
 
 ```json
@@ -160,7 +160,7 @@ zestaw domyślny — ten sam, który dziś daje `normalize()`.
 | `src/lib/md/parse.ts` | tekst wpisu → `{ items, blocks, unknown }` |
 | `src/lib/md/serialize.ts` | model → tekst wpisu, z odtworzeniem nieznanych linii |
 | `src/lib/md/line.ts` | pojedyncza linia: rozbiór i złożenie |
-| `src/lib/md/config.ts` | `.gridday.json`: odczyt, zapis, wartości domyślne |
+| `src/lib/md/config.ts` | `.diurnus.json`: odczyt, zapis, wartości domyślne |
 | `src/lib/repeat.ts` | dochodzi `occursOn(repeat, day)`; znika potrzeba `nextOn` |
 
 Wszystko czyste: na wejściu tekst i konfiguracja, na wyjściu dane. Żadnego `fetch`, żadnego

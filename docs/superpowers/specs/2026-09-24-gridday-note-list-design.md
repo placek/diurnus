@@ -1,4 +1,4 @@
-# GridDay — lista notatek (faza A): projekt
+# Diurnus — lista notatek (faza A): projekt
 
 **Status:** do przeglądu · **Data:** 2026-09-24 · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 

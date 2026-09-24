@@ -1,4 +1,4 @@
-# GridDay
+# Diurnus
 
 Kwantowanie doby na 15-minutowe tokeny. Ekran dzieli się na trzy panele: dzisiejsza siatka,
 dzisiejsze notatki i backlog. Aplikacja pokazuje **wyłącznie dziś** — nie ma nawigacji po dniach. Cała aktywna część dnia mieści się w jednym oknie
@@ -26,7 +26,7 @@ make dev             # http://localhost:5173/
 
 ## Gdzie są dane
 
-**Wyłącznie w `localStorage` tej przeglądarki** (`gridday.v1`, `gridday.prefs`). Nie ma
+**Wyłącznie w `localStorage` tej przeglądarki** (`diurnus.v1`, `diurnus.prefs`). Nie ma
 serwera ani synchronizacji między urządzeniami. Wyczyszczenie danych witryny kasuje wszystko
 bezpowrotnie — **kopia zapasowa JSON z zakładki „Dane" w ustawieniach jest jedynym
 zabezpieczeniem**. Ten sam plik będzie formatem wejściowym importera, gdy aplikacja dostanie
@@ -50,7 +50,7 @@ Push do `main` uruchamia `.github/workflows/pages.yml`: typy → testy → budow
 W ustawieniach repozytorium **Settings → Pages → Source** musi być ustawione na
 **GitHub Actions**.
 
-Witryna projektowa żyje pod `/gridday/`, więc budowa wdrożeniowa dostaje `BASE_PATH=/gridday/`.
+Witryna projektowa żyje pod `/diurnus/`, więc budowa wdrożeniowa dostaje `BASE_PATH=/diurnus/`.
 Lokalnie Makefile ustawia `/`. Przy domenie własnej albo repozytorium `<użytkownik>.github.io`
 ustaw `BASE_PATH=/`.
 
