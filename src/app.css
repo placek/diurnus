@@ -71,9 +71,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 }
 .hdr-when{display:flex;align-items:baseline;gap:10px}
 /* Obie strony mają tę samą szerokość bazową, więc środek nie ucieka. */
+.tools,
 .hdr-side{flex:0 0 auto;min-width:120px;display:flex;align-items:center;gap:2px}
 .tools.hdr-side{justify-content:flex-end}
-.nav,.tools{display:flex;align-items:center;gap:2px;flex:none}
 .ib{
   width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--fg-dim);
   display:grid;place-items:center;cursor:pointer;font-size:13px;
@@ -127,7 +127,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   margin:0 0 8px;font:600 12px var(--sans);color:var(--fg-faint);
   text-transform:uppercase;letter-spacing:.07em;
 }
-.list-empty{margin:4px 2px;font:400 14px var(--sans);color:var(--fg-faint)}
 
 .row{
   position:relative;min-height:0;display:grid;
@@ -206,8 +205,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .blk.ghost{z-index:3;pointer-events:none;border:1.5px dashed var(--fg-faint);background:color-mix(in srgb,var(--fg) 6%,transparent)}
 .blk.ghost:not(.first){border-left-width:0}
 .blk.ghost:not(.last){border-right-width:0}
-.blk.nudge{animation:nudge .28s ease}
-@keyframes nudge{25%{translate:-2px 0}75%{translate:2px 0}}
 
 .kcur{grid-row:1;z-index:4;margin:2px 1px;border-radius:7px;box-shadow:0 0 0 2px var(--fg);pointer-events:none}
 
@@ -341,7 +338,6 @@ kbd{
 
 /* Edytor kategorii */
 #cats{width:min(460px,calc(100vw - 24px))}
-.ce-title{font:600 23px var(--sans)}
 .ce-list{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
 .ce-row{display:flex;align-items:center;gap:6px}
 .ce-row.top:not(:first-child){margin-top:8px}
@@ -495,7 +491,6 @@ kbd{
 
 .is-draft .bullet{opacity:.35;cursor:default}
 .item-text::placeholder{color:var(--fg-faint)}
-.item-moved{flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap}
 .bullet{touch-action:none}                 /* przeciąganie zamiast przewijania */
 .item.is-dragging{opacity:.4}
 .drop-line{

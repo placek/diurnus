@@ -54,18 +54,6 @@ Witryna projektowa żyje pod `/gridday/`, więc budowa wdrożeniowa dostaje `BAS
 Lokalnie Makefile ustawia `/`. Przy domenie własnej albo repozytorium `<użytkownik>.github.io`
 ustaw `BASE_PATH=/`.
 
-## Prototyp
-
-`gridday.html` to pierwotny, jednoplikowy prototyp. Jest zachowany jako odniesienie do
-porównania zachowania obok siebie i **czeka na usunięcie po ręcznej weryfikacji parzystości**
-(lista kontrolna w planie wdrożenia). Po sprawdzeniu:
-
-```bash
-python3 -m http.server 8000   # prototyp: http://localhost:8000/gridday.html
-make serve                    # port aplikacji
-git rm gridday.html
-```
-
 ## Dokumentacja
 
 - [`PLAN.md`](PLAN.md) — specyfikacja: model danych, matematyka siatki, świadomie odłożone

@@ -253,33 +253,19 @@ przypięcia wyniki zależą od maszyny.
 
 ## 9. Odłożone świadomie
 
-### iCalendar — temat otwarty
+### Dziennik plikowy — kierunek projektu
 
-Integracja z kalendarzami **nie jest realizowana w tej fazie** i zostanie zaprojektowana
-osobno. Zapisane tutaj, żeby nie zgubić ustaleń:
+Integracja z kalendarzami zewnętrznymi została **porzucona**. Aplikacja ma być samowystarczalna
+i skupiona na systemie hPDA: źródłem prawdy stają się pliki markdown w `/srv/data/diary`,
+po jednym na dzień plus `BACKLOG.md`, czytane i zapisywane także przez agentów.
 
-- Kalendarz ma być **źródłem intencji, nie prawdą o wykonaniu** — zdarzenia wchodzą jako
-  `status: 'suggested'`, a dopiero kliknięcie użytkownika robi z nich `confirmed`.
-- **Ograniczenie, które zdecyduje o projekcie:** na GitHub Pages nie da się pobrać `.ics`
-  bezpośrednio z Google Calendar, iCloud ani większości feedów — te serwery nie wysyłają
-  nagłówka `Access-Control-Allow-Origin`, a statyczny hosting nie daje żadnego obejścia po
-  stronie serwera. Wcześniejszy pomysł „cron kładzie `.ics` obok pliku aplikacji" na Pages
-  nie działa, bo nie ma czego cronować.
-- Rozważane warianty, gdy temat wróci:
-  1. **Zaplanowana GitHub Action** pobiera feed sekretem repozytorium i commituje `.ics` do
-     publikowanej witryny; aplikacja czyta ścieżkę względną. Brak CORS, brak backendu, sekretny
-     URL nie trafia do przeglądarki — ale kalendarz staje się plikiem w repozytorium, więc
-     publiczne repo publikuje harmonogram.
-  2. **Import pliku** przeciągnięciem lub z okna wyboru. Działa z każdym dostawcą, offline,
-     bez infrastruktury — ale ręcznie.
-  3. Odłożenie całości do fazy z backendem (§10), gdzie feedy pobiera serwer.
-- Parser musiałby obsłużyć podzbiór RFC 5545: rozwijanie linii, `VEVENT`, `DTSTART`/`DTEND`/
-  `DURATION`, strefy przez `Intl.DateTimeFormat` z `timeZoneName: 'longOffset'`, `RRULE`
-  dzienne i tygodniowe, `EXDATE`. Pomijane: zdarzenia całodniowe, `STATUS:CANCELLED`,
-  `TRANSP:TRANSPARENT`.
-- Kwantyzacja: start w dół, koniec w górę, minimum 30 minut, przycięcie do `[Q0, Q1)`,
-  podział przez północ. Kwant liczony z **godziny ściany**, nie z różnicy milisekund od
-  północy — w dobie zmiany czasu o 08:00 minęły 23 kwadranse zamiast 32.
+Trzy fazy, każda z własną specyfikacją w `docs/superpowers/specs/`:
+
+1. **Serwer plików** — `node:http`, trzy pary tras, bez rozumienia formatu.
+2. **Format markdown** — parser i serializator w `src/lib/md/`, odporne na nieznane linie.
+3. **Podmiana trwałości** — pliki zastępują `localStorage`, które znika.
+
+Do czasu fazy 3 opis architektury w §1–§7 pozostaje aktualny: stan nadal żyje w przeglądarce.
 
 ### Widok historii
 

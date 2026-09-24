@@ -72,10 +72,15 @@ test('siatka nie rysuje linii — strukturę niosą bloki i kolumna godzin', () 
   }
 });
 
-test('nie zostały martwe reguły po liniach siatki', () => {
-  for (const dead of ['.cell.q0', '.cell.q2', '.row.band-start']) {
-    expect(css, dead).not.toContain(dead);
-  }
+test('nie zostały martwe reguły po usuniętych funkcjach', () => {
+  // Każdy z tych selektorów przeżył swoją funkcję i został usunięty razem
+  // z nią; obecność któregokolwiek znaczy, że coś wróciło bez markupu.
+  const dead = [
+    '.cell.q0', '.cell.q2', '.row.band-start',   // linie siatki
+    '.nav', '.ce-title', '.item-moved',          // nagłówek i znacznik przeniesienia
+    '.list-empty', 'nudge',                      // puste panele i animacja szturchnięcia
+  ];
+  for (const sel of dead) expect(css, sel).not.toContain(sel);
 });
 
 test('wykonana pozycja z kategorią przygasza akcent, ale zachowuje tło', () => {

@@ -107,8 +107,6 @@ export const win = {
 const history: State[] = [];
 const HISTORY_MAX = 50;
 
-export const canUndo = () => history.length > 0;
-
 // Migawki zamiast dziennika operacji odwrotnych: stan jest mały, a migawka
 // nie może rozjechać się z operacją, którą miała cofać.
 // Migawka powstaje przy KAŻDEJ mutacji, nie tylko przy tych z przyciskiem
