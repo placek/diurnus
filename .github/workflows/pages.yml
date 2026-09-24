@@ -32,9 +32,12 @@ jobs:
       - run: npm run check
       - run: npm run test
 
+      # Baza wynika z nazwy repozytorium: przy publikacji projektowej strona
+      # stoi pod /<repo>/, a wpisana na sztywno ścieżka po zmianie nazwy
+      # dałaby pustą stronę i 404 na zasobach — bez śladu w logach budowy.
       - run: npm run build
         env:
-          BASE_PATH: /diurnus/
+          BASE_PATH: /${{ github.event.repository.name }}/
 
       - uses: actions/upload-pages-artifact@v3
         with:

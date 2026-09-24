@@ -9,6 +9,19 @@ beforeEach(() => {
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
+  // jsdom nie implementuje przechwytywania wskaźnika. Bez tych atrap
+  // obsługa przeciągania rzuca, test „nic się nie przestawiło" przechodzi
+  // dlatego, że przeciąganie w ogóle się nie zaczęło — a nieobsłużony błąd
+  // wywraca cały przebieg vitesta.
+  Element.prototype.setPointerCapture = function () {
+    (this as unknown as { _cap: boolean })._cap = true;
+  };
+  Element.prototype.hasPointerCapture = function () {
+    return (this as unknown as { _cap?: boolean })._cap === true;
+  };
+  Element.prototype.releasePointerCapture = function () {
+    (this as unknown as { _cap: boolean })._cap = false;
+  };
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: (q: string) => ({
