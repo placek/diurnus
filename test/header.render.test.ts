@@ -93,3 +93,21 @@ test('narzędzia stoją w kolejności: pomoc, motyw, ustawienia (czyli od prawej
 test('nie ma już przycisku sugestii z zeszłego tygodnia', () => {
   expect(htmlToday).not.toContain('Sugestie');
 });
+
+test('data i zegar stoją w środkowej kolumnie, nad paskiem postępu', () => {
+  const center = /<div class="hdr-center">([\s\S]*?)<div class="tools/.exec(htmlToday)?.[1] ?? '';
+  expect(center).toContain('id="date"');
+  expect(center).toContain('id="clock"');
+  expect(center).toContain('id="pips"');
+  // Kolejność w źródle jest kolejnością na ekranie: data, potem pasek.
+  expect(center.indexOf('id="date"')).toBeLessThan(center.indexOf('id="pips"'));
+});
+
+test('data nie jest przyciskiem ani niczym klikalnym', () => {
+  expect(htmlToday).toMatch(/<span id="date"/);
+  expect(htmlToday).not.toMatch(/<button[^>]*id="date"/);
+});
+
+test('narzędzia mają po lewej dystans równoważący', () => {
+  expect(htmlToday).toContain('class="hdr-side"');
+});

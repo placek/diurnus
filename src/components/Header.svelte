@@ -45,14 +45,19 @@
 </script>
 
 <header id="top">
-  <div class="nav">
-    <span id="date">{label}</span>
-    <span id="clock" aria-label="Godzina">{clock}</span>
+  <!-- Lewy dystans równoważy narzędzia po prawej, żeby środek był środkiem
+       ekranu, a nie środkiem tego, co zostało. -->
+  <div class="hdr-side" aria-hidden="true"></div>
+
+  <div class="hdr-center">
+    <div class="hdr-when">
+      <span id="date">{label}</span>
+      <span id="clock" aria-label="Godzina">{clock}</span>
+    </div>
+    <TokenPips {stats} />
   </div>
 
-  <TokenPips {stats} />
-
-  <div class="tools">
+  <div class="tools hdr-side">
     {#if ui.narrow}
       <button class="ib" onclick={() => (ui.pane = nextPane())} aria-label="Przełącz panel" title={PANE_TITLE[ui.pane]}>
         <Icon name={PANE_ICON[ui.pane]} fallback="≡" />

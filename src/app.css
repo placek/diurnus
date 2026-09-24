@@ -2,7 +2,7 @@
 :root{
   color-scheme: light;
   --hourw: 48px;
-  --hdr: 58px;
+  --hdr: 76px;
   --bg:#fbf1c7; --raise:#fffbe8; --fg:#3c3836; --fg-dim:#7c6f64; --fg-faint:#a89984;
   --line:rgba(60,56,54,.09); --line-2:rgba(60,56,54,.17);
   --past:rgba(60,56,54,.05);
@@ -58,24 +58,32 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));
   border-bottom:1px solid var(--line-2);
 }
+/* Data i zegar na górze, pasek postępu pod nimi — oba wyśrodkowane. */
+.hdr-center{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;
+}
+.hdr-when{display:flex;align-items:baseline;gap:10px}
+/* Obie strony mają tę samą szerokość bazową, więc środek nie ucieka. */
+.hdr-side{flex:0 0 auto;min-width:120px;display:flex;align-items:center;gap:2px}
+.tools.hdr-side{justify-content:flex-end}
 .nav,.tools{display:flex;align-items:center;gap:2px;flex:none}
 .ib{
   width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--fg-dim);
   display:grid;place-items:center;cursor:pointer;font-size:13px;
 }
 .ib:hover{background:var(--line);color:var(--fg)}
+/* Data nie jest przyciskiem: nie ma dokąd prowadzić, więc nie udaje, że ma. */
 #date{
-  border:0;background:transparent;cursor:pointer;border-radius:8px;
-  padding:6px 10px;font:600 20px var(--sans);white-space:nowrap;color:var(--fg);
+  font:600 20px var(--sans);white-space:nowrap;color:var(--fg);
   text-transform:uppercase;letter-spacing:.03em;
 }
-#date:hover{background:var(--line)}
-#date:not(.is-today){color:var(--yellow)}
 #clock{
-  margin-left:10px;font:500 20px var(--sans);color:var(--fg-dim);
+  font:500 20px var(--sans);color:var(--fg-dim);
   white-space:nowrap;font-variant-numeric:tabular-nums;
 }
-.tokens{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px;cursor:default}
+
+.tokens{width:100%;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px;cursor:default}
 .pips{flex:1;min-width:0;max-width:440px;height:10px;display:flex;gap:3px}
 .pip{flex:1;min-width:2px;display:flex;gap:1px}
 .pip b{flex:1;border-radius:2px;background:var(--line-2)}
@@ -406,8 +414,9 @@ kbd{
 @media (max-width:560px){
   :root{--hourw:38px}
   #top{gap:8px}
-  #date{font-size:16px;padding:6px 4px}
-  #clock{font-size:16px;margin-left:6px}
+  #date{font-size:16px}
+  #clock{font-size:16px}
+  .hdr-side{min-width:0}
   .hour{padding:0 2px}
   .hour .h{font-size:13px}
   .hour .bn{display:none}
