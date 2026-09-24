@@ -113,6 +113,7 @@
      pod prawym przyciskiem, bo dwa z nich zapisują do listy innego dnia. -->
 <button
   class="bullet t-{item.type}"
+  class:is-repeat={!!item.repeat}
   aria-label="Znacznik: {item.type}"
   onclick={onClick}
   onpointerdown={onPointerDown}

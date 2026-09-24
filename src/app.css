@@ -472,3 +472,13 @@ kbd{
 }
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
 .item.is-linked .item-text{color:var(--fg)}
+.backlog-item{position:relative}
+.backlog-meta{
+  flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+/* Pozycja powtarzalna: kółko zamiast kropki. */
+.bullet.is-repeat{
+  border:2px solid currentColor;border-radius:50%;
+  width:20px;height:20px;font-size:0;
+}
