@@ -4,7 +4,7 @@ import type { Band } from '../src/lib/types';
 
 test('normalize: brak stanu daje domyślne kategorie, pory dnia i wersję bieżącą', () => {
   const s = normalize(null);
-  expect(s.v).toBe(3);
+  expect(s.v).toBe(4);
   expect(s.blocks).toEqual([]);
   expect(s.cats.length).toBeGreaterThan(0);
   expect(s.day.start).toBe(6);
@@ -20,7 +20,7 @@ test('normalize: migracja v1 przesuwa q z bazy 06:00 na bazę północy', () => 
       { id: 'a', day: '2026-09-24', q: 0, len: 2, cat: 'x', title: '', status: 'confirmed', created: 0 },
     ],
   });
-  expect(s.v).toBe(3);
+  expect(s.v).toBe(4);
   expect(s.blocks[0]!.q).toBe(24);
 });
 
@@ -58,7 +58,7 @@ test('normalize: pusta lista kategorii wraca do domyślnych', () => {
 test('normalize: śmieci dają czysty stan domyślny', () => {
   for (const junk of [undefined, 0, 'tekst', [], { v: 99 }]) {
     const s = normalize(junk);
-    expect(s.v).toBe(3);
+    expect(s.v).toBe(4);
     expect(s.blocks).toEqual([]);
   }
 });
@@ -118,15 +118,17 @@ test('bandAt: pusta lista pór daje null', () => {
   expect(bandAt([], 10)).toBeNull();
 });
 
-test('normalize: stan v2 dostaje pustą listę notatek i wersję 3', () => {
+test('normalize: stan v2 dostaje listę notatek i bieżącą wersję', () => {
   const s = normalize({
     v: 2,
     cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
     blocks: [{ id: 'a', day: '2026-09-24', q: 32, len: 2, cat: 'x', title: '', status: 'planned', created: 0 }],
     day: { start: 6, end: 22, bands: [] },
   });
-  expect(s.v).toBe(3);
-  expect(s.items).toEqual([]);
+  expect(s.v).toBe(4);
+  // v2 → v3 dokłada pustą listę, v3 → v4 dorabia pozycję dla istniejącego bloku.
+  expect(s.items).toHaveLength(1);
+  expect(s.items[0]!.block).toBe('a');
   expect(s.blocks).toHaveLength(1);
   expect(s.cats).toHaveLength(1);
 });
@@ -137,22 +139,67 @@ test('normalize: migracja v1 → v3 przechodzi przez obie wersje', () => {
     cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
     blocks: [{ id: 'a', day: '2026-09-24', q: 0, len: 2, cat: 'x', title: '', status: 'confirmed', created: 0 }],
   });
-  expect(s.v).toBe(3);
+  expect(s.v).toBe(4);
   expect(s.blocks[0]!.q).toBe(24);
-  expect(s.items).toEqual([]);
+  expect(s.items).toHaveLength(1); // blok z v1 też dostaje pozycję
 });
 
-test('normalize: stan v3 bez tablicy items dostaje pustą', () => {
-  const s = normalize({ v: 3, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] } });
+test('normalize: stan bez tablicy items dostaje pustą', () => {
+  const s = normalize({ v: 4, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] } });
   expect(s.items).toEqual([]);
 });
 
 test('normalize: istniejące notatki przechodzą nietknięte', () => {
   const items = [{ id: 'i1', day: '2026-09-24', text: 'Notka', type: 'note', created: 1 }];
-  const s = normalize({ v: 3, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] }, items });
+  const s = normalize({ v: 4, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] }, items });
   expect(s.items).toEqual(items);
 });
 
 test('normalize: brak stanu daje pustą listę notatek', () => {
   expect(normalize(null).items).toEqual([]);
+});
+
+test('normalize: v3 z blokami bez pozycji dostaje pozycje i wersję 4', () => {
+  const s = normalize({
+    v: 3,
+    cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
+    day: { start: 6, end: 22, bands: [] },
+    blocks: [
+      { id: 'b1', day: '2026-09-24', q: 32, len: 2, cat: 'x', title: 'Praca', status: 'confirmed', created: 0 },
+      { id: 'b2', day: '2026-09-25', q: 40, len: 2, cat: 'x', title: '', status: 'planned', created: 0 },
+    ],
+    items: [],
+  });
+  expect(s.v).toBe(4);
+  expect(s.items).toHaveLength(2);
+  expect(s.items.map((i) => i.block).sort()).toEqual(['b1', 'b2']);
+  expect(s.items.find((i) => i.block === 'b1')!.text).toBe('Praca');
+});
+
+test('normalize: migracja do v4 zachowuje pozycje swobodne', () => {
+  const s = normalize({
+    v: 3,
+    cats: [],
+    day: { start: 6, end: 22, bands: [] },
+    blocks: [],
+    items: [{ id: 'i1', day: '2026-09-24', text: 'Notatka', type: 'note', created: 1 }],
+  });
+  expect(s.v).toBe(4);
+  expect(s.items).toEqual([{ id: 'i1', day: '2026-09-24', text: 'Notatka', type: 'note', created: 1 }]);
+});
+
+test('normalize: migracja v2 → v4 przechodzi przez wszystkie wersje', () => {
+  const s = normalize({
+    v: 2,
+    cats: [],
+    day: { start: 6, end: 22, bands: [] },
+    blocks: [{ id: 'b1', day: '2026-09-24', q: 32, len: 2, cat: 'x', title: '', status: 'planned', created: 0 }],
+  });
+  expect(s.v).toBe(4);
+  expect(s.items).toHaveLength(1);
+  expect(s.items[0]!.block).toBe('b1');
+});
+
+test('normalize: brak stanu daje wersję 4', () => {
+  expect(normalize(null).v).toBe(4);
 });

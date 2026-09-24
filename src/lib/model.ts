@@ -1,4 +1,5 @@
-import type { Band, Category, DaySettings, Item, State, Status } from './types';
+import { reconcile } from './link';
+import type { Band, Block, Category, DaySettings, Item, State, Status } from './types';
 
 export const COLORS = ['yellow', 'orange', 'red', 'purple', 'blue', 'aqua', 'green'] as const;
 
@@ -77,9 +78,23 @@ export function normalize(x: unknown): State {
     s.v = 3;
   }
 
-  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 3 || !Array.isArray(s.blocks)) {
+  // v3 nie znało powiązania bloków z pozycjami: dorabiamy je dla wszystkich dni
+  // jeden raz, żeby niezmiennik obowiązywał także w dniach, których użytkownik
+  // jeszcze nie odwiedził.
+  if (s && typeof s === 'object' && s.v === 3) {
+    s.items = reconcile(
+      (s.items ?? []) as Item[],
+      (s.blocks ?? []) as Block[],
+      null,
+      Date.now(),
+      uid,
+    );
+    s.v = 4;
+  }
+
+  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 4 || !Array.isArray(s.blocks)) {
     return {
-      v: 3,
+      v: 4,
       cats: clone(DEFAULT_CATS) as Category[],
       day: clone(DEFAULT_DAY) as DaySettings,
       blocks: [],
