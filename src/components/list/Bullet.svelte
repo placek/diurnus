@@ -13,6 +13,15 @@
 
   let menu = $state(false);
 
+  // Menu otwiera prawy przycisk, więc zwykły klik nie zamknie go od razu
+  // po otwarciu; bez tego nasłuchu nie ma z niego wyjścia poza wyborem typu.
+  $effect(() => {
+    if (!menu) return;
+    const close = () => (menu = false);
+    addEventListener('click', close);
+    return () => removeEventListener('click', close);
+  });
+
   const TYPES: { type: ItemType; label: string }[] = [
     { type: 'task', label: 'Zadanie' },
     { type: 'done', label: 'Wykonane' },

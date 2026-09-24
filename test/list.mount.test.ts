@@ -275,3 +275,19 @@ test('pisanie w polu początkowym tworzy pozycję dopiero przy pierwszym znaku',
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Pierwsza');
 });
+
+test('menu znacznika zamyka się kliknięciem poza nim', async () => {
+  // Znalezione w przeglądzie: menu otwarte prawym przyciskiem nie miało
+  // żadnej drogi wyjścia poza wybraniem pozycji.
+  const flush = await mountApp();
+  startTyping('Zadanie', flush);
+
+  const bullet = document.querySelector<HTMLElement>('#list .item:not(.is-draft) .bullet')!;
+  bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
+  expect(document.querySelector('.bullet-menu')).not.toBeNull();
+
+  document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  flush();
+  expect(document.querySelector('.bullet-menu')).toBeNull();
+});
