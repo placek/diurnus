@@ -4,7 +4,7 @@ import type { Band } from '../src/lib/types';
 
 test('normalize: brak stanu daje domyślne kategorie, pory dnia i wersję bieżącą', () => {
   const s = normalize(null);
-  expect(s.v).toBe(2);
+  expect(s.v).toBe(3);
   expect(s.blocks).toEqual([]);
   expect(s.cats.length).toBeGreaterThan(0);
   expect(s.day.start).toBe(6);
@@ -12,7 +12,7 @@ test('normalize: brak stanu daje domyślne kategorie, pory dnia i wersję bież�
   expect(s.day.bands.length).toBeGreaterThan(0);
 });
 
-test('normalize: migracja v1 → v2 przesuwa q z bazy 06:00 na bazę północy', () => {
+test('normalize: migracja v1 przesuwa q z bazy 06:00 na bazę północy', () => {
   const s = normalize({
     v: 1,
     cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
@@ -20,7 +20,7 @@ test('normalize: migracja v1 → v2 przesuwa q z bazy 06:00 na bazę północy',
       { id: 'a', day: '2026-09-24', q: 0, len: 2, cat: 'x', title: '', status: 'confirmed', created: 0 },
     ],
   });
-  expect(s.v).toBe(2);
+  expect(s.v).toBe(3);
   expect(s.blocks[0]!.q).toBe(24);
 });
 
@@ -58,7 +58,7 @@ test('normalize: pusta lista kategorii wraca do domyślnych', () => {
 test('normalize: śmieci dają czysty stan domyślny', () => {
   for (const junk of [undefined, 0, 'tekst', [], { v: 99 }]) {
     const s = normalize(junk);
-    expect(s.v).toBe(2);
+    expect(s.v).toBe(3);
     expect(s.blocks).toEqual([]);
   }
 });
@@ -116,4 +116,43 @@ test('bandAt: kolejność w tablicy nie ma znaczenia', () => {
 
 test('bandAt: pusta lista pór daje null', () => {
   expect(bandAt([], 10)).toBeNull();
+});
+
+test('normalize: stan v2 dostaje pustą listę notatek i wersję 3', () => {
+  const s = normalize({
+    v: 2,
+    cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
+    blocks: [{ id: 'a', day: '2026-09-24', q: 32, len: 2, cat: 'x', title: '', status: 'planned', created: 0 }],
+    day: { start: 6, end: 22, bands: [] },
+  });
+  expect(s.v).toBe(3);
+  expect(s.items).toEqual([]);
+  expect(s.blocks).toHaveLength(1);
+  expect(s.cats).toHaveLength(1);
+});
+
+test('normalize: migracja v1 → v3 przechodzi przez obie wersje', () => {
+  const s = normalize({
+    v: 1,
+    cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
+    blocks: [{ id: 'a', day: '2026-09-24', q: 0, len: 2, cat: 'x', title: '', status: 'confirmed', created: 0 }],
+  });
+  expect(s.v).toBe(3);
+  expect(s.blocks[0]!.q).toBe(24);
+  expect(s.items).toEqual([]);
+});
+
+test('normalize: stan v3 bez tablicy items dostaje pustą', () => {
+  const s = normalize({ v: 3, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] } });
+  expect(s.items).toEqual([]);
+});
+
+test('normalize: istniejące notatki przechodzą nietknięte', () => {
+  const items = [{ id: 'i1', day: '2026-09-24', text: 'Notka', type: 'note', created: 1 }];
+  const s = normalize({ v: 3, cats: [], blocks: [], day: { start: 6, end: 22, bands: [] }, items });
+  expect(s.items).toEqual(items);
+});
+
+test('normalize: brak stanu daje pustą listę notatek', () => {
+  expect(normalize(null).items).toEqual([]);
 });
