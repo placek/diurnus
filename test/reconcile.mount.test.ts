@@ -20,6 +20,13 @@ beforeEach(() => {
   });
 });
 
+
+/** Aplikacja pokazuje dzień wyliczony z zegara — podróż w czasie idzie przez `now`. */
+const atDay = (day: string, hour = 12) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y!, m! - 1, d!, hour).getTime();
+};
+
 async function mountApp() {
   const { mount, flushSync } = await import('svelte');
   const App = (await import('../src/App.svelte')).default;
@@ -39,7 +46,7 @@ async function createBlock(flush: () => void) {
 
 test('utworzenie bloku tworzy powiązaną pozycję', async () => {
   const flush = await mountApp();
-  const { app } = await import('../src/state.svelte');
+  const { app, currentDay } = await import('../src/state.svelte');
   await createBlock(flush);
   expect(app.S.items).toHaveLength(1);
   expect(app.S.items[0]!.block).toBe(app.S.blocks[0]!.id);
@@ -55,22 +62,22 @@ test('powiązana pozycja utrwala się razem ze stanem', async () => {
 
 test('zmiana dnia uzgadnia listę nowego dnia', async () => {
   const flush = await mountApp();
-  const { app } = await import('../src/state.svelte');
+  const { app, currentDay } = await import('../src/state.svelte');
   const { shiftDay } = await import('../src/lib/time');
   await createBlock(flush);
 
-  app.viewDay = shiftDay(today(), 1);
+  app.now = atDay(shiftDay(today(), 1));
   flush();
-  expect(app.S.items.filter((i) => i.day === app.viewDay)).toHaveLength(0);
+  expect(app.S.items.filter((i) => i.day === currentDay.value)).toHaveLength(0);
 
-  app.viewDay = today();
+  app.now = atDay(today());
   flush();
-  expect(app.S.items.filter((i) => i.day === app.viewDay && i.block)).toHaveLength(1);
+  expect(app.S.items.filter((i) => i.day === currentDay.value && i.block)).toHaveLength(1);
 });
 
 test('powtarzane mutacje nie mnożą pozycji', async () => {
   const flush = await mountApp();
-  const { app, commit } = await import('../src/state.svelte');
+  const { app, commit, currentDay } = await import('../src/state.svelte');
   await createBlock(flush);
   for (let i = 0; i < 5; i++) commit(() => {});
   flush();
@@ -114,7 +121,7 @@ test('pozycje powiązane stoją nad swobodnymi, posortowane po godzinie', async 
 
 test('przeciąganie pozycji powiązanej nic nie zmienia', async () => {
   const flush = await mountApp();
-  const { app } = await import('../src/state.svelte');
+  const { app, currentDay } = await import('../src/state.svelte');
   await createBlock(flush);
 
   const bullet = document.querySelector<HTMLElement>('#list .item.is-linked .bullet')!;

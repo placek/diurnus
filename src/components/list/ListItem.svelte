@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, pushHistory, save, ui } from '../../state.svelte';
+  import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
   import { blockOfItem, freeItems, linkedItems } from '../../lib/link';
   import { catOf, colorOf } from '../../lib/categories';
@@ -37,8 +37,8 @@
   // powiązane według godzin, potem swobodne. Liczenie samych swobodnych
   // dawało dla pozycji powiązanej index -1 i strzałki przestawały działać.
   const siblings = $derived([
-    ...linkedItems(app.S.items, app.S.blocks, app.viewDay),
-    ...freeItems(app.S.items, app.viewDay),
+    ...linkedItems(app.S.items, app.S.blocks, currentDay.value),
+    ...freeItems(app.S.items, currentDay.value),
   ]);
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 

@@ -35,13 +35,9 @@ test('zero nie jest cyfrą kategorii w siatce', () => {
   expect(k('0')).toBeNull();
 });
 
-test('nawigacja po dniach', () => {
-  expect(k('[')).toEqual({ type: 'day', delta: -1 });
-  expect(k(',')).toEqual({ type: 'day', delta: -1 });
-  expect(k(']')).toEqual({ type: 'day', delta: 1 });
-  expect(k('.')).toEqual({ type: 'day', delta: 1 });
-  expect(k('t')).toEqual({ type: 'today' });
-  expect(k('T')).toEqual({ type: 'today' });
+test('skróty nawigacji po dniach już nie istnieją', () => {
+  // Aplikacja pokazuje wyłącznie dziś — nie ma po czym chodzić.
+  for (const key of ['[', ']', ',', '.', 't', 'T']) expect(k(key)).toBeNull();
 });
 
 test('skróty narzędzi', () => {

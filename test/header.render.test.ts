@@ -18,6 +18,13 @@ function fakeStorage(seed: Record<string, unknown> = {}): Storage {
 // Dzień budowany z today(), żeby asercja o klasie is-today nie zależała od daty
 // uruchomienia testów.
 const DAY = today();
+
+/** Aplikacja pokazuje dzień wyliczony z zegara — podróż w czasie idzie przez `now`. */
+const atDay = (day: string, hour = 12) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y!, m! - 1, d!, hour).getTime();
+};
+
 let htmlToday = '';
 let htmlOther = '';
 
@@ -41,10 +48,10 @@ beforeAll(async () => {
   const { render } = await import('svelte/server');
   const Header = (await import('../src/components/Header.svelte')).default;
 
-  app.viewDay = DAY;
+  app.now = atDay(DAY);
   htmlToday = render(Header).body;
 
-  app.viewDay = shiftDay(DAY, -3);
+  app.now = atDay(shiftDay(DAY, -3));
   htmlOther = render(Header).body;
 });
 
@@ -73,9 +80,9 @@ test('zegar pokazuje godzinę i minutę obok daty', () => {
   expect(clock).toMatch(/^\d{2}:\d{2}$/);
 });
 
-test('dzisiejsza data dostaje klasę is-today, inna nie', () => {
-  expect(htmlToday).toContain('is-today');
-  expect(htmlOther).not.toContain('is-today');
+test('nagłówek nie ma już strzałek nawigacji po dniach', () => {
+  expect(htmlToday).not.toContain('Poprzedni dzień');
+  expect(htmlToday).not.toContain('Następny dzień');
 });
 
 test('narzędzia stoją w kolejności: pomoc, motyw, ustawienia (czyli od prawej: ustawienia, motyw, pomoc)', () => {

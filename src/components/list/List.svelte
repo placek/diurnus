@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { app, ui } from '../../state.svelte';
+  import { app, ui, currentDay } from '../../state.svelte';
   import { createItemWithText } from '../../actions.svelte';
   import { freeItems, linkedItems } from '../../lib/link';
   import ListItem from './ListItem.svelte';
 
   // Dwie grupy: najpierw plan według godzin, potem notatki w kolejności własnej.
-  const linked = $derived(linkedItems(app.S.items, app.S.blocks, app.viewDay));
-  const items = $derived(freeItems(app.S.items, app.viewDay));
+  const linked = $derived(linkedItems(app.S.items, app.S.blocks, currentDay.value));
+  const items = $derived(freeItems(app.S.items, currentDay.value));
 
   // Pole początkowe NIE jest pozycją w stanie. Gdyby nią było, samo obejrzenie
   // dnia zapisywałoby pustą pozycję — a po tygodniu przeglądania kalendarza

@@ -35,7 +35,6 @@ beforeAll(async () => {
   });
 
   const { app } = await import('../src/state.svelte');
-  app.viewDay = '2026-09-24';
   app.now = new Date(2026, 8, 24, 10, 7).getTime();
 
   const { render } = await import('svelte/server');

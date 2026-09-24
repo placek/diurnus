@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { app, ui, win } from '../state.svelte';
+  import { app, ui, win, currentDay } from '../state.svelte';
   import { tokenStats } from '../lib/stats';
-  import { pad, shiftDay, splitDay, today } from '../lib/time';
+  import { pad, splitDay } from '../lib/time';
   import Icon from './Icon.svelte';
   import TokenPips from './TokenPips.svelte';
 
@@ -22,38 +22,22 @@
   });
 
   const label = $derived.by(() => {
-    const [y, m, d] = splitDay(app.viewDay);
+    const [y, m, d] = splitDay(currentDay.value);
     return fmtDate.format(new Date(y, m - 1, d));
   });
-
-  const isToday = $derived(app.viewDay === today());
 
   const clock = $derived.by(() => {
     const d = new Date(app.now);
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
 
-  const stats = $derived(tokenStats(app.S.blocks, app.viewDay, app.S.cats, win.q0, win.q1));
+  const stats = $derived(tokenStats(app.S.blocks, currentDay.value, app.S.cats, win.q0, win.q1));
 
-  const go = (n: number) => (app.viewDay = shiftDay(app.viewDay, n));
 </script>
 
 <header id="top">
   <div class="nav">
-    <button class="ib" onclick={() => go(-1)} aria-label="Poprzedni dzień" title="Poprzedni dzień  [">
-      <Icon name="chevron-left" fallback="‹" />
-    </button>
-    <button
-      id="date"
-      class:is-today={isToday}
-      onclick={() => (app.viewDay = today())}
-      title="Wróć do dziś  T"
-    >
-      {label}
-    </button>
-    <button class="ib" onclick={() => go(1)} aria-label="Następny dzień" title="Następny dzień  ]">
-      <Icon name="chevron-right" fallback="›" />
-    </button>
+    <span id="date">{label}</span>
     <span id="clock" aria-label="Godzina">{clock}</span>
   </div>
 

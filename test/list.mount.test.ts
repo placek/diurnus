@@ -20,6 +20,13 @@ beforeEach(() => {
   });
 });
 
+
+/** Aplikacja pokazuje dzień wyliczony z zegara — podróż w czasie idzie przez `now`. */
+const atDay = (day: string, hour = 12) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y!, m! - 1, d!, hour).getTime();
+};
+
 async function mountApp() {
   const { mount, flushSync } = await import('svelte');
   const App = (await import('../src/App.svelte')).default;
@@ -182,11 +189,11 @@ test('lista pokazuje pozycje tego dnia, na który patrzymy', async () => {
   startTyping('Dzisiejsza', flush);
 
   const { shiftDay } = await import('../src/lib/time');
-  app.viewDay = shiftDay(today(), 1);
+  app.now = atDay(shiftDay(today(), 1));
   flush();
   expect(inputs()).toHaveLength(0);
 
-  app.viewDay = today();
+  app.now = atDay(today());
   flush();
   expect(inputs().some((i) => i.value === 'Dzisiejsza')).toBe(true);
 });
@@ -255,11 +262,11 @@ test('samo obejrzenie dnia nie zapisuje pustej pozycji', async () => {
   const { app } = await import('../src/state.svelte');
   const { shiftDay } = await import('../src/lib/time');
 
-  app.viewDay = shiftDay(today(), 3);
+  app.now = atDay(shiftDay(today(), 3));
   flush();
-  app.viewDay = shiftDay(today(), 4);
+  app.now = atDay(shiftDay(today(), 4));
   flush();
-  app.viewDay = today();
+  app.now = atDay(today());
   flush();
 
   const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');

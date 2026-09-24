@@ -1,4 +1,4 @@
-import { app, commit, ui, uid } from './state.svelte';
+import { app, commit, currentDay, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
@@ -21,16 +21,16 @@ function stopOtherActive(exceptId: string): void {
 }
 
 export function createAt(q: number, catId: string): void {
-  const f = fit(occ(app.S.blocks, app.viewDay), q);
+  const f = fit(occ(app.S.blocks, currentDay.value), q);
   if (!f) return;
-  const status = statusFor(app.viewDay, f.q, f.len, app.now);
-  const b = newBlock(app.viewDay, f.q, f.len, catId, status, Date.now(), uid);
+  const status = statusFor(currentDay.value, f.q, f.len, app.now);
+  const b = newBlock(currentDay.value, f.q, f.len, catId, status, Date.now(), uid);
   commit(
     () => {
       if (status === 'active') stopOtherActive(b.id);
       app.S.blocks.push(b);
     },
-    status === 'active' ? `Start: do ${fmtQ(app.viewDay, f.q + f.len)}` : undefined,
+    status === 'active' ? `Start: do ${fmtQ(currentDay.value, f.q + f.len)}` : undefined,
   );
 }
 
@@ -62,9 +62,9 @@ export function removeBlock(id: string): void {
 
 export function openMenu(q: number, x: number, y: number): void {
   if (!topCats(app.S.cats).length) return;
-  const f = fit(occ(app.S.blocks, app.viewDay), q);
+  const f = fit(occ(app.S.blocks, currentDay.value), q);
   if (!f) return;
-  ui.menu = { q, fit: f, rel: rel(app.viewDay, q, q + 1, app.now), level: null, x, y };
+  ui.menu = { q, fit: f, rel: rel(currentDay.value, q, q + 1, app.now), level: null, x, y };
 }
 
 export const closeMenu = (): void => void (ui.menu = null);
@@ -84,7 +84,7 @@ export function chooseCat(id: string): void {
 
 /** Kliknięcie w komórkę: blok awansuje, puste miejsce otwiera menu. */
 export function actAt(q: number, x: number, y: number): void {
-  const b = occ(app.S.blocks, app.viewDay)[q];
+  const b = occ(app.S.blocks, currentDay.value)[q];
   if (b) advance(b);
   else openMenu(q, x, y);
 }
@@ -114,7 +114,7 @@ export function assignDigit(n: number, cursorQ: number | null): void {
     return;
   }
 
-  const b = occ(app.S.blocks, app.viewDay)[cursorQ];
+  const b = occ(app.S.blocks, currentDay.value)[cursorQ];
   if (b) {
     if (b.cat !== cat.id) commit(() => void (b.cat = cat.id));
     return;
@@ -162,7 +162,7 @@ export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
 export function addItemAfter(afterId: string | null): void {
   const prev = afterId ? app.S.items.find((i) => i.id === afterId) : undefined;
   const type = prev ? typeAfterEnter(prev.type) : 'task';
-  const item = newItem(app.viewDay, type, Date.now(), uid);
+  const item = newItem(currentDay.value, type, Date.now(), uid);
   commit(() => (app.S.items = insertAfter(app.S.items, afterId, item)));
   ui.focusItem = item.id;
 }
@@ -196,7 +196,7 @@ export function setItemText(id: string, text: string): void {
 /** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
  *  Używane przez pole początkowe, które samo NIE jest pozycją w stanie. */
 export function createItemWithText(text: string): void {
-  const item = { ...newItem(app.viewDay, 'task', Date.now(), uid), text };
+  const item = { ...newItem(currentDay.value, 'task', Date.now(), uid), text };
   commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
   ui.focusItem = item.id;
 }
@@ -204,7 +204,7 @@ export function createItemWithText(text: string): void {
 /** Przestawienie pozycji na liście dnia; `toIndex` to miejsce w liście BEZ niej. */
 export function moveItemTo(id: string, toIndex: number): void {
   const before = app.S.items;
-  const after = moveItem(before, id, toIndex, app.viewDay);
+  const after = moveItem(before, id, toIndex, currentDay.value);
   if (after.every((x, i) => x === before[i])) return; // nic się nie przesunęło
   commit(() => (app.S.items = after), undefined, true);
 }

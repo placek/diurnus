@@ -33,11 +33,11 @@ const gridBlock = () => document.querySelector<HTMLElement>('#grid .blk:not(.gho
 /** Blok w przyszłości — powstaje jako `planned`, niezależnie od pory testu. */
 async function createFutureBlock(flush: () => void) {
   const { app } = await import('../src/state.svelte');
-  const { uid } = await import('../src/state.svelte');
+  const { uid, currentDay } = await import('../src/state.svelte');
   const { commit } = await import('../src/state.svelte');
   commit(() => {
     app.S.blocks.push({
-      id: uid(), day: app.viewDay, q: 86, len: 2, cat: 'learn',
+      id: uid(), day: currentDay.value, q: 86, len: 2, cat: 'learn',
       title: '', status: 'planned', created: 0,
     });
   });
@@ -46,7 +46,7 @@ async function createFutureBlock(flush: () => void) {
 
 test('potwierdzenie bloku zmienia znacznik pozycji na wykonane', async () => {
   const flush = await mountApp();
-  const { app, commit } = await import('../src/state.svelte');
+  const { app, commit, currentDay } = await import('../src/state.svelte');
   await createFutureBlock(flush);
   expect(linkedBullet().textContent).toBe('·');
 
@@ -57,7 +57,7 @@ test('potwierdzenie bloku zmienia znacznik pozycji na wykonane', async () => {
 
 test('cofnięcie bloku do planu zdejmuje znacznik wykonania', async () => {
   const flush = await mountApp();
-  const { app, commit } = await import('../src/state.svelte');
+  const { app, commit, currentDay } = await import('../src/state.svelte');
   await createFutureBlock(flush);
   commit(() => (app.S.blocks[0]!.status = 'confirmed'));
   flush();
@@ -144,13 +144,12 @@ test('menu pozycji swobodnej oferuje trzy znaczniki', async () => {
 
 test('zegar domykający blok aktualizuje też znacznik na liście', async () => {
   const flush = await mountApp();
-  const { app, commit } = await import('../src/state.svelte');
-  const { uid } = await import('../src/state.svelte');
+  const { app, commit, currentDay, uid } = await import('../src/state.svelte');
 
   // Blok w toku, którego czas właśnie minął.
   commit(() => {
     app.S.blocks.push({
-      id: uid(), day: app.viewDay, q: 0, len: 2, cat: 'learn',
+      id: uid(), day: currentDay.value, q: 0, len: 2, cat: 'learn',
       title: '', status: 'active', created: 0,
     });
   });
