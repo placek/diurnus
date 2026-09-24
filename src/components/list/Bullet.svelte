@@ -25,8 +25,24 @@
   const { item, draggable = true }: Props = $props();
 
   let menu = $state(false);
-  let menuX = 0;
-  let menuY = 0;
+  let menuX = $state(0);
+  let menuY = $state(0);
+  let menuEl = $state<HTMLElement | null>(null);
+
+  // Menu jest `fixed`, a nie `absolute`: oba panele mają overflow, a element
+  // pozycjonowany bezwzględnie wewnątrz .item (flex, align-items:center)
+  // dostaje pozycję statyczną W PIONIE NA ŚRODKU wiersza — więc połowa menu
+  // wychodziła nad wiersz i była obcinana przy górnych pozycjach listy.
+  // Współrzędne z kliknięcia plus przycięcie do okna działają wszędzie.
+  $effect(() => {
+    if (!menu || !menuEl) return;
+    const pad = 8;
+    const r = menuEl.getBoundingClientRect();
+    const x = Math.max(pad, Math.min(menuX, innerWidth - pad - r.width));
+    const y = Math.max(pad, Math.min(menuY, innerHeight - pad - r.height));
+    menuEl.style.left = `${x}px`;
+    menuEl.style.top = `${y}px`;
+  });
 
   // Menu otwiera prawy przycisk, więc zwykły klik nie zamknie go od razu
   // po otwarciu; bez tego nasłuchu nie ma z niego wyjścia poza wyborem typu.
@@ -208,7 +224,7 @@
 >
 
 {#if menu}
-  <div class="bullet-menu" role="menu">
+  <div bind:this={menuEl} class="bullet-menu" role="menu" style="left:{menuX}px;top:{menuY}px">
     {#each TYPES as t (t.type)}
       <button role="menuitem" class:sel={t.type === item.type} onclick={() => choose(t.type)}>
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}

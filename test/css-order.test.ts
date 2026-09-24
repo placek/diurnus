@@ -54,3 +54,13 @@ test('blok zaplanowany jest mocniej podbarwiony niż wykonany', () => {
 test('blok zaplanowany ma pełny kontrast tekstu, wykonany przygaszony', () => {
   expect(css).toMatch(/\.st-planned\{[^}]*color:var\(--fg\)/);
 });
+
+test('menu znacznika nie może być obcinane przez przewijane panele', () => {
+  // `absolute` wewnątrz .item było obcinane przez overflow paneli, a pozycja
+  // statyczna w wierszu flex align-items:center wypychała połowę menu nad
+  // wiersz — przy górnych pozycjach listy znikała.
+  const rule = /\.bullet-menu\{[^}]*\}/.exec(css)?.[0] ?? '';
+  expect(rule).toContain('position:fixed');
+  expect(rule).toContain('max-height');
+  expect(rule).not.toContain('position:absolute');
+});

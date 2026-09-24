@@ -462,10 +462,13 @@ kbd{
 }
 .bullet:hover{background:var(--line)}
 .bullet.t-done{color:var(--green)}
+/* `fixed`, żeby wyjść poza przewijane panele, które je obcinały.
+   max-height ratuje długie menu na niskich ekranach. */
 .bullet-menu{
-  position:absolute;z-index:40;margin-top:2px;background:var(--raise);
+  position:fixed;z-index:60;background:var(--raise);
   border:1px solid var(--line-2);border-radius:10px;padding:4px;box-shadow:var(--shadow);
-  display:flex;flex-direction:column;min-width:150px;
+  display:flex;flex-direction:column;min-width:170px;
+  max-height:min(70vh,520px);overflow-y:auto;
 }
 .bullet-menu button{
   display:flex;align-items:center;gap:8px;border:0;background:transparent;cursor:pointer;

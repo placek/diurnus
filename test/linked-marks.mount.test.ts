@@ -247,3 +247,26 @@ test('zwykła notatka nie dostaje tonu zadania', async () => {
   flush();
   expect(document.querySelector('#list .item:not(.is-linked):not(.is-draft)')!.classList.contains('tone-note')).toBe(true);
 });
+
+test('menu znacznika otwiera się w miejscu kliknięcia, nie w wierszu', async () => {
+  // Pozycja z kliknięcia plus `fixed` to jedyny sposób, żeby menu nie było
+  // obcinane przez przewijany panel przy górnych pozycjach listy.
+  const flush = await mountApp();
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const bullet = document.querySelector<HTMLElement>('#list .item:not(.is-linked):not(.is-draft) .bullet')!;
+  bullet.dispatchEvent(
+    new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 240, clientY: 380 }),
+  );
+  flush();
+
+  const menu = document.querySelector<HTMLElement>('.bullet-menu')!;
+  expect(menu).not.toBeNull();
+  // jsdom nie liczy układu, więc przycięcie nic nie zmienia — sprawdzamy,
+  // że menu w ogóle dostaje współrzędne kliknięcia.
+  expect(menu.style.left).toBe('240px');
+  expect(menu.style.top).toBe('380px');
+});
