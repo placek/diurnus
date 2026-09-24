@@ -78,8 +78,10 @@ test('nie zostały martwe reguły po liniach siatki', () => {
   }
 });
 
-test('wykonana pozycja z kategorią traci akcent, ale zachowuje tło', () => {
-  expect(css).toContain('.item.has-cat.tone-done{box-shadow:none}');
+test('wykonana pozycja z kategorią przygasza akcent, ale zachowuje tło', () => {
+  // Kategoria zostaje widoczna; pasek przestaje być jasny.
+  expect(css).toMatch(/\.item\.has-cat\.tone-done\{box-shadow:inset[^}]*color-mix/);
+  expect(css).not.toContain('.item.has-cat.tone-done{box-shadow:none}');
   // Szczegółowość 0-3-0 bije 0-2-0, więc kolejność nie ma tu znaczenia —
   // ale tło musi nadal pochodzić z reguły .item.has-cat.
   expect(css).toMatch(/\.item\.has-cat\{[^}]*background:color-mix/);

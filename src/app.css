@@ -6,7 +6,7 @@
      ta sama grubość akcentu, ta sama siła podbarwienia. Zmiana tu zmienia
      obie połowy ekranu naraz — o to chodziło w ujednoliceniu. */
   --shape-r: 8px;
-  --accent-w: 3px;
+  --accent-w: 4px;
   --tint: 12%;
   --hdr: 76px;
   --bg:#fbf1c7; --raise:#fffbe8; --fg:#3c3836; --fg-dim:#7c6f64; --fg-faint:#a89984;
@@ -483,11 +483,10 @@ kbd{
   box-shadow:inset var(--accent-w) 0 0 var(--c);
   padding-left:calc(var(--accent-w) + 4px);
 }
-/* Wykonane traci jasny akcent, zachowuje podbarwienie. Akcent jest sygnałem
-   „to na ciebie czeka"; rzecz zrobiona nie ma już nic do zasygnalizowania,
-   a tło nadal mówi, do której kategorii należała. Wcięcie zostaje, żeby tekst
-   nie przeskakiwał w bok w momencie odhaczenia. */
-.item.has-cat.tone-done{box-shadow:none}
+/* Wykonane przygasza akcent, zamiast go gubić: kategoria nadal jest widoczna,
+   ale pasek przestaje krzyczeć „to na ciebie czeka". Wcięcie zostaje, żeby
+   tekst nie przeskakiwał w bok w momencie odhaczenia. */
+.item.has-cat.tone-done{box-shadow:inset var(--accent-w) 0 0 color-mix(in srgb,var(--c) 38%,transparent)}
 .item-text{
   flex:1;min-width:0;border:0;background:transparent;outline:0;padding:4px 2px;
   font:500 16px var(--sans);color:var(--fg);
@@ -550,3 +549,8 @@ kbd{
   border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;
 }
 .bm-sep{height:1px;margin:4px 6px;background:var(--line-2)}
+.dy-notify{
+  display:flex;align-items:center;gap:8px;margin:0 0 4px;
+  font:500 14px var(--sans);color:var(--fg);cursor:pointer;
+}
+.dy-notify input{width:16px;height:16px;accent-color:var(--c,var(--blue))}

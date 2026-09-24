@@ -4,6 +4,8 @@
   import { backlogItems, sortBacklog } from '../../lib/backlog';
   import { describeRepeat } from '../../lib/repeat';
   import { itemTone } from '../../lib/tone';
+  import { itemCategory } from '../../lib/category';
+  import { colorOf } from '../../lib/categories';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import Bullet from '../list/Bullet.svelte';
@@ -27,6 +29,8 @@
 
   // Pozycja backlogu nigdy nie ma bloku, więc ton wynika z samego typu.
   const tone = $derived(itemTone(item, undefined, app.now));
+  const cat = $derived(itemCategory(item, undefined, app.S.cats));
+  const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
 
   const siblings = $derived(sortBacklog(backlogItems(app.S.items, currentDay.value)));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));

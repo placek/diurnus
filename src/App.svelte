@@ -2,6 +2,7 @@
   import { activeLayer, app, closeAll, currentDay, save, savePrefs, startClock, startCrossTabSync, ui, uid, undo, win } from './state.svelte';
   import { reconcile } from './lib/link';
   import { carryOver, lastDayWithItems } from './lib/backlog';
+  import { dueNotifications, notifyKey } from './lib/notify';
   import {
     actAt,
     assignDigit,
@@ -50,6 +51,25 @@
     if (next.length !== app.S.items.length) {
       app.S.items = next;
       save();
+    }
+  });
+
+  // Powiadomienia jadą na istniejącym tyknięciu zegara — bez drugiego timera.
+  // Padają wyłącznie przy otwartej karcie: przeglądarka nie umie zaplanować
+  // powiadomienia na później bez serwera push, którego ta aplikacja nie ma.
+  const fired = new Set<string>();
+  $effect(() => {
+    if (!app.prefs.notify) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+    for (const n of dueNotifications(app.S.blocks, app.now, fired)) {
+      fired.add(notifyKey(n.blockId, n.kind));
+      try {
+        new Notification(n.title, { body: n.body, tag: notifyKey(n.blockId, n.kind) });
+      } catch {
+        // Niektóre przeglądarki rzucają przy konstruktorze na desktopie bez
+        // service workera; brak powiadomienia nie może wywrócić aplikacji.
+      }
     }
   });
 

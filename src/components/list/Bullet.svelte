@@ -2,6 +2,7 @@
   import { MARK } from '../../lib/items';
   import {
     completeBacklogItem,
+    openMenu,
     pullToToday,
     scheduleItem,
     setRepeat,
@@ -95,7 +96,7 @@
   // Pozycja powiązana nie ma czego pokazać w menu: jej znacznik jest statusem
   // bloku, terminy i powtarzalność należą do backlogu. Pusta ramka byłaby
   // gorsza niż brak reakcji, więc nie przechwytujemy prawego przycisku.
-  const hasMenu = $derived(TYPES.length + DATES.length + REPEATS.length > 0);
+  const hasMenu = $derived(!item.block || TYPES.length + DATES.length + REPEATS.length > 0);
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -230,6 +231,21 @@
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}
       </button>
     {/each}
+    <!-- Pozycja powiązana bierze kategorię z bloku, więc nie ma tu czego wybierać. -->
+    {#if !item.block}
+      <button
+        role="menuitem"
+        onclick={() => {
+          menu = false;
+          ui.catFor = item.id;
+          openMenu(0, menuX, menuY);
+        }}
+      >
+        <span class="bm-mark">#</span>Kategoria…
+      </button>
+      <div class="bm-sep"></div>
+    {/if}
+
     {#each DATES as d, i (i)}
       <button
         role="menuitem"

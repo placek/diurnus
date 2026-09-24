@@ -71,4 +71,6 @@ export interface State {
 export interface Prefs {
   theme: 'auto' | 'light' | 'dark';
   seenHelp: boolean;
+  /** powiadomienia o blokach; padają tylko przy otwartej karcie */
+  notify: boolean;
 }

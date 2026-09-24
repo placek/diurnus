@@ -7,7 +7,7 @@ import type { Block, Prefs, State } from './lib/types';
 const KEY = 'gridday.v1';
 const PREF = 'gridday.prefs';
 
-const DEFAULT_PREFS: Prefs = { theme: 'auto', seenHelp: false };
+const DEFAULT_PREFS: Prefs = { theme: 'auto', seenHelp: false, notify: false };
 
 export interface Toast {
   msg: string;
@@ -49,6 +49,8 @@ export const ui = $state({
   datePrompt: null as { itemId: string; x: number; y: number } | null,
   /** pozycja czekająca na wybór kategorii po przeciągnięciu z backlogu */
   pullTo: null as string | null,
+  /** pozycja czekająca na wybór kategorii z menu znacznika */
+  catFor: null as string | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,
