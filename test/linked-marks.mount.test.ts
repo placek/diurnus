@@ -139,7 +139,7 @@ test('menu pozycji swobodnej oferuje trzy znaczniki', async () => {
   bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   flush();
   const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) => b.textContent?.trim());
-  expect(labels).toEqual(['·Zadanie', '×Wykonane', '–Notatka']);
+  expect(labels).toEqual(['·Zadanie', '×Wykonane', '–Notatka', '#Kategoria…']);
 });
 
 test('zegar domykający blok aktualizuje też znacznik na liście', async () => {

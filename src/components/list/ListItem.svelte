@@ -3,7 +3,8 @@
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
   import { blockOfItem, freeItems, linkedItems } from '../../lib/link';
   import { itemTone } from '../../lib/tone';
-  import { catOf, colorOf } from '../../lib/categories';
+  import { colorOf } from '../../lib/categories';
+  import { itemCategory } from '../../lib/category';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import Bullet from './Bullet.svelte';
@@ -29,7 +30,7 @@
   });
 
   const block = $derived(blockOfItem(app.S.blocks, item));
-  const cat = $derived(block ? catOf(app.S.cats, block.cat) : null);
+  const cat = $derived(itemCategory(item, block, app.S.cats));
   // Godzina i kolor są wyliczane z bloku, nie przechowywane w pozycji: zmiana
   // kategorii bloku przebarwia pozycję sama, bez trzeciego pola do rozjechania.
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);

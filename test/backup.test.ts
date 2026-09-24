@@ -13,7 +13,7 @@ const sample = () =>
   });
 
 test('pełny obieg zachowuje bloki, kategorie, dzień i preferencje', () => {
-  const back = bundleParse(bundleExport(sample(), { theme: 'dark', seenHelp: true }, 0));
+  const back = bundleParse(bundleExport(sample(), { theme: 'dark', seenHelp: true, notify: false }, 0));
   expect(back.state.blocks).toEqual(sample().blocks);
   expect(back.state.cats).toEqual(sample().cats);
   expect(back.state.day.start).toBe(6);
@@ -21,7 +21,7 @@ test('pełny obieg zachowuje bloki, kategorie, dzień i preferencje', () => {
 });
 
 test('eksport zapisuje datę z podanego zegara, nie z systemowego', () => {
-  const o = JSON.parse(bundleExport(sample(), { theme: 'auto', seenHelp: true }, Date.UTC(2026, 8, 24, 10)));
+  const o = JSON.parse(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, Date.UTC(2026, 8, 24, 10)));
   expect(o.exported).toBe('2026-09-24T10:00:00.000Z');
 });
 
@@ -66,5 +66,5 @@ test('tablica JSON zamiast obiektu jest odrzucana', () => {
 });
 
 test('eksport jest czytelny dla człowieka (wcięcia)', () => {
-  expect(bundleExport(sample(), { theme: 'auto', seenHelp: true }, 0)).toContain('\n  "magic"');
+  expect(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0)).toContain('\n  "magic"');
 });

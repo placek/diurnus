@@ -5,7 +5,7 @@ const MAGIC = 'gridday.backup';
 
 // Przywrócenie kopii to nie pierwsze uruchomienie, więc ekran powitalny
 // domyślnie się nie pokazuje.
-const PREFS_DEFAULT: Prefs = { theme: 'auto', seenHelp: true };
+const PREFS_DEFAULT: Prefs = { theme: 'auto', seenHelp: true, notify: false };
 
 // Zegar jest parametrem, a nie Date.now() w środku, żeby wynik dał się
 // porównać w teście.

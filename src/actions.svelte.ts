@@ -81,11 +81,14 @@ export function chooseCat(id: string): void {
   }
   const q = menu.q;
   const pulling = ui.pullTo;
+  const categorising = ui.catFor;
   ui.menu = null;
   ui.pullTo = null;
-  // Menu obsługuje dwa źródła: klik w pustą komórkę i pozycję ciągniętą
-  // z backlogu. Różni je tylko to, skąd bierze się tekst bloku.
-  if (pulling) finishPull(pulling, id);
+  ui.catFor = null;
+  // Menu obsługuje trzy źródła: klik w pustą komórkę, pozycję ciągniętą
+  // z backlogu i nadanie kategorii pozycji z menu znacznika.
+  if (categorising) setItemCategory(categorising, id);
+  else if (pulling) finishPull(pulling, id);
   else createAt(q, id);
 }
 
@@ -336,5 +339,15 @@ export function finishPull(id: string, catId: string): void {
     delete item.repeat;
     delete item.nextOn;
     item.block = block.id;
+  });
+}
+
+/** Kategoria pozycji swobodnej. Powiązana bierze ją z bloku i nie da się jej tu zmienić. */
+export function setItemCategory(id: string, catId: string | null): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item || item.block) return;
+  commit(() => {
+    if (catId) item.cat = catId;
+    else delete item.cat;
   });
 }

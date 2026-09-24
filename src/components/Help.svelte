@@ -56,7 +56,7 @@
     <dt>Przeciągnięcie znacznika</dt>
     <dd>w obrębie listy przestawia; między listami planuje albo bierze na dziś</dd>
     <dt>Prawy przycisk na znaczniku</dt>
-    <dd>znaczniki, a w backlogu także powtarzalność</dd>
+    <dd>znaczniki i kategoria, a w backlogu także termin i powtarzalność</dd>
     <dt class="kb"><kbd>Ctrl</kbd> <kbd>Z</kbd></dt>
     <dd class="kb">cofnij</dd>
   </dl>

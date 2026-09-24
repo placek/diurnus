@@ -44,6 +44,8 @@ export interface Item {
   created: number;
   /** identyfikator bloku, którego ta pozycja jest odbiciem */
   block?: string;
+  /** kategoria pozycji swobodnej; pozycja powiązana bierze ją z bloku */
+  cat?: string;
   /** NOWE w v5: kwant 0–95 — pora bez bloku */
   at?: number;
   /** NOWE w v5: wzorzec powtarzania; wyłącznie pozycje backlogu */
@@ -69,4 +71,6 @@ export interface State {
 export interface Prefs {
   theme: 'auto' | 'light' | 'dark';
   seenHelp: boolean;
+  /** powiadomienia o blokach; padają tylko przy otwartej karcie */
+  notify: boolean;
 }

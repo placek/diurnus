@@ -1,5 +1,33 @@
 <script lang="ts">
   import { COLORS, DEFAULT_DAY, uid } from '../../lib/model';
+  import { app, savePrefs } from '../../state.svelte';
+
+  /** Zgoda pytana dopiero przy włączaniu — nieproszony monit ludzie blokują. */
+  async function requestNotify(want: boolean, el: HTMLInputElement) {
+    if (!want) {
+      app.prefs.notify = false;
+      savePrefs();
+      return;
+    }
+    if (typeof Notification === 'undefined') {
+      el.checked = false;
+      app.toast = { msg: 'Ta przeglądarka nie obsługuje powiadomień', undoable: false };
+      return;
+    }
+    const permission =
+      Notification.permission === 'granted'
+        ? 'granted'
+        : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      el.checked = false;
+      app.prefs.notify = false;
+      savePrefs();
+      app.toast = { msg: 'Przeglądarka odmówiła zgody na powiadomienia', undoable: false };
+      return;
+    }
+    app.prefs.notify = true;
+    savePrefs();
+  }
   import { clampDayRange, dayPreview } from '../../lib/settings';
   import { pad } from '../../lib/time';
   import type { DaySettings } from '../../lib/types';
@@ -132,6 +160,17 @@
     {/if}
   {/each}
 </div>
+
+<div class="dy-h">Powiadomienia</div>
+<label class="dy-notify">
+  <input
+    type="checkbox"
+    checked={app.prefs.notify}
+    onchange={(e) => requestNotify(e.currentTarget.checked, e.currentTarget)}
+  />
+  Powiadamiaj o blokach — kwadrans przed i na starcie
+</label>
+<p class="hint">Powiadomienia padają tylko wtedy, gdy GridDay jest otwarty w karcie.</p>
 
 <button class="btn ce-add" onclick={addBand}><Icon name="plus" fallback="+" />Nowa pora dnia</button>
 <button class="linkbtn" onclick={() => setDay(structuredClone(DEFAULT_DAY) as DaySettings)}>
