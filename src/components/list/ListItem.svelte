@@ -78,7 +78,7 @@
   }
 </script>
 
-<div class="item t-{item.type}">
+<div class="item t-{item.type}" class:is-dragging={ui.drag?.id === item.id} data-id={item.id}>
   <Bullet {item} />
   <input
     bind:this={el}

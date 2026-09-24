@@ -76,3 +76,37 @@ export function migrateTo(
   const withCopy = insertAfter(items, null, copy);
   return withCopy.map((i) => (i.id === id ? { ...i, type, movedTo: targetDay } : i));
 }
+
+// Przestawienie w obrębie jednego dnia.
+//
+// `toIndex` jest indeksem w liście dnia POMNIEJSZONEJ o przeciąganą pozycję —
+// czyli odpowiedzią na pytanie „przed którym z pozostałych ma stanąć". Taki
+// układ współrzędnych bierze się stąd, że interfejs liczy miejsce wstawienia
+// po wyjęciu elementu, i pozwala `toIndex === długość` oznaczać „na koniec".
+//
+// Przestawiać trzeba pełną tablicę, w której dni się przeplatają, więc indeks
+// z listy dnia tłumaczymy na sąsiada i szukamy go w tablicy pełnej.
+export function moveItem(
+  items: readonly Item[],
+  id: string,
+  toIndex: number,
+  day: string,
+): Item[] {
+  const src = items.find((i) => i.id === id);
+  if (!src || src.day !== day) return [...items];
+
+  const inDay = dayItems(items, day);
+  const from = inDay.findIndex((i) => i.id === id);
+  const to = Math.min(Math.max(toIndex, 0), inDay.length - 1);
+  if (from === to) return [...items];
+
+  const rest = items.filter((i) => i.id !== id);
+  // Sąsiad, przed którym pozycja ma wylądować — liczony na liście dnia BEZ niej.
+  const withoutSrc = inDay.filter((i) => i.id !== id);
+  const anchor = withoutSrc[to];
+
+  const out = [...rest];
+  const at = anchor ? out.findIndex((i) => i.id === anchor.id) : -1;
+  out.splice(at < 0 ? out.length : at, 0, src);
+  return out;
+}

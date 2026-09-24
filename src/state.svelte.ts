@@ -43,6 +43,8 @@ export const ui = $state({
   narrow: false,
   /** pozycja listy, która ma dostać fokus po operacji strukturalnej */
   focusItem: null as string | null,
+  /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
+  drag: null as { id: string; toIndex: number } | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,

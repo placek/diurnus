@@ -2,7 +2,15 @@ import { app, commit, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
-import { cycleType, insertAfter, migrateTo, newItem, removeById, typeAfterEnter } from './lib/items';
+import {
+  cycleType,
+  insertAfter,
+  migrateTo,
+  moveItem,
+  newItem,
+  removeById,
+  typeAfterEnter,
+} from './lib/items';
 import { fmtQ, rel, shiftDay } from './lib/time';
 import type { Block, ItemType } from './lib/types';
 
@@ -184,4 +192,12 @@ export function createItemWithText(text: string): void {
   const item = { ...newItem(app.viewDay, 'task', Date.now(), uid), text };
   commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
   ui.focusItem = item.id;
+}
+
+/** Przestawienie pozycji na liście dnia; `toIndex` to miejsce w liście BEZ niej. */
+export function moveItemTo(id: string, toIndex: number): void {
+  const before = app.S.items;
+  const after = moveItem(before, id, toIndex, app.viewDay);
+  if (after.every((x, i) => x === before[i])) return; // nic się nie przesunęło
+  commit(() => (app.S.items = after), undefined, true);
 }

@@ -148,3 +148,52 @@ test('migrateTo nie mutuje wejścia', () => {
   migrateTo(all, '1', B, 5, () => 'k');
   expect(all[0]!.type).toBe('task');
 });
+
+import { moveItem } from '../src/lib/items';
+
+test('moveItem przesuwa pozycję w dół listy dnia', () => {
+  const all = [it('1', A), it('2', A), it('3', A)];
+  expect(moveItem(all, '1', 2, A).map((x) => x.id)).toEqual(['2', '3', '1']);
+});
+
+test('moveItem przesuwa pozycję w górę listy dnia', () => {
+  const all = [it('1', A), it('2', A), it('3', A)];
+  expect(moveItem(all, '3', 0, A).map((x) => x.id)).toEqual(['3', '1', '2']);
+});
+
+test('moveItem na to samo miejsce nie zmienia kolejności', () => {
+  const all = [it('1', A), it('2', A)];
+  expect(moveItem(all, '1', 0, A).map((x) => x.id)).toEqual(['1', '2']);
+});
+
+test('moveItem nie rusza pozycji innych dni', () => {
+  // Indeks docelowy liczy się w liście DNIA, a przestawienie musi zadziałać
+  // na pełnej tablicy, w której dni się przeplatają.
+  const all = [it('1', A), it('x', B), it('2', A), it('y', B), it('3', A)];
+  const got = moveItem(all, '3', 0, A);
+  expect(dayItems(got, A).map((i) => i.id)).toEqual(['3', '1', '2']);
+  expect(dayItems(got, B).map((i) => i.id)).toEqual(['x', 'y']);
+  expect(got).toHaveLength(5);
+});
+
+test('moveItem z indeksem poza zakresem przycina do krańców', () => {
+  const all = [it('1', A), it('2', A)];
+  expect(moveItem(all, '1', 99, A).map((x) => x.id)).toEqual(['2', '1']);
+  expect(moveItem(all, '2', -5, A).map((x) => x.id)).toEqual(['2', '1']);
+});
+
+test('moveItem z nieznanym id nie zmienia niczego', () => {
+  const all = [it('1', A)];
+  expect(moveItem(all, 'nie-ma', 0, A)).toEqual(all);
+});
+
+test('moveItem pozycją z innego dnia niż podany nie zmienia niczego', () => {
+  const all = [it('1', A), it('x', B)];
+  expect(moveItem(all, 'x', 0, A)).toEqual(all);
+});
+
+test('moveItem nie mutuje wejścia', () => {
+  const all = [it('1', A), it('2', A)];
+  moveItem(all, '1', 1, A);
+  expect(all.map((x) => x.id)).toEqual(['1', '2']);
+});

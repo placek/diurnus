@@ -1,7 +1,7 @@
 <script lang="ts">
   import { MARK } from '../../lib/items';
-  import { migrateItem, migrateToTomorrow, setItemType } from '../../actions.svelte';
-  import { app } from '../../state.svelte';
+  import { migrateItem, migrateToTomorrow, moveItemTo, setItemType } from '../../actions.svelte';
+  import { app, ui } from '../../state.svelte';
   import { shiftDay } from '../../lib/time';
   import type { Item, ItemType } from '../../lib/types';
 
@@ -30,6 +30,72 @@
     { type: 'scheduled', label: 'Na dzień…' },
   ];
 
+  /* ── Przeciąganie ──
+     Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
+     otwiera menu, a przeciągnięcie przestawia pozycję. Rozróżnia je próg
+     ruchu — dopiero po nim naciśnięcie staje się przeciąganiem, więc klik,
+     który drgnął o piksel, nadal przełącza znacznik. */
+  const THRESHOLD = 4;
+
+  let startX = 0;
+  let startY = 0;
+  let dragging = false;
+  let suppressClick = false;
+
+  /** Miejsce wstawienia w liście dnia BEZ przeciąganej pozycji: liczba
+   *  pozostałych wierszy, których środek jest powyżej kursora. */
+  function insertionIndex(y: number, skipId: string): number {
+    const rows = [...document.querySelectorAll<HTMLElement>('#list .item[data-id]')].filter(
+      (r) => r.dataset.id !== skipId,
+    );
+    let idx = 0;
+    for (const row of rows) {
+      const r = row.getBoundingClientRect();
+      if (y > r.top + r.height / 2) idx++;
+    }
+    return idx;
+  }
+
+  function onPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return; // prawy przycisk należy do menu
+    startX = e.clientX;
+    startY = e.clientY;
+    dragging = false;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    if (!el.hasPointerCapture(e.pointerId)) return;
+
+    if (!dragging) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < THRESHOLD) return;
+      dragging = true;
+      menu = false;
+    }
+    ui.drag = { id: item.id, toIndex: insertionIndex(e.clientY, item.id) };
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    if (!dragging) return;
+
+    dragging = false;
+    suppressClick = true; // po przeciągnięciu i tak przyjdzie click
+    const drag = ui.drag;
+    ui.drag = null;
+    if (drag) moveItemTo(drag.id, drag.toIndex);
+  }
+
+  function onClick() {
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    setItemType(item.id, item.type === 'done' ? 'task' : 'done');
+  }
+
   function choose(type: ItemType) {
     menu = false;
     if (type === 'migrated') return migrateToTomorrow(item.id);
@@ -48,7 +114,11 @@
 <button
   class="bullet t-{item.type}"
   aria-label="Znacznik: {item.type}"
-  onclick={() => setItemType(item.id, item.type === 'done' ? 'task' : 'done')}
+  onclick={onClick}
+  onpointerdown={onPointerDown}
+  onpointermove={onPointerMove}
+  onpointerup={onPointerUp}
+  onpointercancel={onPointerUp}
   oncontextmenu={(e) => {
     e.preventDefault();
     menu = !menu;
