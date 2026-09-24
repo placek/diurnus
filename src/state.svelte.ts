@@ -1,4 +1,5 @@
 import { normalize, uid } from './lib/model';
+import { reconcile } from './lib/link';
 import { readJSON, writeJSON } from './lib/persist';
 import { dayKey, qTime, today } from './lib/time';
 import type { Block, Prefs, State } from './lib/types';
@@ -37,6 +38,14 @@ export const ui = $state({
   hover: null as string | null,
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
+  /** widoczny panel na wąskim ekranie; na szerokim widać oba */
+  pane: 'grid' as 'grid' | 'list',
+  /** czy ekran jest za wąski na dwa panele — ustawia Panes.svelte */
+  narrow: false,
+  /** pozycja listy, która ma dostać fokus po operacji strukturalnej */
+  focusItem: null as string | null,
+  /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
+  drag: null as { id: string; toIndex: number } | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,
@@ -94,11 +103,21 @@ export function commit(fn: () => void, msg?: string, undoable = false): void {
   history.push($state.snapshot(app.S) as State);
   if (history.length > HISTORY_MAX) history.shift();
   fn();
+  // Niezmiennik utrzymywany w jednym miejscu: żaden z mutatorów bloków nie
+  // musi pamiętać o liście, bo każdy i tak przechodzi tędy.
+  app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
   if (!save()) {
     app.toast = { msg: 'Zapis nieudany — pobierz kopię zapasową', undoable: false };
     return;
   }
   if (msg) app.toast = { msg, undoable };
+}
+
+/** Migawka bez mutacji — dla edycji tekstu, gdzie zmiana idzie znak po znaku
+ *  i pierwszy znak ma wyznaczyć punkt cofnięcia. */
+export function pushHistory(): void {
+  history.push($state.snapshot(app.S) as State);
+  if (history.length > HISTORY_MAX) history.shift();
 }
 
 export function undo(): void {

@@ -46,6 +46,8 @@
     <dd class="kb">ustawienia: kategorie, dzień</dd>
     <dt class="kb"><kbd>[</kbd> <kbd>]</kbd> <kbd>T</kbd></dt>
     <dd class="kb">poprzedni dzień, następny, dziś</dd>
+    <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
+    <dd class="kb">na liście po prawej: nowa pozycja, zmiana znacznika</dd>
     <dt class="kb"><kbd>Ctrl</kbd> <kbd>Z</kbd></dt>
     <dd class="kb">cofnij</dd>
   </dl>

@@ -51,6 +51,9 @@
       commit(() => {
         b.cat = edit.cat;
         b.title = nextTitle;
+        // Druga strona lustra: tytuł bloku jest tekstem jego pozycji.
+        const linked = app.S.items.find((i) => i.block === b.id);
+        if (linked) linked.text = nextTitle;
         if (patch.status) b.status = patch.status;
       });
     }

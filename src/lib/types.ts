@@ -30,6 +30,20 @@ export interface Block {
   created: number;
 }
 
+export type ItemType = 'task' | 'done' | 'note' | 'scheduled' | 'migrated';
+
+export interface Item {
+  id: string;
+  day: string; // 'YYYY-MM-DD', czas lokalny
+  text: string;
+  type: ItemType;
+  created: number;
+  /** dzień docelowy, gdy pozycja została przeniesiona; inaczej brak */
+  movedTo?: string;
+  /** NOWE w v4: identyfikator bloku, którego ta pozycja jest odbiciem */
+  block?: string;
+}
+
 export interface DaySettings {
   start: number;
   end: number;
@@ -41,6 +55,7 @@ export interface State {
   cats: Category[];
   day: DaySettings;
   blocks: Block[];
+  items: Item[];
 }
 
 export interface Prefs {

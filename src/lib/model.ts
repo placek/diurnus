@@ -1,4 +1,5 @@
-import type { Band, Category, DaySettings, State, Status } from './types';
+import { reconcile } from './link';
+import type { Band, Block, Category, DaySettings, Item, State, Status } from './types';
 
 export const COLORS = ['yellow', 'orange', 'red', 'purple', 'blue', 'aqua', 'green'] as const;
 
@@ -71,12 +72,33 @@ export function normalize(x: unknown): State {
     s.v = 2;
   }
 
-  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 2 || !Array.isArray(s.blocks)) {
+  // v2 nie znało listy notatek.
+  if (s && typeof s === 'object' && s.v === 2) {
+    s.items = [];
+    s.v = 3;
+  }
+
+  // v3 nie znało powiązania bloków z pozycjami: dorabiamy je dla wszystkich dni
+  // jeden raz, żeby niezmiennik obowiązywał także w dniach, których użytkownik
+  // jeszcze nie odwiedził.
+  if (s && typeof s === 'object' && s.v === 3) {
+    s.items = reconcile(
+      (s.items ?? []) as Item[],
+      (s.blocks ?? []) as Block[],
+      null,
+      Date.now(),
+      uid,
+    );
+    s.v = 4;
+  }
+
+  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 4 || !Array.isArray(s.blocks)) {
     return {
-      v: 2,
+      v: 4,
       cats: clone(DEFAULT_CATS) as Category[],
       day: clone(DEFAULT_DAY) as DaySettings,
       blocks: [],
+      items: [],
     };
   }
 
@@ -84,6 +106,8 @@ export function normalize(x: unknown): State {
   if (!s.day || !(s.day.start < s.day.end) || !Array.isArray(s.day.bands)) {
     s.day = clone(DEFAULT_DAY) as DaySettings;
   }
+  // Uszkodzona kopia zapasowa może nie mieć listy w ogóle.
+  if (!Array.isArray(s.items)) s.items = [] as Item[];
 
   // Bloki poza widocznym oknem doby zostają w danych. Zwężenie dnia chowa je
   // z widoku; rozszerzenie musi je przywrócić, a nie odkryć, że zniknęły.

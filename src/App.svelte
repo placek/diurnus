@@ -6,10 +6,13 @@
     savePrefs,
     startClock,
     startCrossTabSync,
+    save,
     ui,
+    uid,
     undo,
     win,
   } from './state.svelte';
+  import { reconcile } from './lib/link';
   import {
     actAt,
     assignDigit,
@@ -26,13 +29,24 @@
   import { nextTheme, themeColor } from './lib/theme';
   import { occ } from './lib/occupancy';
   import { nowQ, pad, qTime, shiftDay, today } from './lib/time';
-  import Grid from './components/Grid.svelte';
+  import Panes from './components/Panes.svelte';
   import Header from './components/Header.svelte';
   import RadialMenu from './components/RadialMenu.svelte';
   import EditSheet from './components/EditSheet.svelte';
   import Help from './components/Help.svelte';
   import Toast from './components/Toast.svelte';
   import Settings from './components/settings/Settings.svelte';
+
+  // Wejście na dzień, którego bloki powstały wcześniej (albo przed migracją),
+  // musi dorobić ich pozycje — to nie jest mutacja, więc commit() tu nie sięga.
+  $effect(() => {
+    const day = app.viewDay;
+    const next = reconcile(app.S.items, app.S.blocks, day, Date.now(), uid);
+    if (next.length !== app.S.items.length) {
+      app.S.items = next;
+      save();
+    }
+  });
 
   $effect(() => startClock());
   $effect(() => startCrossTabSync());
@@ -176,7 +190,7 @@
   onHelp={() => (ui.help = true)}
   onSettings={() => (ui.settings = 'cats')}
 />
-<Grid />
+<Panes />
 
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}
 {#if ui.edit}<EditSheet edit={ui.edit} />{/if}
