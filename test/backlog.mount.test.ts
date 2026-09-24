@@ -41,7 +41,8 @@ async function mountApp() {
   return flushSync;
 }
 
-const rows = () => [...document.querySelectorAll<HTMLElement>('#backlog .backlog-item')];
+const rows = () =>
+  [...document.querySelectorAll<HTMLElement>('#backlog .backlog-item:not(.is-draft)')];
 const metas = () => rows().map((r) => r.querySelector('.backlog-meta')?.textContent ?? '');
 const texts = () => rows().map((r) => r.querySelector<HTMLInputElement>('.item-text')!.value);
 
@@ -88,10 +89,11 @@ test('pozycje z datą stoją przed bezdatowymi, rosnąco po dacie', async () => 
   expect(texts()).toEqual(['Wcześnie', 'Późno', 'Kiedyś']);
 });
 
-test('pusty backlog mówi, że nic nie czeka', async () => {
+test('pusty backlog pokazuje samo pole do pisania', async () => {
   seed([]);
   await mountApp();
-  expect(document.querySelector('#backlog .list-empty')!.textContent).toContain('Nic nie czeka');
+  expect(rows()).toHaveLength(0);
+  expect(document.querySelector('#backlog .is-draft')).not.toBeNull();
 });
 
 test('Enter w backlogu tworzy kolejną pozycję TAM, nie w dzisiejszych notatkach', async () => {
@@ -122,4 +124,54 @@ test('Enter po pozycji bez daty też tworzy pozycję bez daty', async () => {
 
   expect(rows()).toHaveLength(2);
   expect(app.S.items.every((i) => i.day === null)).toBe(true);
+});
+
+const draft = () => document.querySelector<HTMLInputElement>('#backlog .is-draft .item-text')!;
+
+test('backlog ma pole początkowe do pisania', async () => {
+  seed([]);
+  await mountApp();
+  expect(draft()).not.toBeNull();
+  expect(draft().placeholder).toBe('Zaplanuj coś…');
+});
+
+test('pisanie w polu początkowym tworzy pozycję BEZ daty', async () => {
+  seed([]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  draft().value = 'Kiedyś to zrobię';
+  draft().dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  expect(rows()).toHaveLength(1);
+  expect(texts()).toEqual(['Kiedyś to zrobię']);
+  const item = app.S.items[0]!;
+  expect(item.day).toBeNull();
+  // Nie może wylądować w dzisiejszych notatkach.
+  expect(document.querySelectorAll('#list .item[data-id]')).toHaveLength(0);
+});
+
+test('Backspace na pustej pozycji backlogu usuwa ją', async () => {
+  seed([
+    { id: 'a', day: null, text: 'Pierwsza', type: 'task', created: 0 },
+    { id: 'b', day: null, text: '', type: 'task', created: 0 },
+  ]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  const second = rows()[1]!.querySelector<HTMLInputElement>('.item-text')!;
+  second.selectionStart = second.selectionEnd = 0;
+  second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+  flush();
+
+  expect(rows()).toHaveLength(1);
+  expect(app.S.items).toHaveLength(1);
+});
+
+test('pole początkowe backlogu nie tworzy pozycji dopóki się nie pisze', async () => {
+  seed([]);
+  await mountApp();
+  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');
+  expect(saved.items ?? []).toEqual([]);
 });

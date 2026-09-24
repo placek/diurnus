@@ -205,8 +205,8 @@ export function setItemText(id: string, text: string): void {
 
 /** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
  *  Używane przez pole początkowe, które samo NIE jest pozycją w stanie. */
-export function createItemWithText(text: string): void {
-  const item = { ...newItem(currentDay.value, 'task', Date.now(), uid), text };
+export function createItemWithText(text: string, day: string | null = currentDay.value): void {
+  const item = { ...newItem(day, 'task', Date.now(), uid), text };
   commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
   ui.focusItem = item.id;
 }

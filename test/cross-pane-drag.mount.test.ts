@@ -57,7 +57,8 @@ function drag(bullet: HTMLElement, flush: () => void) {
   flush();
 }
 
-const backlogBullet = () => document.querySelector<HTMLElement>('#backlog .bullet')!;
+const backlogBullet = () =>
+  document.querySelector<HTMLElement>('#backlog .backlog-item:not(.is-draft) .bullet')!;
 const noteBullet = () => document.querySelector<HTMLElement>('#list .item[data-id] .bullet')!;
 
 test('przeciągnięcie notatki na backlog otwiera okienko daty z jutrem', async () => {

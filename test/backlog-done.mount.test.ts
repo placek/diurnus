@@ -36,8 +36,10 @@ async function mountApp() {
   return flushSync;
 }
 
-const backlogBullet = () => document.querySelector<HTMLElement>('#backlog .bullet')!;
-const backlogRows = () => document.querySelectorAll('#backlog .backlog-item');
+const backlogBullet = () =>
+  document.querySelector<HTMLElement>('#backlog .backlog-item:not(.is-draft) .bullet')!;
+const backlogRows = () =>
+  document.querySelectorAll('#backlog .backlog-item:not(.is-draft)');
 const noteTexts = () =>
   [...document.querySelectorAll<HTMLInputElement>('#list .item[data-id] .item-text')].map((i) => i.value);
 
