@@ -7,6 +7,7 @@ export interface KeyContext {
   /** menu pokazuje drugi pierścień (podkategorie) */
   menuHasLevel: boolean;
   cursorVisible: boolean;
+  shift: boolean;
   ctrl: boolean;
   meta: boolean;
   alt: boolean;
@@ -17,6 +18,7 @@ export type KeyAction =
   | { type: 'close' }
   | { type: 'save' }
   | { type: 'move'; delta: number }
+  | { type: 'moveBlock'; delta: number }
   | { type: 'digit'; n: number }
   | { type: 'act' }
   | { type: 'edit' }
@@ -33,6 +35,11 @@ const MOVES: Record<string, number> = {
   ArrowUp: -4, k: -4,
   ArrowDown: 4, j: 4,
 };
+
+// Shift+h daje 'H', więc wielka litera to ten sam kierunek. Caps Lock bez
+// Shifta też daje wielką literę — wtedy nadal chodzi kursor, nie blok.
+const direction = (key: string): number | undefined =>
+  MOVES[key] ?? (key.length === 1 ? MOVES[key.toLowerCase()] : undefined);
 
 const digit = (key: string) => (/^[1-9]$/.test(key) ? Number(key) : 0);
 
@@ -75,8 +82,14 @@ export function keyAction(key: string, ctx: KeyContext): KeyAction | null {
     return key === 'Enter' || key === '?' ? { type: 'close' } : null;
   }
 
-  const move = MOVES[key];
-  if (move !== undefined) return { type: 'move', delta: move };
+  // Shift przenosi blok spod kursora; bez widocznego kursora nie ma czego
+  // przenosić, więc pierwszy wciśnięty klawisz tylko go pokazuje.
+  const move = direction(key);
+  if (move !== undefined) {
+    return ctx.shift && ctx.cursorVisible
+      ? { type: 'moveBlock', delta: move }
+      : { type: 'move', delta: move };
+  }
   if (n) return { type: 'digit', n };
 
   if ((key === 'Enter' || key === ' ') && ctx.cursorVisible) return { type: 'act' };

@@ -291,7 +291,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .btn.danger:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
 .btn .ic{font-size:12px}
 
-#helpbox{width:min(460px,calc(100vw - 24px))}
+#helpbox{width:min(560px,calc(100vw - 24px))}
+#helpbox h3{
+  margin:18px 0 8px;font:600 12px var(--sans);color:var(--fg-faint);
+  text-transform:uppercase;letter-spacing:.07em;
+}
 #helpbox h2{font:600 23px var(--sans);margin:2px 0 4px}
 #helpbox p{margin:0 0 14px;color:var(--fg-dim);font-size:14px;line-height:1.45}
 .legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}

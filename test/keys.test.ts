@@ -7,6 +7,7 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   inInput: false,
   menuHasLevel: false,
   cursorVisible: true,
+  shift: false,
   ctrl: false,
   meta: false,
   alt: false,
@@ -134,4 +135,40 @@ test('clampCursor trzyma kursor w widocznym oknie doby', () => {
   expect(clampCursor(87, 1, 24, 88)).toBe(87);
   expect(clampCursor(26, -4, 24, 88)).toBe(24);
   expect(clampCursor(86, 4, 24, 88)).toBe(87);
+});
+
+test('Shift ze strzałką przenosi blok o kwant i o rząd', () => {
+  const s = { shift: true };
+  expect(k('ArrowLeft', s)).toEqual({ type: 'moveBlock', delta: -1 });
+  expect(k('ArrowRight', s)).toEqual({ type: 'moveBlock', delta: 1 });
+  expect(k('ArrowUp', s)).toEqual({ type: 'moveBlock', delta: -4 });
+  expect(k('ArrowDown', s)).toEqual({ type: 'moveBlock', delta: 4 });
+});
+
+test('Shift+hjkl (czyli HJKL) przenosi blok', () => {
+  const s = { shift: true };
+  expect(k('H', s)).toEqual({ type: 'moveBlock', delta: -1 });
+  expect(k('L', s)).toEqual({ type: 'moveBlock', delta: 1 });
+  expect(k('K', s)).toEqual({ type: 'moveBlock', delta: -4 });
+  expect(k('J', s)).toEqual({ type: 'moveBlock', delta: 4 });
+});
+
+test('wielkie HJKL bez Shifta (Caps Lock) nadal ruszają kursorem', () => {
+  expect(k('H')).toEqual({ type: 'move', delta: -1 });
+  expect(k('J')).toEqual({ type: 'move', delta: 4 });
+});
+
+test('bez widocznego kursora Shift ze strzałką tylko pokazuje kursor', () => {
+  expect(k('ArrowRight', { shift: true, cursorVisible: false })).toEqual({
+    type: 'move',
+    delta: 1,
+  });
+});
+
+test('przenoszenie bloku nie działa poza siatką', () => {
+  for (const layer of ['menu', 'edit', 'settings', 'help'] as const) {
+    expect(k('ArrowRight', { shift: true, layer })).toBeNull();
+  }
+  expect(k('ArrowRight', { shift: true, inInput: true })).toBeNull();
+  expect(k('ArrowRight', { shift: true, ctrl: true })).toBeNull();
 });

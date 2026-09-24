@@ -106,21 +106,22 @@ export function canMoveTo(id: string, q: number): boolean {
   return canPlace(app.S.blocks, b.day, b.id, q, b.len, win.q0, win.q1);
 }
 
-/** Przeniesienie bloku w czasie: nowy kwant początkowy, ta sama długość i kategoria. */
-export function moveBlock(id: string, q: number): void {
+/** Przeniesienie bloku w czasie: nowy kwant początkowy, ta sama długość i kategoria.
+ *  Zwraca, czy blok się przeniósł — klawiatura przesuwa kursor tylko wtedy. */
+export function moveBlock(id: string, q: number): boolean {
   const b = app.S.blocks.find((x) => x.id === id);
-  if (!b || q === b.q) return;
+  if (!b || q === b.q) return false;
   // Odmowa mówi dlaczego: duch pokazywał, że nie wolno, ale nie tłumaczył.
   if (q < win.q0 || q + b.len > win.q1) {
     app.toast = {
       msg: `Poza zakresem dnia ${pad(win.startH)}:00–${pad(win.endH)}:00`,
       undoable: false,
     };
-    return;
+    return false;
   }
   if (!slotFree(app.S.blocks, b.day, q, b.len, b.id)) {
     app.toast = { msg: `O ${fmtQ(b.day, q)} jest już zajęte`, undoable: false };
-    return;
+    return false;
   }
   const status = movedStatus(b, q, app.now);
   commit(
@@ -131,6 +132,7 @@ export function moveBlock(id: string, q: number): void {
     `Przeniesiono na ${fmtQ(b.day, q)}`,
     true,
   );
+  return true;
 }
 
 export function openEdit(id: string): void {

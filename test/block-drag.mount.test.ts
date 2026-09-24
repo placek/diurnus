@@ -340,3 +340,134 @@ test('blok w toku przeniesiony w przyszłość przestaje trwać', async () => {
   expect(a.q).toBe(60);
   expect(a.status).toBe('planned');
 });
+
+/* ── Klawiatura ── */
+
+async function cursorAt(q: number) {
+  const { ui } = await import('../src/state.svelte');
+  ui.cursor.q = q;
+  ui.cursor.visible = true;
+  return ui;
+}
+
+function key(k: string, shift = true) {
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: k, shiftKey: shift, bubbles: true, cancelable: true }),
+  );
+}
+
+test('Shift+→ przenosi blok spod kursora o kwant, a kursor jedzie z nim', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(33);
+
+  key('ArrowRight');
+  flush();
+
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(33);
+  expect(ui.cursor.q).toBe(34);
+  expect(app.toast?.msg).toMatch(/08:15/);
+});
+
+test('Shift+↓ i Shift+J przenoszą blok o godzinę, Shift+K i Shift+H wracają', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(32);
+  const q = () => app.S.blocks.find((b) => b.id === 'a')!.q;
+
+  key('ArrowDown');
+  flush();
+  expect(q()).toBe(36);
+  key('J');
+  flush();
+  expect(q()).toBe(40);
+  key('K');
+  flush();
+  expect(q()).toBe(36);
+  key('H');
+  flush();
+  expect(q()).toBe(35);
+  expect(ui.cursor.q).toBe(35);
+});
+
+test('Shift+strzałka na zajęte miejsce nic nie rusza — ani bloku, ani kursora', async () => {
+  seed([
+    { id: 'a', q: 32 },
+    { id: 'b', q: 34 },
+  ]);
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(32);
+
+  key('ArrowRight');
+  flush();
+
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(app.S.blocks.find((b) => b.id === 'b')!.q).toBe(34);
+  expect(ui.cursor.q).toBe(32);
+  expect(app.toast?.msg).toMatch(/zajęte/);
+});
+
+test('Shift+strzałka nie wypycha bloku poza zakres dnia', async () => {
+  seed([{ id: 'a', q: 24 }]); // 06:00 — początek okna
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(24);
+
+  key('ArrowUp');
+  flush();
+
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(24);
+  expect(ui.cursor.q).toBe(24);
+  expect(app.toast?.msg).toMatch(/Poza zakresem dnia/);
+});
+
+test('Shift+strzałka na pustym polu mówi, że nie ma czego przenosić', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(50);
+
+  key('ArrowRight');
+  flush();
+
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(ui.cursor.q).toBe(50);
+  expect(app.toast?.msg).toMatch(/nie ma bloku/);
+});
+
+test('strzałka bez Shifta nadal rusza tylko kursorem', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  const ui = await cursorAt(32);
+
+  key('ArrowRight', false);
+  flush();
+
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(ui.cursor.q).toBe(33);
+});
+
+test('przeniesienie klawiaturą cofa się jednym Ctrl+Z na krok', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  await cursorAt(32);
+
+  key('ArrowRight');
+  key('ArrowRight');
+  flush();
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(34);
+
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+  flush();
+  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(33);
+});
+
+test('pomoc wymienia przenoszenie blokiem myszą i klawiaturą', async () => {
+  seed([]);
+  const { flush } = await mountApp();
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+  flush();
+
+  const text = document.querySelector('#helpbox')!.textContent!;
+  expect(text).toContain('Przeciągnięcie bloku');
+  expect(text).toContain('Shift');
+  expect(text).toContain('HJKL');
+});
