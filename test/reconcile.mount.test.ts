@@ -76,3 +76,55 @@ test('powtarzane mutacje nie mnożą pozycji', async () => {
   flush();
   expect(app.S.items).toHaveLength(1);
 });
+
+const linkedRows = () => [...document.querySelectorAll('#list .item.is-linked')];
+
+test('pozycja powiązana pokazuje godzinę swojego bloku', async () => {
+  const flush = await mountApp();
+  await createBlock(flush);
+  expect(linkedRows()).toHaveLength(1);
+  expect(linkedRows()[0]!.querySelector('.item-hour')!.textContent).toBe('08:00');
+});
+
+test('pozycja powiązana pokazuje nazwę kategorii, dopóki nie ma tytułu', async () => {
+  const flush = await mountApp();
+  await createBlock(flush);
+  const input = linkedRows()[0]!.querySelector<HTMLInputElement>('.item-text')!;
+  expect(input.placeholder).toBe('Nauka');
+});
+
+test('pozycje powiązane stoją nad swobodnymi, posortowane po godzinie', async () => {
+  const flush = await mountApp();
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  await createBlock(flush); // 08:00
+  document.querySelector<HTMLElement>('#grid .cell[data-q="24"]')!.click();
+  flush();
+  document.querySelector<HTMLElement>('#radial .rb[aria-label="Ruch"]')!.click();
+  flush();
+
+  const rows = [...document.querySelectorAll('#list .item[data-id]')];
+  expect(rows[0]!.querySelector('.item-hour')!.textContent).toBe('06:00');
+  expect(rows[1]!.querySelector('.item-hour')!.textContent).toBe('08:00');
+  expect(rows[2]!.classList.contains('is-linked')).toBe(false);
+});
+
+test('przeciąganie pozycji powiązanej nic nie zmienia', async () => {
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+  await createBlock(flush);
+
+  const bullet = document.querySelector<HTMLElement>('#list .item.is-linked .bullet')!;
+  bullet.dispatchEvent(
+    new PointerEvent('pointerdown', { bubbles: true, clientX: 5, clientY: 15, button: 0, pointerId: 1 }),
+  );
+  bullet.dispatchEvent(
+    new PointerEvent('pointermove', { bubbles: true, clientX: 5, clientY: 200, pointerId: 1 }),
+  );
+  flush();
+  expect(document.querySelector('.drop-line')).toBeNull();
+  expect(app.S.items).toHaveLength(1);
+});

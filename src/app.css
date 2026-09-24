@@ -456,3 +456,9 @@ kbd{
   height:0;border-top:2px solid var(--blue);border-radius:2px;
   margin:1px 0 1px 33px;                   /* wyrównanie do tekstu, nie do znacznika */
 }
+.item.is-linked .item-hour{
+  flex:none;font:600 14px var(--sans);color:var(--c,var(--fg-dim));
+  min-width:44px;font-variant-numeric:tabular-nums;
+}
+.item.is-linked .bullet{color:var(--c,var(--fg-dim))}
+.item.is-linked .item-text{color:var(--fg)}

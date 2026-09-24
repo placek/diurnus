@@ -1,7 +1,10 @@
 <script lang="ts">
   import { app, pushHistory, save, ui } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
-  import { dayItems } from '../../lib/items';
+  import { freeItems } from '../../lib/link';
+  import { blockOfItem } from '../../lib/link';
+  import { catOf, colorOf } from '../../lib/categories';
+  import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import Bullet from './Bullet.svelte';
 
@@ -25,7 +28,14 @@
     }
   });
 
-  const siblings = $derived(dayItems(app.S.items, app.viewDay));
+  const block = $derived(blockOfItem(app.S.blocks, item));
+  const cat = $derived(block ? catOf(app.S.cats, block.cat) : null);
+  // Godzina i kolor są wyliczane z bloku, nie przechowywane w pozycji: zmiana
+  // kategorii bloku przebarwia pozycję sama, bez trzeciego pola do rozjechania.
+  const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
+
+  // Nawigacja klawiszami obejmuje obie grupy w kolejności wyświetlania.
+  const siblings = $derived(freeItems(app.S.items, app.viewDay));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
   function focusSibling(offset: -1 | 1) {
@@ -78,13 +88,21 @@
   }
 </script>
 
-<div class="item t-{item.type}" class:is-dragging={ui.drag?.id === item.id} data-id={item.id}>
-  <Bullet {item} />
+<div
+  class="item t-{item.type}"
+  class:is-linked={!!block}
+  class:is-dragging={ui.drag?.id === item.id}
+  data-id={item.id}
+  style={color ? `--c:var(--${color})` : undefined}
+>
+  <Bullet {item} draggable={!block} />
+  {#if block}<span class="item-hour">{fmtQ(block.day, block.q)}</span>{/if}
   <input
     bind:this={el}
     class="item-text"
     value={item.text}
     maxlength="200"
+    placeholder={cat ? cat.name : ''}
     autocomplete="off"
     oninput={(e) => {
       // Migawka przy PIERWSZYM znaku w tej pozycji, nie przy wyjściu z niej:

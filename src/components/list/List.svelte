@@ -1,10 +1,12 @@
 <script lang="ts">
   import { app, ui } from '../../state.svelte';
   import { createItemWithText } from '../../actions.svelte';
-  import { dayItems } from '../../lib/items';
+  import { freeItems, linkedItems } from '../../lib/link';
   import ListItem from './ListItem.svelte';
 
-  const items = $derived(dayItems(app.S.items, app.viewDay));
+  // Dwie grupy: najpierw plan według godzin, potem notatki w kolejności własnej.
+  const linked = $derived(linkedItems(app.S.items, app.S.blocks, app.viewDay));
+  const items = $derived(freeItems(app.S.items, app.viewDay));
 
   // Pole początkowe NIE jest pozycją w stanie. Gdyby nią było, samo obejrzenie
   // dnia zapisywałoby pustą pozycję — a po tygodniu przeglądania kalendarza
@@ -24,6 +26,10 @@
 </script>
 
 <section id="list">
+  {#each linked as item (item.id)}
+    <ListItem {item} />
+  {/each}
+
   {#each items as item (item.id)}
     <!-- Kreska wstawienia liczy się wśród pozycji BEZ przeciąganej, więc
          rysujemy ją przed wierszem o tym numerze w tak liczonej sekwencji. -->
@@ -42,7 +48,7 @@
       maxlength="200"
       autocomplete="off"
       aria-label="Nowa pozycja"
-      placeholder={items.length === 0 ? 'Zacznij pisać…' : ''}
+      placeholder={items.length === 0 && linked.length === 0 ? 'Zacznij pisać…' : ''}
       oninput={onDraftInput}
     />
   </div>

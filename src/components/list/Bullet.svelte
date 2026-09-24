@@ -7,9 +7,11 @@
 
   interface Props {
     item: Item;
+    /** pozycja powiązana nie przeciąga się — jej miejsce to jej godzina */
+    draggable?: boolean;
   }
 
-  const { item }: Props = $props();
+  const { item, draggable = true }: Props = $props();
 
   let menu = $state(false);
 
@@ -57,6 +59,7 @@
   }
 
   function onPointerDown(e: PointerEvent) {
+    if (!draggable) return; // pozycja powiązana: jej miejsce to jej godzina
     if (e.button !== 0) return; // prawy przycisk należy do menu
     startX = e.clientX;
     startY = e.clientY;
