@@ -1,8 +1,8 @@
-# GridDay — port do projektu Svelte (plan wdrożenia)
+# Diurnus — port do projektu Svelte (plan wdrożenia)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Przenieść działający prototyp `gridday.html` do projektu Svelte 5 + TypeScript + Vite ze środowiskiem Nix, Makefile'em i wdrożeniem na GitHub Pages, bez utraty żadnej funkcji.
+**Goal:** Przenieść działający prototyp `diurnus.html` do projektu Svelte 5 + TypeScript + Vite ze środowiskiem Nix, Makefile'em i wdrożeniem na GitHub Pages, bez utraty żadnej funkcji.
 
 **Architecture:** Czysta logika ląduje w `src/lib/` jako moduły TypeScript, które **nie importują niczego ze Svelte** — testuje je Vitest zwykłym `import`. Stan aplikacji trzyma jeden moduł `state.svelte.ts` oparty na runach Svelte 5, z trwałością w `localStorage` przez `$effect`. Komponenty renderują i podpinają zdarzenia; nic nie liczą.
 
@@ -15,7 +15,7 @@
 Port do parzystości funkcjonalnej z prototypem, plus eksport/import JSON i wdrożenie.
 **Poza zakresem:** iCalendar (odłożony świadomie — `PLAN.md` §9), raporty, PWA.
 
-`gridday.html` **zostaje w repozytorium do zadania 14**. Jest odniesieniem przy porcie i
+`diurnus.html` **zostaje w repozytorium do zadania 14**. Jest odniesieniem przy porcie i
 pozwala porównać zachowanie obok siebie; usuwamy go dopiero, gdy port osiągnie parzystość.
 
 ## Global Constraints
@@ -24,9 +24,9 @@ pozwala porównać zachowanie obok siebie; usuwamy go dopiero, gdy port osiągni
 - **Zero zewnętrznych żądań sieciowych w zbudowanej aplikacji.** Ikony i czcionki wchodzą do bundla. Brak `<link>` i `<script>` do CDN-ów.
 - **Strefa czasowa testów:** `TZ=Europe/Warsaw`, ustawiane w skrypcie `test` w `package.json`.
 - **`q` zawsze liczone od północy** (0–95). Nigdy od początku widocznego okna.
-- **Klucze `localStorage`:** `gridday.v1` (stan) i `gridday.prefs` (preferencje). Nazwy stałe; wersję schematu trzyma pole `State.v`.
+- **Klucze `localStorage`:** `diurnus.v1` (stan) i `diurnus.prefs` (preferencje). Nazwy stałe; wersję schematu trzyma pole `State.v`.
 - **Język:** komentarze, nazwy testów i teksty UI po polsku; komunikaty commitów po angielsku.
-- **`BASE_PATH`** steruje `base` w Vite: `/` lokalnie, `/gridday/` przy wdrożeniu.
+- **`BASE_PATH`** steruje `base` w Vite: `/` lokalnie, `/diurnus/` przy wdrożeniu.
 - **Styl:** 2 spacje wcięcia, TypeScript bez `any`, Prettier z `prettier-plugin-svelte`.
 
 ## Review Focus
@@ -55,7 +55,7 @@ Nic z logiki aplikacji. Cel: `make dev`, `make build`, `make test` i `make check
 
 ```nix
 {
-  description = "GridDay — kwantowanie doby na 15-minutowe tokeny";
+  description = "Diurnus — kwantowanie doby na 15-minutowe tokeny";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
 
@@ -68,7 +68,7 @@ Nic z logiki aplikacji. Cel: `make dev`, `make build`, `make test` i `make check
         default = pkgs.mkShell {
           packages = [ pkgs.nodejs_22 pkgs.gnumake ];
           shellHook = ''
-            echo "GridDay · node $(node --version) · npm $(npm --version)"
+            echo "Diurnus · node $(node --version) · npm $(npm --version)"
             echo "make help — lista celów"
           '';
         };
@@ -94,7 +94,7 @@ pkgs.mkShell {
 
 ```make
 NPM       := npm
-BASE_PATH ?= /gridday/
+BASE_PATH ?= /diurnus/
 
 .DEFAULT_GOAL := help
 .PHONY: help install dev build serve test check fmt clean
@@ -140,7 +140,7 @@ konieczny, bo `npm` nie zawsze podbija czas modyfikacji katalogu.
 
 ```json
 {
-  "name": "gridday",
+  "name": "diurnus",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -181,7 +181,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
-  // GitHub Pages serwuje projekt pod /gridday/; Makefile ustawia / dla dev.
+  // GitHub Pages serwuje projekt pod /diurnus/; Makefile ustawia / dla dev.
   base: process.env.BASE_PATH ?? '/',
   plugins: [svelte()],
   build: { target: 'es2022' },
@@ -241,7 +241,7 @@ liczbami i chcemy, żeby kompilator wymuszał sprawdzenie `undefined` przy każd
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#282828" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <title>GridDay</title>
+    <title>Diurnus</title>
   </head>
   <body>
     <script type="module" src="/src/main.ts"></script>
@@ -263,7 +263,7 @@ export default mount(App, { target: document.body });
 </script>
 
 <main>
-  <h1>GridDay</h1>
+  <h1>Diurnus</h1>
   <p>Szkielet projektu działa.</p>
 </main>
 ```
@@ -282,7 +282,7 @@ nix develop -c make install    # albo: nix-shell --run "make install"
 make check                     # brak błędów typów
 make test                      # "No test files found" — to poprawny wynik na tym etapie
 make build                     # dist/ powstaje
-make dev                       # strona z nagłówkiem GridDay pod localhost:5173
+make dev                       # strona z nagłówkiem Diurnus pod localhost:5173
 ```
 
 Sprawdź też `make help` — wypisuje listę celów z opisami.
@@ -300,7 +300,7 @@ The Makefile is the only interface anyone needs to remember. node_modules is
 a file target depending on package.json, so installs happen automatically
 when dependencies change and are skipped when they have not.
 
-Vite reads base from BASE_PATH: / for local work, /gridday/ for the Pages
+Vite reads base from BASE_PATH: / for local work, /diurnus/ for the Pages
 build. Getting that wrong ships a page that loads and then 404s every asset.
 
 noUncheckedIndexedAccess is on because the core data structure is a 96-slot
@@ -653,14 +653,14 @@ Expected: FAIL — `Cannot find module '../src/lib/model'`.
 - [ ] **Step 3: Napisz implementację**
 
 Wartości `DEFAULT_CATS`, `DEFAULT_DAY`, `COLORS` i `ICONS` przenieś **dosłownie** z prototypu
-(`gridday.html`, linie 451–476). Poniżej kształt modułu:
+(`diurnus.html`, linie 451–476). Poniżej kształt modułu:
 
 ```ts
 import type { Category, DaySettings, State, Status } from './types';
 
 export const COLORS = ['yellow', 'orange', 'red', 'purple', 'blue', 'aqua', 'green'] as const;
 
-export const ICONS = [ /* 38 nazw, przeniesione z gridday.html:464-467 */ ] as const;
+export const ICONS = [ /* 38 nazw, przeniesione z diurnus.html:464-467 */ ] as const;
 
 export const MAX_TOP = 9;
 export const MAX_KIDS = 9;   // cyfry 1–9 jako skróty
@@ -670,9 +670,9 @@ export const STATUS_LABEL: Record<Status, string> = {
   confirmed: 'wykonane', discarded: 'odrzucone',
 };
 
-const DEFAULT_CATS: readonly Category[] = [ /* przeniesione z gridday.html:451-462 */ ];
+const DEFAULT_CATS: readonly Category[] = [ /* przeniesione z diurnus.html:451-462 */ ];
 
-export const DEFAULT_DAY: DaySettings = { /* przeniesione z gridday.html:469-474 */ };
+export const DEFAULT_DAY: DaySettings = { /* przeniesione z diurnus.html:469-474 */ };
 
 export const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36);
 
@@ -1161,8 +1161,8 @@ import { readJSON, writeJSON } from './lib/persist';
 import { today } from './lib/time';
 import type { Block, Prefs, State } from './lib/types';
 
-const KEY = 'gridday.v1';
-const PREF = 'gridday.prefs';
+const KEY = 'diurnus.v1';
+const PREF = 'diurnus.prefs';
 
 const DEFAULT_PREFS: Prefs = { theme: 'auto', seenHelp: false };
 
@@ -1277,7 +1277,7 @@ is small, and snapshots cannot drift out of sync with the operations."
 
 - [ ] **Step 1: Przenieś style z prototypu**
 
-Skopiuj do `src/app.css` zawartość `<style>` z `gridday.html`, **linie 16–400**, zachowując
+Skopiuj do `src/app.css` zawartość `<style>` z `diurnus.html`, **linie 16–400**, zachowując
 kolejność sekcji: tokeny (Gruvbox light/dark), baza, nagłówek, siatka, menu radialne, arkusz
 i pomoc, toast, responsywność.
 
@@ -1415,7 +1415,7 @@ category's first letter instead of nothing."
 - [ ] **Step 2: `HourRow.svelte`**
 
 Renderuje etykietę godziny z paskiem pory dnia, cztery komórki-kwanty i segmenty bloków
-przypadające na ten rząd. Strukturę i nazwy klas przenieś z `gridday.html` (funkcje `render()`
+przypadające na ten rząd. Strukturę i nazwy klas przenieś z `diurnus.html` (funkcje `render()`
 i `segHTML()`, linie 694–746); geometrię liczy `segments()` z zadania 5.
 
 ```svelte
@@ -1468,7 +1468,7 @@ i `segHTML()`, linie 694–746); geometrię liczy `segments()` z zadania 5.
 `Block.svelte` pozycjonuje segment w kolumnach `grid-column: {from % 4 + 2} / span {to - from}`,
 nakłada klasy `st-{status}`, `stale` (blok `planned`, którego czas minął) i `hl` (podświetlenie
 przy `hover` drugiego segmentu), oraz renderuje ikonę kategorii, tytuł i — dla bloku `active` —
-odliczanie. Wzorzec znaczników i klas: `gridday.html`, funkcja `blockHTML()`, linie 701–716.
+odliczanie. Wzorzec znaczników i klas: `diurnus.html`, funkcja `blockHTML()`, linie 701–716.
 
 `NowIndicator.svelte` to pionowa linia z pulsującym punktem, pozycjonowana `left: {minuta/60 * 100}%`
 w obszarze kwantów rzędu.
@@ -1560,7 +1560,7 @@ test('pusty dzień daje zero z poprawną pojemnością', () => {
 
 `Header.svelte`: nawigacja dni (`‹` / `›`), przycisk daty wracający na dziś (klasa `is-today`),
 `TokenPips.svelte` pośrodku, po prawej przyciski sugestii, motywu, ustawień i pomocy.
-Znaczniki i klasy: `gridday.html`, funkcja `renderHeader()`, linie 747–784.
+Znaczniki i klasy: `diurnus.html`, funkcja `renderHeader()`, linie 747–784.
 
 - [ ] **Step 3: Weryfikacja**
 
@@ -1606,7 +1606,7 @@ poprzedni, że `removeBlock` zamienia `suggested` na `discarded` zamiast kasowa�
 - [ ] **Step 3: Napisz `RadialMenu.svelte`**
 
 Ikony kategorii na okręgu wokół punktu kliknięcia; promień `max(finePointer ? 66 : 60, n * 52 / (2π))`,
-pozycja przycięta do okna. Drugi poziom dla podkategorii. Wzorzec: `gridday.html`, linie 804–849.
+pozycja przycięta do okna. Drugi poziom dla podkategorii. Wzorzec: `diurnus.html`, linie 804–849.
 
 - [ ] **Step 4: Weryfikacja**
 
@@ -1642,7 +1642,7 @@ user already rejected."
 - Modify: `src/App.svelte`
 
 - [ ] **Step 1: `EditSheet.svelte`** — nazwa bloku, wybór kategorii i podkategorii, przyciski
-zmiany statusu zależne od relacji do teraz, usunięcie. Wzorzec: `gridday.html`, linie 850–917.
+zmiany statusu zależne od relacji do teraz, usunięcie. Wzorzec: `diurnus.html`, linie 850–917.
 
 - [ ] **Step 2: `Toast.svelte`** — komunikat z opcjonalną akcją „Cofnij", znika po czasie;
 czyta `app.toast`.
@@ -1657,7 +1657,7 @@ wyjątek), oraz to, że przy otwartym menu lub arkuszu ruch kursora jest wyłąc
 zamyka wierzchnią warstwę.
 
 - [ ] **Step 4: `Help.svelte`** — ekran pomocy pokazywany przy pierwszym uruchomieniu
-(`prefs.seenHelp`), treść z `gridday.html`, linie 1146–1175.
+(`prefs.seenHelp`), treść z `diurnus.html`, linie 1146–1175.
 
 - [ ] **Step 5: Weryfikacja**
 
@@ -1690,17 +1690,17 @@ dialog for anything that can actually be undone."
 - Modify: `src/App.svelte`
 
 - [ ] **Step 1: `Settings.svelte`** — powłoka z zakładkami, stan roboczy (`draft`) kopiowany
-przy otwarciu i zapisywany dopiero przyciskiem. Wzorzec: `gridday.html`, linie 918–947.
+przy otwarciu i zapisywany dopiero przyciskiem. Wzorzec: `diurnus.html`, linie 918–947.
 
 Edycja pracuje na kopii, nie na stanie na żywo. Bez tego zmiana koloru kategorii przemalowuje
 siatkę pod arkuszem przy każdym kliknięciu, a „Anuluj" nie ma czego cofać.
 
 - [ ] **Step 2: `CategoriesTab.svelte`** — lista kategorii głównych i podkategorii, zmiana
 nazwy, ikony i koloru, kolejność (`moveUp` przesuwa kategorię razem z dziećmi), dodawanie
-i usuwanie z limitami `MAX_TOP` i `MAX_KIDS`. Wzorzec: `gridday.html`, linie 948–1009 i 1040–1049.
+i usuwanie z limitami `MAX_TOP` i `MAX_KIDS`. Wzorzec: `diurnus.html`, linie 948–1009 i 1040–1049.
 
 - [ ] **Step 3: `DayTab.svelte`** — godzina początku i końca doby, pory dnia z kolorami,
-podgląd układu, przywrócenie domyślnych. Wzorzec: `gridday.html`, linie 1010–1039.
+podgląd układu, przywrócenie domyślnych. Wzorzec: `diurnus.html`, linie 1010–1039.
 
 - [ ] **Step 4: Weryfikacja**
 
@@ -1764,7 +1764,7 @@ test('eksport zapisuje datę z podanego zegara', () => {
 });
 
 test('import przepuszcza starszą wersję schematu przez normalize', () => {
-  const old = JSON.stringify({ magic: 'gridday.backup', state: {
+  const old = JSON.stringify({ magic: 'diurnus.backup', state: {
     v: 1, cats: [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }],
     blocks: [{ id: 'a', day: '2026-09-24', q: 0, len: 2, cat: 'x', title: '', status: 'confirmed', created: 0 }] } });
   const back = bundleParse(old);
@@ -1777,15 +1777,15 @@ test('nie-JSON daje czytelny błąd', () => {
 });
 
 test('obcy JSON jest odrzucany po znaczniku', () => {
-  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa GridDay/);
+  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa Diurnus/);
 });
 
 test('kopia bez tablicy bloków jest odrzucana', () => {
-  expect(() => bundleParse('{"magic":"gridday.backup","state":{"v":2}}')).toThrow(/nie zawiera bloków/);
+  expect(() => bundleParse('{"magic":"diurnus.backup","state":{"v":2}}')).toThrow(/nie zawiera bloków/);
 });
 
 test('brak preferencji w pliku daje domyślne', () => {
-  const back = bundleParse('{"magic":"gridday.backup","state":{"v":2,"cats":[],"blocks":[]}}');
+  const back = bundleParse('{"magic":"diurnus.backup","state":{"v":2,"cats":[],"blocks":[]}}');
   expect(back.prefs.theme).toBe('auto');
 });
 ```
@@ -1796,7 +1796,7 @@ test('brak preferencji w pliku daje domyślne', () => {
 import { normalize } from './model';
 import type { Prefs, State } from './types';
 
-const MAGIC = 'gridday.backup';
+const MAGIC = 'diurnus.backup';
 const PREFS_DEFAULT: Prefs = { theme: 'auto', seenHelp: true };
 
 // Zegar jest parametrem, nie Date.now() w środku, żeby wynik dał się porównać w teście.
@@ -1808,7 +1808,7 @@ export function bundleParse(text: string): { state: State; prefs: Prefs } {
   let o: unknown;
   try { o = JSON.parse(text); } catch { throw new Error('Plik nie jest poprawnym JSON-em'); }
   const b = o as { magic?: string; state?: { blocks?: unknown }; prefs?: Partial<Prefs> };
-  if (!b || typeof b !== 'object' || b.magic !== MAGIC) throw new Error('To nie jest kopia zapasowa GridDay');
+  if (!b || typeof b !== 'object' || b.magic !== MAGIC) throw new Error('To nie jest kopia zapasowa Diurnus');
   if (!b.state || !Array.isArray(b.state.blocks)) throw new Error('Kopia nie zawiera bloków');
   return { state: normalize(b.state), prefs: { ...PREFS_DEFAULT, ...(b.prefs ?? {}) } };
 }
@@ -1826,10 +1826,10 @@ zastępuje cały stan i kasuje historię undo, więc toast z cofnięciem byłby 
 
 - [ ] **Step 4: Weryfikacja**
 
-1. Dodaj bloki → pobierz kopię → plik `gridday-RRRR-MM-DD.json` otwiera się jako JSON.
+1. Dodaj bloki → pobierz kopię → plik `diurnus-RRRR-MM-DD.json` otwiera się jako JSON.
 2. Usuń wszystko → wczytaj kopię → bloki wracają.
 3. Wybierz ten sam plik drugi raz → dialog pojawia się ponownie.
-4. Wczytaj obcy `.json` → komunikat „To nie jest kopia zapasowa GridDay", stan nietknięty.
+4. Wczytaj obcy `.json` → komunikat „To nie jest kopia zapasowa Diurnus", stan nietknięty.
 5. Anuluj potwierdzenie → stan nietknięty.
 6. Motyw ciemny → eksport → motyw jasny → import → motyw wraca na ciemny.
 
@@ -1843,7 +1843,7 @@ The only safeguard a localStorage-only application can offer: clearing site
 data destroys everything, and there is no server copy. The Data tab says so
 plainly rather than leaving the user to find out.
 
-Validation separates three failure modes -- not JSON, not a GridDay backup,
+Validation separates three failure modes -- not JSON, not a Diurnus backup,
 and a backup missing its blocks -- because a single generic message leaves
 the user guessing which file they picked.
 
@@ -1859,7 +1859,7 @@ The exported bundle is the input format for the future database importer."
 
 **Files:**
 - Create: `.github/workflows/pages.yml`, `README.md`
-- Delete: `gridday.html`
+- Delete: `diurnus.html`
 
 - [ ] **Step 1: Workflow**
 
@@ -1894,7 +1894,7 @@ jobs:
       - run: npm run test
       - run: npm run build
         env:
-          BASE_PATH: /gridday/
+          BASE_PATH: /diurnus/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -1921,13 +1921,13 @@ przy wdrożeniu.
 
 - [ ] **Step 3: Napisz `README.md`**
 
-Krótko: czym jest GridDay, jak wejść w środowisko (`nix develop` lub `nix-shell`), tabela celów
+Krótko: czym jest Diurnus, jak wejść w środowisko (`nix develop` lub `nix-shell`), tabela celów
 Make, adres wdrożonej witryny, zdanie o tym, że dane żyją w `localStorage` i kopia zapasowa to
 jedyne zabezpieczenie, oraz wskazanie `PLAN.md` jako specyfikacji.
 
 - [ ] **Step 4: Sprawdź parzystość i usuń prototyp**
 
-Otwórz obok siebie `gridday.html` (przez `python3 -m http.server`) i `make serve`. Przejdź listę:
+Otwórz obok siebie `diurnus.html` (przez `python3 -m http.server`) i `make serve`. Przejdź listę:
 
 1. Siatka bez przewijania, wskaźnik TERAZ, odliczanie aktywnego bloku.
 2. Menu radialne: dwa poziomy, pozycjonowanie przy krawędziach.
@@ -1944,7 +1944,7 @@ Otwórz obok siebie `gridday.html` (przez `python3 -m http.server`) i `make serv
 Dopiero gdy wszystkie punkty się zgadzają:
 
 ```bash
-git rm gridday.html
+git rm diurnus.html
 ```
 
 - [ ] **Step 5: Commit**
@@ -1957,10 +1957,10 @@ The workflow type-checks and tests before building, because static hosting
 has no rollback other than the next deployment -- this is the only point
 where a bad build can still be stopped.
 
-BASE_PATH is /gridday/ for the deployed project site and / for local work,
+BASE_PATH is /diurnus/ for the deployed project site and / for local work,
 which the Makefile sets.
 
-Removes gridday.html. It was kept through the port as the reference for
+Removes diurnus.html. It was kept through the port as the reference for
 behaviour and styling, and its history stays in git; the checklist in the
 plan confirmed parity before this deletion."
 ```

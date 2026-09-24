@@ -1,7 +1,9 @@
 import { normalize } from './model';
 import type { Prefs, State } from './types';
 
-const MAGIC = 'gridday.backup';
+const MAGIC = 'diurnus.backup';
+/** Kopie pobrane przed zmianą nazwy projektu muszą nadal się wczytywać. */
+const ACCEPTED = new Set([MAGIC, 'gridday.backup']);
 
 // Przywrócenie kopii to nie pierwsze uruchomienie, więc ekran powitalny
 // domyślnie się nie pokazuje.
@@ -18,7 +20,7 @@ export function bundleExport(state: State, prefs: Prefs, nowMs: number): string 
 }
 
 // Trzy tryby awarii mają osobne komunikaty: plik nie jest JSON-em (serwer
-// oddał stronę logowania), jest JSON-em, ale nie kopią GridDay, albo jest
+// oddał stronę logowania), jest JSON-em, ale nie kopią Diurnus, albo jest
 // kopią bez bloków. Jeden ogólny komunikat zostawiałby użytkownika ze
 // zgadywaniem, który plik wybrał.
 export function bundleParse(text: string): { state: State; prefs: Prefs } {
@@ -30,8 +32,8 @@ export function bundleParse(text: string): { state: State; prefs: Prefs } {
   }
 
   const b = parsed as { magic?: string; state?: { blocks?: unknown }; prefs?: Partial<Prefs> };
-  if (!b || typeof b !== 'object' || Array.isArray(b) || b.magic !== MAGIC) {
-    throw new Error('To nie jest kopia zapasowa GridDay');
+  if (!b || typeof b !== 'object' || Array.isArray(b) || !ACCEPTED.has(b.magic ?? '')) {
+    throw new Error('To nie jest kopia zapasowa Diurnus');
   }
   if (!b.state || !Array.isArray(b.state.blocks)) {
     throw new Error('Kopia nie zawiera bloków');

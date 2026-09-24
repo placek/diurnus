@@ -1,5 +1,5 @@
 NPM       := npm
-BASE_PATH ?= /gridday/
+BASE_PATH ?= /diurnus/
 
 .DEFAULT_GOAL := help
 .PHONY: help install dev build serve test check fmt clean

@@ -4,8 +4,28 @@ import { readJSON, writeJSON } from './lib/persist';
 import { dayKey, qTime, today } from './lib/time';
 import type { Block, Prefs, State } from './lib/types';
 
-const KEY = 'gridday.v1';
-const PREF = 'gridday.prefs';
+const KEY = 'diurnus.v1';
+const PREF = 'diurnus.prefs';
+
+// Jednorazowe przeniesienie spod poprzedniej nazwy projektu (gridday → diurnus).
+// Warunek „w celu nic nie ma" sprawia, że przeniesienie jest bezpieczne przy
+// każdym uruchomieniu i nigdy nie nadpisze nowszych danych.
+try {
+  const MOVES: [string, string][] = [
+    ['gridday.v1', KEY],
+    ['gridday.prefs', PREF],
+  ];
+  for (const [from, to] of MOVES) {
+    const v = localStorage.getItem(from);
+    if (v !== null && localStorage.getItem(to) === null) {
+      localStorage.setItem(to, v);
+      localStorage.removeItem(from);
+    }
+  }
+} catch {
+  // Tryb prywatny potrafi zabronić dostępu; brak przeniesienia nie może
+  // przeszkodzić w starcie.
+}
 
 const DEFAULT_PREFS: Prefs = { theme: 'auto', seenHelp: false, notify: false };
 

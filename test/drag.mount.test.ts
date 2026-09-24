@@ -6,7 +6,7 @@ const ROW_H = 30;
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -110,7 +110,7 @@ test('nowa kolejność utrwala się w localStorage', async () => {
   pointer(b, 'pointerup', 5, 50);
   flush();
 
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items.map((i: { text: string }) => i.text)).toEqual(['B', 'A']);
 });
 

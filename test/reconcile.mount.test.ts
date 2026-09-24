@@ -5,7 +5,7 @@ import { today } from '../src/lib/time';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -55,7 +55,7 @@ test('utworzenie bloku tworzy powiązaną pozycję', async () => {
 test('powiązana pozycja utrwala się razem ze stanem', async () => {
   const flush = await mountApp();
   await createBlock(flush);
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].block).toBe(saved.blocks[0].id);
 });

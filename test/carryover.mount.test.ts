@@ -20,9 +20,9 @@ beforeEach(() => {
 });
 
 function seed(items: unknown[]) {
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   localStorage.setItem(
-    'gridday.v1',
+    'diurnus.v1',
     JSON.stringify({
       v: 5,
       cats: [{ id: 'learn', name: 'Nauka', icon: 'book-open', color: 'blue', parent: null }],

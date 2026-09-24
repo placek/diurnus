@@ -1,4 +1,4 @@
-# GridDay — trzy panele, backlog i powtarzalność: plan wdrożenia
+# Diurnus — trzy panele, backlog i powtarzalność: plan wdrożenia
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Svelte 5 (runy), TypeScript, Vitest (projekty `unit` i `mount`).
 
-**Spec:** [`docs/superpowers/specs/2026-09-24-gridday-three-panes-backlog-design.md`](../specs/2026-09-24-gridday-three-panes-backlog-design.md)
+**Spec:** [`docs/superpowers/specs/2026-09-24-diurnus-three-panes-backlog-design.md`](../specs/2026-09-24-diurnus-three-panes-backlog-design.md)
 
 ## Global Constraints
 

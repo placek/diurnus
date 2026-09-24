@@ -31,7 +31,7 @@ let htmlOther = '';
 beforeAll(async () => {
   Object.defineProperty(globalThis, 'localStorage', {
     value: fakeStorage({
-      'gridday.v1': {
+      'diurnus.v1': {
         v: 2,
         cats: [{ id: 'work', name: 'Praca', icon: 'laptop-code', color: 'yellow', parent: null }],
         day: { start: 6, end: 22, bands: [] },

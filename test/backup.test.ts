@@ -44,7 +44,7 @@ test('nie-JSON daje czytelny błąd', () => {
 });
 
 test('obcy JSON jest odrzucany po znaczniku', () => {
-  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa GridDay/);
+  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa Diurnus/);
 });
 
 test('kopia bez tablicy bloków jest odrzucana', () => {
@@ -62,9 +62,23 @@ test('pusty plik daje błąd o JSON-ie, a nie wyjątek', () => {
 });
 
 test('tablica JSON zamiast obiektu jest odrzucana', () => {
-  expect(() => bundleParse('[1,2,3]')).toThrow(/kopia zapasowa GridDay/);
+  expect(() => bundleParse('[1,2,3]')).toThrow(/kopia zapasowa Diurnus/);
 });
 
 test('eksport jest czytelny dla człowieka (wcięcia)', () => {
   expect(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0)).toContain('\n  "magic"');
+});
+
+test('kopia zapisana pod starą nazwą projektu nadal się wczytuje', () => {
+  // Zmiana nazwy nie może unieważnić plików, które ktoś już pobrał.
+  const old = JSON.stringify({
+    magic: 'gridday.backup',
+    state: { v: 5, cats: [], blocks: [], items: [], day: { start: 6, end: 22, bands: [] } },
+  });
+  expect(() => bundleParse(old)).not.toThrow();
+});
+
+test('nowa kopia nosi nową nazwę', () => {
+  const o = JSON.parse(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0));
+  expect(o.magic).toBe('diurnus.backup');
 });

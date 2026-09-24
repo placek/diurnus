@@ -1,6 +1,6 @@
-# GridDay — trzy panele, backlog i powtarzalność: projekt
+# Diurnus — trzy panele, backlog i powtarzalność: projekt
 
-**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednie fazy:** [lista notatek](2026-09-24-gridday-note-list-design.md), [powiązanie bloków](2026-09-24-gridday-block-item-link-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
+**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednie fazy:** [lista notatek](2026-09-24-diurnus-note-list-design.md), [powiązanie bloków](2026-09-24-diurnus-block-item-link-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Cel
 

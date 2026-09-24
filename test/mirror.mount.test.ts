@@ -4,7 +4,7 @@ import { test, expect, beforeEach, vi } from 'vitest';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;

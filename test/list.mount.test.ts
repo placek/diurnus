@@ -5,7 +5,7 @@ import { shiftDay, today } from '../src/lib/time';
 beforeEach(() => {
   vi.resetModules();
   localStorage.clear();
-  localStorage.setItem('gridday.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
@@ -75,7 +75,7 @@ test('pusty dzień pokazuje samo pole początkowe, bez pozycji', async () => {
 test('wpisanie tekstu utrwala pozycję w localStorage', async () => {
   const flush = await mountApp();
   startTyping('Kupić chleb', flush);
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Kupić chleb');
   expect(saved.items[0].day).toBe(today());
@@ -276,16 +276,16 @@ test('samo obejrzenie dnia nie zapisuje pustej pozycji', async () => {
   app.now = atDay(today());
   flush();
 
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{"items":[]}');
   expect(saved.items ?? []).toEqual([]);
 });
 
 test('pisanie w polu początkowym tworzy pozycję dopiero przy pierwszym znaku', async () => {
   const flush = await mountApp();
-  expect(JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}').items ?? []).toEqual([]);
+  expect(JSON.parse(localStorage.getItem('diurnus.v1') ?? '{"items":[]}').items ?? []).toEqual([]);
 
   startTyping('Pierwsza', flush);
-  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Pierwsza');
 });

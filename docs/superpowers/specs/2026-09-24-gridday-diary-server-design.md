@@ -1,10 +1,10 @@
-# GridDay — serwer plików dziennika (faza 1 z 3): projekt
+# Diurnus — serwer plików dziennika (faza 1 z 3): projekt
 
 **Status:** do przeglądu · **Data:** 2026-09-24 · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Kontekst: po co ta faza istnieje
 
-Projekt zmienia cel. GridDay przestaje być samowystarczalną aplikacją trzymającą stan
+Projekt zmienia cel. Diurnus przestaje być samowystarczalną aplikacją trzymającą stan
 w `localStorage`, a staje się **interfejsem do katalogu plików markdown** w `/srv/data/diary`:
 jeden plik na dzień plus `BACKLOG.md`. Pliki są źródłem prawdy, bo czytają i piszą je także
 agenci. Integracja z Google Calendar zostaje porzucona na dobre.
@@ -66,7 +66,7 @@ PUT  /api/config           ← { text: string, mtime: number | null }
                            → { mtime: number }   albo 409
 ```
 
-Konfiguracja (`.gridday.json`, faza 2 §5) ma własną parę tras, a nie identyfikator wpisu:
+Konfiguracja (`.diurnus.json`, faza 2 §5) ma własną parę tras, a nie identyfikator wpisu:
 kropka na początku nazwy nie przechodzi przez wzorzec identyfikatora i nie powinna, bo ten
 wzorzec ma zostać maksymalnie wąski. Poza nazwą pliku zachowuje się dokładnie tak samo —
 te same reguły braku pliku, pustej treści i nieaktualnego zapisu.
@@ -106,10 +106,10 @@ odrzucane, jeśli plik istnieje.
 | `DIARY_DIR` | `/srv/data/diary` | katalog z wpisami |
 | `PORT` | `4600` | port nasłuchu |
 | `HOST` | `127.0.0.1` | interfejs nasłuchu |
-| `GRIDDAY_TOKEN` | brak | wspólny sekret, gdy `HOST` nie jest pętlą zwrotną |
+| `DIURNUS_TOKEN` | brak | wspólny sekret, gdy `HOST` nie jest pętlą zwrotną |
 
 **Serwer odmawia startu**, gdy `HOST` wskazuje na coś innego niż `127.0.0.1` lub `::1`,
-a `GRIDDAY_TOKEN` jest pusty. Wystawienie dziennika na sieć ma być decyzją, nie przeoczeniem.
+a `DIURNUS_TOKEN` jest pusty. Wystawienie dziennika na sieć ma być decyzją, nie przeoczeniem.
 Token przychodzi w nagłówku `Authorization: Bearer <token>` i jest porównywany czasem stałym —
 porównanie `===` na sekrecie wycieka jego długość i prefiks.
 
@@ -134,7 +134,7 @@ Bez frameworka — `node:http` wprost. Trzy trasy nie uzasadniają zależności,
 się zasady zerowych zależności runtime. `server/` kompiluje się tym samym `tsc`, co reszta.
 
 `entries.ts` dostaje gotową nazwę pliku, a nie identyfikator: rozstrzyganie, czy chodzi
-o `2026-09-24.md` czy o `.gridday.json`, należy do routera. Dzięki temu obie pary tras
+o `2026-09-24.md` czy o `.diurnus.json`, należy do routera. Dzięki temu obie pary tras
 dzielą jedną implementację reguł z §3, a walidacja identyfikatora zostaje w jednym miejscu.
 
 `entries.ts` nie wie nic o formacie wpisu. Serwer nigdy nie rozumie, co czyta — to jest cała
@@ -169,7 +169,7 @@ testowanie go przez podstawianie modułów sprawdzałoby wyłącznie atrapy.
 - Bez tokenu przy `HOST` publicznym serwer nie startuje.
 - Z tokenem: żądanie bez nagłówka daje 401, z błędnym 401, z poprawnym 200.
 - `/api/config` przechodzi ten sam zestaw reguł co wpis: brak pliku, pusta treść,
-  nieaktualny zapis. Nazwa `.gridday.json` nie jest osiągalna przez `/api/entry/:id`.
+  nieaktualny zapis. Nazwa `.diurnus.json` nie jest osiągalna przez `/api/entry/:id`.
 - Serwowanie statyczne oddaje `index.html` dla ścieżki nieznanej API (obsługa trasy klienta).
 
 ## 8. Świadomie poza zakresem

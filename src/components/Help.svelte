@@ -11,7 +11,7 @@
 <div id="scrim" class="strong" onclick={closeAll} role="presentation"></div>
 
 <div id="helpbox" class="card">
-  <h2>GridDay</h2>
+  <h2>Diurnus</h2>
   <p>
     Dzień od {pad(win.startH)} do {pad(win.endH)} to {slots}
     {plural(slots)} po 30 minut. Kliknij pole, wybierz kategorię. To, co kliknięcie zrobi, zależy od
