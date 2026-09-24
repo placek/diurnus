@@ -4,9 +4,9 @@ import { ICONS } from '../src/lib/model';
 
 // Ikony interfejsu — nie ma ich w ICONS, bo użytkownik nie wybiera ich dla kategorii.
 const UI_ICONS = [
-  'question', 'circle-half-stroke', 'sliders', 'keyboard', 'chevron-left',
+  'question', 'circle-half-stroke', 'gear', 'keyboard', 'chevron-left',
   'chevron-right', 'xmark', 'trash-can', 'plus', 'arrow-up', 'check', 'rotate-left',
-  'download', 'upload', 'table-cells', 'list-check',
+  'download', 'upload', 'table-cells', 'list-check', 'layer-group',
 ];
 
 test('każda ikona z listy kategorii ma ścieżkę SVG', () => {

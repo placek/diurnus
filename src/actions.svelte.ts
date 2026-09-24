@@ -1,19 +1,20 @@
-import { app, commit, ui, uid } from './state.svelte';
+import { app, commit, currentDay, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
 import { reconcile, slotFree } from './lib/link';
+import { isBacklog } from './lib/backlog';
+import { nextOccurrence } from './lib/repeat';
 import {
   cycleType,
   insertAfter,
-  migrateTo,
   moveItem,
   newItem,
   removeById,
   typeAfterEnter,
 } from './lib/items';
 import { fmtQ, rel, shiftDay } from './lib/time';
-import type { Block, ItemType } from './lib/types';
+import type { Block, Item, ItemType, Repeat } from './lib/types';
 
 function stopOtherActive(exceptId: string): void {
   for (const b of app.S.blocks) {
@@ -22,16 +23,16 @@ function stopOtherActive(exceptId: string): void {
 }
 
 export function createAt(q: number, catId: string): void {
-  const f = fit(occ(app.S.blocks, app.viewDay), q);
+  const f = fit(occ(app.S.blocks, currentDay.value), q);
   if (!f) return;
-  const status = statusFor(app.viewDay, f.q, f.len, app.now);
-  const b = newBlock(app.viewDay, f.q, f.len, catId, status, Date.now(), uid);
+  const status = statusFor(currentDay.value, f.q, f.len, app.now);
+  const b = newBlock(currentDay.value, f.q, f.len, catId, status, Date.now(), uid);
   commit(
     () => {
       if (status === 'active') stopOtherActive(b.id);
       app.S.blocks.push(b);
     },
-    status === 'active' ? `Start: do ${fmtQ(app.viewDay, f.q + f.len)}` : undefined,
+    status === 'active' ? `Start: do ${fmtQ(currentDay.value, f.q + f.len)}` : undefined,
   );
 }
 
@@ -63,9 +64,9 @@ export function removeBlock(id: string): void {
 
 export function openMenu(q: number, x: number, y: number): void {
   if (!topCats(app.S.cats).length) return;
-  const f = fit(occ(app.S.blocks, app.viewDay), q);
+  const f = fit(occ(app.S.blocks, currentDay.value), q);
   if (!f) return;
-  ui.menu = { q, fit: f, rel: rel(app.viewDay, q, q + 1, app.now), level: null, x, y };
+  ui.menu = { q, fit: f, rel: rel(currentDay.value, q, q + 1, app.now), level: null, x, y };
 }
 
 export const closeMenu = (): void => void (ui.menu = null);
@@ -79,13 +80,18 @@ export function chooseCat(id: string): void {
     return;
   }
   const q = menu.q;
+  const pulling = ui.pullTo;
   ui.menu = null;
-  createAt(q, id);
+  ui.pullTo = null;
+  // Menu obsługuje dwa źródła: klik w pustą komórkę i pozycję ciągniętą
+  // z backlogu. Różni je tylko to, skąd bierze się tekst bloku.
+  if (pulling) finishPull(pulling, id);
+  else createAt(q, id);
 }
 
 /** Kliknięcie w komórkę: blok awansuje, puste miejsce otwiera menu. */
 export function actAt(q: number, x: number, y: number): void {
-  const b = occ(app.S.blocks, app.viewDay)[q];
+  const b = occ(app.S.blocks, currentDay.value)[q];
   if (b) advance(b);
   else openMenu(q, x, y);
 }
@@ -115,7 +121,7 @@ export function assignDigit(n: number, cursorQ: number | null): void {
     return;
   }
 
-  const b = occ(app.S.blocks, app.viewDay)[cursorQ];
+  const b = occ(app.S.blocks, currentDay.value)[cursorQ];
   if (b) {
     if (b.cat !== cat.id) commit(() => void (b.cat = cat.id));
     return;
@@ -138,9 +144,6 @@ export function setItemType(id: string, type: ItemType): void {
   if (!item || item.type === type) return;
   commit(() => {
     item.type = type;
-    // Wyjście ze stanu przeniesionego czyści ślad, ale NIE kasuje kopii
-    // w dniu docelowym — to osobna pozycja, którą użytkownik usuwa sam.
-    if (type !== 'migrated' && type !== 'scheduled') delete item.movedTo;
   });
 }
 
@@ -162,60 +165,14 @@ export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
   setItemType(id, cycleType(item.type, dir));
 };
 
-export function migrateItem(
-  id: string,
-  targetDay: string,
-  type: 'migrated' | 'scheduled',
-): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item || item.movedTo) {
-    app.toast = { msg: 'Ta pozycja została już przeniesiona', undoable: false };
-    return;
-  }
-
-  const block = item.block ? app.S.blocks.find((b) => b.id === item.block) : undefined;
-
-  // Pozycja swobodna: kopiujemy ją, jak dotąd.
-  if (!block) {
-    const before = app.S.items;
-    const after = migrateTo(before, id, targetDay, Date.now(), uid, type);
-    if (after.length === before.length) return;
-    commit(() => (app.S.items = after), `Przeniesiono na ${targetDay}`, true);
-    return;
-  }
-
-  // Pozycja powiązana: przenosi się BLOK, a pozycję w dniu docelowym
-  // materializuje reconcile — nie ma tu osobnego kopiowania.
-  if (!slotFree(app.S.blocks, targetDay, block.q, block.len, block.id)) {
-    app.toast = {
-      msg: `W dniu ${targetDay} o ${fmtQ(targetDay, block.q)} jest już zajęte`,
-      undoable: false,
-    };
-    return;
-  }
-
-  commit(
-    () => {
-      block.day = targetDay;
-      item.block = undefined;
-      item.type = type;
-      item.movedTo = targetDay;
-      // commit() uzgadnia tylko dzień oglądany; dzień docelowy trzeba osobno.
-      app.S.items = reconcile(app.S.items, app.S.blocks, targetDay, Date.now(), uid);
-    },
-    `Przeniesiono na ${targetDay}`,
-    true,
-  );
-}
-
-export const migrateToTomorrow = (id: string): void =>
-  migrateItem(id, shiftDay(app.viewDay, 1), 'migrated');
-
 /** Nowa pozycja pod wskazaną (albo na końcu listy dnia, gdy `afterId` jest null). */
 export function addItemAfter(afterId: string | null): void {
   const prev = afterId ? app.S.items.find((i) => i.id === afterId) : undefined;
   const type = prev ? typeAfterEnter(prev.type) : 'task';
-  const item = newItem(app.viewDay, type, Date.now(), uid);
+  // Nowa pozycja dziedziczy dzień poprzedniej, nie „dziś": Enter w backlogu ma
+  // tworzyć pozycję tam, gdzie się pisze, a nie przerzucać ją do notatek.
+  const day = prev ? prev.day : currentDay.value;
+  const item = newItem(day, type, Date.now(), uid);
   commit(() => (app.S.items = insertAfter(app.S.items, afterId, item)));
   ui.focusItem = item.id;
 }
@@ -248,8 +205,8 @@ export function setItemText(id: string, text: string): void {
 
 /** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
  *  Używane przez pole początkowe, które samo NIE jest pozycją w stanie. */
-export function createItemWithText(text: string): void {
-  const item = { ...newItem(app.viewDay, 'task', Date.now(), uid), text };
+export function createItemWithText(text: string, day: string | null = currentDay.value): void {
+  const item = { ...newItem(day, 'task', Date.now(), uid), text };
   commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
   ui.focusItem = item.id;
 }
@@ -257,7 +214,127 @@ export function createItemWithText(text: string): void {
 /** Przestawienie pozycji na liście dnia; `toIndex` to miejsce w liście BEZ niej. */
 export function moveItemTo(id: string, toIndex: number): void {
   const before = app.S.items;
-  const after = moveItem(before, id, toIndex, app.viewDay);
+  const after = moveItem(before, id, toIndex, currentDay.value);
   if (after.every((x, i) => x === before[i])) return; // nic się nie przesunęło
   commit(() => (app.S.items = after), undefined, true);
+}
+
+/**
+ * Odhaczenie w backlogu: rzecz zrobiona należy do dzisiejszego dziennika,
+ * nie do dnia, na który była zaplanowana.
+ */
+export function completeBacklogItem(id: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  const today = currentDay.value;
+
+  if (!item.repeat) {
+    commit(() => {
+      item.day = today;
+      item.type = 'done';
+      // Pora opisywała plan; dziś rzecz jest po prostu zrobiona.
+      delete item.at;
+    });
+    return;
+  }
+
+  // Powtarzalna: szablon zostaje w backlogu, kopia idzie do dziś,
+  // a termin przesuwa się na następne wystąpienie.
+  const copy: Item = {
+    id: uid(),
+    day: today,
+    text: item.text,
+    type: 'done',
+    created: Date.now(),
+  };
+  commit(() => {
+    app.S.items = [...app.S.items, copy];
+    item.nextOn = nextOccurrence(item.repeat!, item.nextOn ?? today);
+  });
+}
+
+/** Ustawienie albo zdjęcie wzorca powtarzania pozycji backlogu. */
+export function setRepeat(id: string, repeat: Repeat | undefined): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  commit(() => {
+    if (repeat) {
+      item.repeat = repeat;
+      // Termin liczony od dziś, żeby nowy wzorzec nie zaczynał w przeszłości.
+      item.nextOn = nextOccurrence(repeat, currentDay.value);
+    } else {
+      delete item.repeat;
+      delete item.nextOn;
+    }
+  });
+}
+
+/** Przeniesienie pozycji do backlogu: dzień, opcjonalna pora, koniec powiązania. */
+export function scheduleItem(id: string, day: string | null, at?: number): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  commit(() => {
+    item.day = day;
+    if (at === undefined) delete item.at;
+    else item.at = at;
+    // Pozycja opuszczająca dziś nie może dalej wskazywać na dzisiejszy blok.
+    if (item.block) delete item.block;
+  });
+}
+
+/**
+ * Wzięcie rzeczy z backlogu na dziś. Godzina, którą pozycja już nosi, staje się
+ * blokiem — jeśli slot jest wolny. Kategorię wybiera menu radialne; pozycja bez
+ * godziny pomija je i ląduje jako zwykła notatka.
+ */
+export function pullToToday(id: string, x: number, y: number): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  const today = currentDay.value;
+
+  if (item.at === undefined) {
+    commit(() => {
+      item.day = today;
+      delete item.repeat;
+      delete item.nextOn;
+    });
+    return;
+  }
+
+  if (!slotFree(app.S.blocks, today, item.at, 2)) {
+    const at = item.at;
+    commit(() => {
+      item.day = today;
+      delete item.at;
+      delete item.repeat;
+      delete item.nextOn;
+    });
+    app.toast = {
+      msg: `O ${fmtQ(today, at)} jest już zajęte — pozycja bez bloku`,
+      undoable: false,
+    };
+    return;
+  }
+
+  // Godzina jest, miejsce jest — brakuje kategorii, więc pytamy o nią tak,
+  // jak przy tworzeniu bloku na siatce.
+  ui.pullTo = id;
+  openMenu(item.at, x, y);
+}
+
+/** Domknięcie `pullToToday` po wyborze kategorii w menu radialnym. */
+export function finishPull(id: string, catId: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item || item.at === undefined) return;
+  const today = currentDay.value;
+  const at = item.at;
+  const block = newBlock(today, at, 2, catId, statusFor(today, at, 2, app.now), Date.now(), uid);
+  commit(() => {
+    app.S.blocks.push(block);
+    item.day = today;
+    delete item.at;
+    delete item.repeat;
+    delete item.nextOn;
+    item.block = block.id;
+  });
 }

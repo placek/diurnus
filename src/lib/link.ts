@@ -33,7 +33,8 @@ export function reconcile(
   created: number,
   makeId: () => string,
 ): Item[] {
-  const inScope = (d: string) => day === null || d === day;
+  // Pozycja bez daty (backlog) nie należy do żadnego dnia.
+  const inScope = (d: string | null) => d !== null && (day === null || d === day);
   const alive = new Set(live(blocks, day).map((b) => b.id));
 
   // 1. Usuń pozycje wskazujące na blok, którego nie ma (albo już nie liczy się jako blok).

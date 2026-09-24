@@ -21,8 +21,6 @@ export type KeyAction =
   | { type: 'act' }
   | { type: 'edit' }
   | { type: 'delete' }
-  | { type: 'day'; delta: number }
-  | { type: 'today' }
   | { type: 'settings'; tab: 'cats' | 'day' }
   | { type: 'help' }
   | { type: 'menuPick'; n: number }
@@ -86,9 +84,6 @@ export function keyAction(key: string, ctx: KeyContext): KeyAction | null {
   const lower = key.toLowerCase();
   if (lower === 'e' && ctx.cursorVisible) return { type: 'edit' };
   if ((key === 'Delete' || key === 'Backspace') && ctx.cursorVisible) return { type: 'delete' };
-  if (key === '[' || key === ',') return { type: 'day', delta: -1 };
-  if (key === ']' || key === '.') return { type: 'day', delta: 1 };
-  if (lower === 't') return { type: 'today' };
   if (lower === 'c') return { type: 'settings', tab: 'cats' };
   if (lower === 'd') return { type: 'settings', tab: 'day' };
   if (key === '?') return { type: 'help' };

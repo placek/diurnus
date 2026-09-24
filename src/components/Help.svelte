@@ -31,6 +31,13 @@
     ustawieniach.
   </p>
 
+  <p>
+    Ekran dzieli się na trzy: dzisiejsza siatka, dzisiejsze notatki i backlog — wszystko,
+    co zaplanowane na później albo jeszcze bez terminu. Odhaczenie czegoś w backlogu
+    przenosi to do dzisiejszego dziennika. Niedokończone zadania z ostatniego dnia
+    wracają dziś na górę.
+  </p>
+
   <dl class="keys">
     <dt>Klik w blok</dt>
     <dd>potwierdź plan lub przyjmij sugestię</dd>
@@ -44,10 +51,12 @@
     <dd class="kb">w drugim pierścieniu: kategoria nadrzędna, powrót</dd>
     <dt class="kb"><kbd>C</kbd> <kbd>D</kbd></dt>
     <dd class="kb">ustawienia: kategorie, dzień</dd>
-    <dt class="kb"><kbd>[</kbd> <kbd>]</kbd> <kbd>T</kbd></dt>
-    <dd class="kb">poprzedni dzień, następny, dziś</dd>
     <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
-    <dd class="kb">na liście po prawej: nowa pozycja, zmiana znacznika</dd>
+    <dd class="kb">na listach: nowa pozycja, zmiana znacznika</dd>
+    <dt>Przeciągnięcie znacznika</dt>
+    <dd>w obrębie listy przestawia; między listami planuje albo bierze na dziś</dd>
+    <dt>Prawy przycisk na znaczniku</dt>
+    <dd>znaczniki, a w backlogu także powtarzalność</dd>
     <dt class="kb"><kbd>Ctrl</kbd> <kbd>Z</kbd></dt>
     <dd class="kb">cofnij</dd>
   </dl>

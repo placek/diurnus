@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { test, expect, beforeEach, vi } from 'vitest';
-import { today } from '../src/lib/time';
+import { shiftDay, today } from '../src/lib/time';
 
 beforeEach(() => {
   vi.resetModules();
@@ -19,6 +19,13 @@ beforeEach(() => {
     }),
   });
 });
+
+
+/** Aplikacja pokazuje dzień wyliczony z zegara — podróż w czasie idzie przez `now`. */
+const atDay = (day: string, hour = 12) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y!, m! - 1, d!, hour).getTime();
+};
 
 async function mountApp() {
   const { mount, flushSync } = await import('svelte');
@@ -176,19 +183,26 @@ test('klik w znacznik przełącza zadanie i wykonane', async () => {
   expect(marks()[0]).toBe('·');
 });
 
-test('lista pokazuje pozycje tego dnia, na który patrzymy', async () => {
+test('wykonana pozycja zostaje we wczorajszym dniu, niedokończona idzie dalej', async () => {
+  // Zegar przesunięty na jutro czyni jutro „dziś", a przeniesienie
+  // niedokończonych zabiera ze sobą to, co nie zostało zrobione.
   const flush = await mountApp();
   const { app } = await import('../src/state.svelte');
-  startTyping('Dzisiejsza', flush);
 
-  const { shiftDay } = await import('../src/lib/time');
-  app.viewDay = shiftDay(today(), 1);
+  startTyping('Zrobione', flush);
+  press(inputs()[0]!, 'Tab'); // task → done
   flush();
-  expect(inputs()).toHaveLength(0);
+  press(inputs()[0]!, 'Enter');
+  flush();
+  typeInto(inputs()[1]!, 'Niedokończone', flush);
 
-  app.viewDay = today();
+  const wasToday = today();
+  app.now = atDay(shiftDay(wasToday, 1));
   flush();
-  expect(inputs().some((i) => i.value === 'Dzisiejsza')).toBe(true);
+
+  expect(app.S.items.find((i) => i.text === 'Zrobione')!.day).toBe(wasToday);
+  expect(app.S.items.find((i) => i.text === 'Niedokończone')!.day).toBe(shiftDay(wasToday, 1));
+  expect(inputs().map((i) => i.value)).toEqual(['Niedokończone']);
 });
 
 test('cofnięcie przywraca tekst sprzed edycji, a nie ten dopiero wpisany', async () => {
@@ -255,11 +269,11 @@ test('samo obejrzenie dnia nie zapisuje pustej pozycji', async () => {
   const { app } = await import('../src/state.svelte');
   const { shiftDay } = await import('../src/lib/time');
 
-  app.viewDay = shiftDay(today(), 3);
+  app.now = atDay(shiftDay(today(), 3));
   flush();
-  app.viewDay = shiftDay(today(), 4);
+  app.now = atDay(shiftDay(today(), 4));
   flush();
-  app.viewDay = today();
+  app.now = atDay(today());
   flush();
 
   const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');

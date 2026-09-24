@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { app, ui, win } from '../state.svelte';
+  import { app, ui, win, currentDay } from '../state.svelte';
   import { tokenStats } from '../lib/stats';
-  import { pad, shiftDay, splitDay, today } from '../lib/time';
+  import { pad, splitDay } from '../lib/time';
   import Icon from './Icon.svelte';
   import TokenPips from './TokenPips.svelte';
 
@@ -22,52 +22,45 @@
   });
 
   const label = $derived.by(() => {
-    const [y, m, d] = splitDay(app.viewDay);
+    const [y, m, d] = splitDay(currentDay.value);
     return fmtDate.format(new Date(y, m - 1, d));
   });
-
-  const isToday = $derived(app.viewDay === today());
 
   const clock = $derived.by(() => {
     const d = new Date(app.now);
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
 
-  const stats = $derived(tokenStats(app.S.blocks, app.viewDay, app.S.cats, win.q0, win.q1));
+  const PANE_ORDER = ['grid', 'list', 'backlog'] as const;
+  const PANE_ICON = { grid: 'table-cells', list: 'list-check', backlog: 'layer-group' } as const;
+  const PANE_TITLE = {
+    grid: 'Siatka — przełącz na notatki',
+    list: 'Notatki — przełącz na backlog',
+    backlog: 'Backlog — przełącz na siatkę',
+  } as const;
+  const nextPane = () => PANE_ORDER[(PANE_ORDER.indexOf(ui.pane) + 1) % PANE_ORDER.length]!;
 
-  const go = (n: number) => (app.viewDay = shiftDay(app.viewDay, n));
+  const stats = $derived(tokenStats(app.S.blocks, currentDay.value, app.S.cats, win.q0, win.q1));
+
 </script>
 
 <header id="top">
-  <div class="nav">
-    <button class="ib" onclick={() => go(-1)} aria-label="Poprzedni dzień" title="Poprzedni dzień  [">
-      <Icon name="chevron-left" fallback="‹" />
-    </button>
-    <button
-      id="date"
-      class:is-today={isToday}
-      onclick={() => (app.viewDay = today())}
-      title="Wróć do dziś  T"
-    >
-      {label}
-    </button>
-    <button class="ib" onclick={() => go(1)} aria-label="Następny dzień" title="Następny dzień  ]">
-      <Icon name="chevron-right" fallback="›" />
-    </button>
-    <span id="clock" aria-label="Godzina">{clock}</span>
+  <!-- Lewy dystans równoważy narzędzia po prawej, żeby środek był środkiem
+       ekranu, a nie środkiem tego, co zostało. -->
+  <div class="hdr-side" aria-hidden="true"></div>
+
+  <div class="hdr-center">
+    <div class="hdr-when">
+      <span id="date">{label}</span>
+      <span id="clock" aria-label="Godzina">{clock}</span>
+    </div>
+    <TokenPips {stats} />
   </div>
 
-  <TokenPips {stats} />
-
-  <div class="tools">
+  <div class="tools hdr-side">
     {#if ui.narrow}
-      <button
-        class="ib"
-        onclick={() => (ui.pane = ui.pane === 'grid' ? 'list' : 'grid')}
-        aria-label="Przełącz panel"
-        title="Przełącz siatkę i listę"
-      >
-        <Icon name={ui.pane === 'grid' ? 'list-check' : 'table-cells'} fallback="≡" />
+      <button class="ib" onclick={() => (ui.pane = nextPane())} aria-label="Przełącz panel" title={PANE_TITLE[ui.pane]}>
+        <Icon name={PANE_ICON[ui.pane]} fallback="≡" />
       </button>
     {/if}
     <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">
@@ -77,7 +70,7 @@
       <Icon name="circle-half-stroke" fallback="◐" />
     </button>
     <button class="ib" onclick={onSettings} aria-label="Ustawienia" title="Ustawienia: kategorie C, dzień D">
-      <Icon name="sliders" fallback="U" />
+      <Icon name="gear" fallback="⚙" />
     </button>
   </div>
 </header>

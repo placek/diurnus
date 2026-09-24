@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, ui } from '../state.svelte';
+  import { app, ui, currentDay } from '../state.svelte';
   import { chooseCat, closeMenu } from '../actions.svelte';
   import { catOf, colorOf, iconOf, kids, topCats } from '../lib/categories';
   import { fmtQ } from '../lib/time';
@@ -38,7 +38,7 @@
     </button>
   {:else}
     <div class="rc">
-      <div class="rt">{fmtQ(app.viewDay, menu.fit.q)}</div>
+      <div class="rt">{fmtQ(currentDay.value, menu.fit.q)}</div>
       <div class="rl">{MODE_LABEL[menu.rel]}</div>
     </div>
   {/if}

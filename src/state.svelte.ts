@@ -17,7 +17,6 @@ export interface Toast {
 export const app = $state({
   S: normalize(readJSON<unknown>(localStorage, KEY, null)),
   prefs: { ...DEFAULT_PREFS, ...readJSON<Partial<Prefs>>(localStorage, PREF, {}) },
-  viewDay: today(),
   now: Date.now(),
   toast: null as Toast | null,
 });
@@ -39,13 +38,17 @@ export const ui = $state({
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
   /** widoczny panel na wąskim ekranie; na szerokim widać oba */
-  pane: 'grid' as 'grid' | 'list',
+  pane: 'grid' as 'grid' | 'list' | 'backlog',
   /** czy ekran jest za wąski na dwa panele — ustawia Panes.svelte */
   narrow: false,
   /** pozycja listy, która ma dostać fokus po operacji strukturalnej */
   focusItem: null as string | null,
   /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
   drag: null as { id: string; toIndex: number } | null,
+  /** okienko wyboru daty otwarte dla tej pozycji */
+  datePrompt: null as { itemId: string; x: number; y: number } | null,
+  /** pozycja czekająca na wybór kategorii po przeciągnięciu z backlogu */
+  pullTo: null as string | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,
@@ -66,6 +69,16 @@ export function closeAll(): void {
   ui.settings = null;
   ui.help = false;
 }
+
+/**
+ * Aplikacja pokazuje wyłącznie dziś. Data wynika z zegara, nie z nawigacji —
+ * nie ma czego przewijać, więc nie ma czego trzymać w stanie.
+ */
+export const currentDay = {
+  get value() {
+    return dayKey(new Date(app.now));
+  },
+};
 
 export const save = () => writeJSON(localStorage, KEY, $state.snapshot(app.S));
 export const savePrefs = () => writeJSON(localStorage, PREF, $state.snapshot(app.prefs));
@@ -105,7 +118,7 @@ export function commit(fn: () => void, msg?: string, undoable = false): void {
   fn();
   // Niezmiennik utrzymywany w jednym miejscu: żaden z mutatorów bloków nie
   // musi pamiętać o liście, bo każdy i tak przechodzi tędy.
-  app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
+  app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
   if (!save()) {
     app.toast = { msg: 'Zapis nieudany — pobierz kopię zapasową', undoable: false };
     return;
@@ -146,18 +159,12 @@ function autoConfirm(): boolean {
 // Gdy zmieni się doba, widok przechodzi na nowy dzień tylko wtedy, gdy
 // użytkownik patrzył na poprzednie „dzisiaj" — ręcznie wybrany dzień zostaje.
 export function startClock(): () => void {
-  let lastToday = today();
   const id = setInterval(() => {
     app.now = Date.now();
-    const t = today();
-    if (t !== lastToday) {
-      if (app.viewDay === lastToday) app.viewDay = t;
-      lastToday = t;
-    }
     if (autoConfirm()) {
       // Domknięcie bloku omija commit(), więc znacznik na liście trzeba
       // uzgodnić tutaj — inaczej siatka pokazywałaby wykonanie, a lista nie.
-      app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
+      app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
       save();
     }
   }, 1000);
@@ -168,7 +175,7 @@ export function startClock(): () => void {
 export function tickOnce(): void {
   app.now = Date.now();
   if (autoConfirm()) {
-    app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
+    app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
     save();
   }
 }

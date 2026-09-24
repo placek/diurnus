@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, ui } from '../state.svelte';
+  import { app, ui, currentDay } from '../state.svelte';
   import { bandAt } from '../lib/model';
   import { segments } from '../lib/segments';
   import { pad, qTime, rel } from '../lib/time';
@@ -23,11 +23,11 @@
   const cells = $derived(
     [0, 1, 2, 3].map((c) => {
       const q = hour * 4 + c;
-      const rr = rel(app.viewDay, q, q + 1, app.now);
+      const rr = rel(currentDay.value, q, q + 1, app.now);
       const f =
         rr === 'now'
-          ? (app.now - qTime(app.viewDay, q)) /
-            (qTime(app.viewDay, q + 1) - qTime(app.viewDay, q))
+          ? (app.now - qTime(currentDay.value, q)) /
+            (qTime(currentDay.value, q + 1) - qTime(currentDay.value, q))
           : null;
       return { c, q, rr, f };
     }),
@@ -52,7 +52,6 @@
 <div
   class="row"
   class:is-now={nowLeft !== null}
-  class:band-start={bandStart && row > 0}
   style="--band:{band ? `var(--${band.color})` : 'transparent'}"
 >
   <div class="hour">

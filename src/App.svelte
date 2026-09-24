@@ -1,18 +1,7 @@
 <script lang="ts">
-  import {
-    activeLayer,
-    app,
-    closeAll,
-    savePrefs,
-    startClock,
-    startCrossTabSync,
-    save,
-    ui,
-    uid,
-    undo,
-    win,
-  } from './state.svelte';
+  import { activeLayer, app, closeAll, currentDay, save, savePrefs, startClock, startCrossTabSync, ui, uid, undo, win } from './state.svelte';
   import { reconcile } from './lib/link';
+  import { carryOver, lastDayWithItems } from './lib/backlog';
   import {
     actAt,
     assignDigit,
@@ -28,7 +17,7 @@
   import { catOf } from './lib/categories';
   import { nextTheme, themeColor } from './lib/theme';
   import { occ } from './lib/occupancy';
-  import { nowQ, pad, qTime, shiftDay, today } from './lib/time';
+  import { nowQ, pad, qTime } from './lib/time';
   import Panes from './components/Panes.svelte';
   import Header from './components/Header.svelte';
   import RadialMenu from './components/RadialMenu.svelte';
@@ -36,11 +25,27 @@
   import Help from './components/Help.svelte';
   import Toast from './components/Toast.svelte';
   import Settings from './components/settings/Settings.svelte';
+  import DatePrompt from './components/backlog/DatePrompt.svelte';
+
+  // Przeniesienie niedokończonych: przy starcie i przy każdej zmianie doby.
+  // Skanowanie wstecz, a nie „tylko wczoraj" — weekend poza domem nie może
+  // zgubić piątkowych resztek.
+  let carriedFor = $state<string | null>(null);
+  $effect(() => {
+    const day = currentDay.value;
+    if (carriedFor === day) return;
+    carriedFor = day;
+    const source = lastDayWithItems(app.S.items, day);
+    const next = carryOver(app.S.items, day, source);
+    if (next === app.S.items) return; // nic się nie przeniosło
+    app.S.items = next;
+    save();
+  });
 
   // Wejście na dzień, którego bloki powstały wcześniej (albo przed migracją),
   // musi dorobić ich pozycje — to nie jest mutacja, więc commit() tu nie sięga.
   $effect(() => {
-    const day = app.viewDay;
+    const day = currentDay.value;
     const next = reconcile(app.S.items, app.S.blocks, day, Date.now(), uid);
     if (next.length !== app.S.items.length) {
       app.S.items = next;
@@ -106,8 +111,8 @@
     });
     if (!action) return;
 
-    const cursorQ = ui.cursor.visible ? ui.cursor.q : nowQ(app.viewDay, app.now);
-    const blockAtCursor = cursorQ === null ? null : occ(app.S.blocks, app.viewDay)[cursorQ];
+    const cursorQ = ui.cursor.visible ? ui.cursor.q : nowQ(currentDay.value, app.now);
+    const blockAtCursor = cursorQ === null ? null : occ(app.S.blocks, currentDay.value)[cursorQ];
 
     switch (action.type) {
       case 'undo':
@@ -125,7 +130,7 @@
         e.preventDefault();
         if (!ui.cursor.visible) {
           ui.cursor.visible = true;
-          ui.cursor.q = nowQ(app.viewDay, app.now) ?? win.q0;
+          ui.cursor.q = nowQ(currentDay.value, app.now) ?? win.q0;
         } else {
           ui.cursor.q = clampCursor(ui.cursor.q, action.delta, win.q0, win.q1);
         }
@@ -150,14 +155,6 @@
         break;
       case 'delete':
         if (blockAtCursor) removeBlock(blockAtCursor.id);
-        break;
-      case 'day':
-        app.viewDay = shiftDay(app.viewDay, action.delta);
-        closeAll();
-        break;
-      case 'today':
-        app.viewDay = today();
-        closeAll();
         break;
       case 'settings':
         ui.settings = action.tab;
@@ -195,6 +192,7 @@
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}
 {#if ui.edit}<EditSheet edit={ui.edit} />{/if}
 {#if ui.settings}<Settings tab={ui.settings} />{/if}
+{#if ui.datePrompt}<DatePrompt prompt={ui.datePrompt} />{/if}
 {#if ui.help}<Help />{/if}
 
 <Toast />

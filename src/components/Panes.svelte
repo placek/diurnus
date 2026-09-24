@@ -2,10 +2,10 @@
   import { ui } from '../state.svelte';
   import Grid from './Grid.svelte';
   import List from './list/List.svelte';
+  import Backlog from './backlog/Backlog.svelte';
 
-  // Dwa panele potrzebują mniej więcej tyle miejsca, ile dotąd miał cały
-  // ekran, więc próg jest wyżej niż istniejące 560px w arkuszu.
-  const WIDE = '(min-width: 900px)';
+  // Trzy panele potrzebują mniej więcej półtora raza tyle miejsca co dwa.
+  const WIDE = '(min-width: 1300px)';
   let wide = $state(true);
 
   $effect(() => {
@@ -24,4 +24,5 @@
 <div id="panes" class:narrow={!wide}>
   {#if wide || ui.pane === 'grid'}<Grid />{/if}
   {#if wide || ui.pane === 'list'}<List />{/if}
+  {#if wide || ui.pane === 'backlog'}<Backlog />{/if}
 </div>

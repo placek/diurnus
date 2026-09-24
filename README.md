@@ -1,6 +1,7 @@
 # GridDay
 
-Kwantowanie doby na 15-minutowe tokeny. Cała aktywna część dnia mieści się w jednym oknie
+Kwantowanie doby na 15-minutowe tokeny. Ekran dzieli się na trzy panele: dzisiejsza siatka,
+dzisiejsze notatki i backlog. Aplikacja pokazuje **wyłącznie dziś** — nie ma nawigacji po dniach. Cała aktywna część dnia mieści się w jednym oknie
 przeglądarki — bez przewijania — a każdy blok czasu jest jednym kliknięciem oznaczany jako
 zaplanowany, trwający albo wykonany.
 
@@ -38,7 +39,8 @@ bazę danych.
   Testowana zwykłym `import`.
 - `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach i mutacje.
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
-- `src/components/list/` — dzienny log w duchu bullet journal (prawy panel).
+- `src/components/list/` — dzienny log w duchu bullet journal (panel środkowy).
+- `src/components/backlog/` — backlog: wszystko, co nie należy do dziś.
 
 Jeśli komponent zaczyna liczyć, logika należy do `src/lib/`.
 

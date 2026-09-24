@@ -281,6 +281,12 @@ osobno. Zapisane tutaj, żeby nie zgubić ustaleń:
   podział przez północ. Kwant liczony z **godziny ściany**, nie z różnicy milisekund od
   północy — w dobie zmiany czasu o 08:00 minęły 23 kwadranse zamiast 32.
 
+### Widok historii
+
+Aplikacja pokazuje wyłącznie dziś i backlog. Dni minione są w danych i w kopii zapasowej,
+ale nie ma ich jak obejrzeć. Widok historii — tygodniowy albo miesięczny — jest pierwszą
+rzeczą, która to odblokuje.
+
 ### Raporty
 
 Widok tygodnia (heatmapa), widok miesiąca (tokeny per kategoria per dzień), statystyka

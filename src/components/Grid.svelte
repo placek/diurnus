@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { app, win } from '../state.svelte';
+  import { app, win, currentDay } from '../state.svelte';
   import HourRow from './HourRow.svelte';
 
   const blocks = $derived(
-    app.S.blocks.filter((b) => b.day === app.viewDay && b.status !== 'discarded'),
+    app.S.blocks.filter((b) => b.day === currentDay.value && b.status !== 'discarded'),
   );
   const hours = $derived(Array.from({ length: win.hours }, (_, i) => win.startH + i));
 </script>
