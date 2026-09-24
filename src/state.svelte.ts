@@ -107,6 +107,13 @@ export function commit(fn: () => void, msg?: string, undoable = false): void {
   if (msg) app.toast = { msg, undoable };
 }
 
+/** Migawka bez mutacji — dla edycji tekstu, gdzie zmiana idzie znak po znaku
+ *  i pierwszy znak ma wyznaczyć punkt cofnięcia. */
+export function pushHistory(): void {
+  history.push($state.snapshot(app.S) as State);
+  if (history.length > HISTORY_MAX) history.shift();
+}
+
 export function undo(): void {
   const prev = history.pop();
   if (!prev) return;

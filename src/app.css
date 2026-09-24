@@ -438,3 +438,13 @@ kbd{
 .bullet-menu button:hover{background:var(--line)}
 .bullet-menu button.sel{color:var(--fg);background:var(--line)}
 .bm-mark{width:14px;text-align:center;color:var(--fg-dim)}
+.item{display:flex;align-items:center;gap:6px;position:relative;padding:1px 0}
+.item-text{
+  flex:1;min-width:0;border:0;background:transparent;outline:0;padding:4px 2px;
+  font:500 15px var(--sans);color:var(--fg);
+}
+.item-text:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
+.item.t-done .item-text{color:var(--fg-faint);text-decoration:line-through}
+.item.t-note .item-text{color:var(--fg-dim)}
+.item.t-migrated .item-text,.item.t-scheduled .item-text{color:var(--fg-faint)}
+.item-moved{flex:none;font:500 11px var(--sans);color:var(--fg-faint);white-space:nowrap}

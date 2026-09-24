@@ -2,7 +2,7 @@ import { app, commit, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
-import { cycleType, migrateTo } from './lib/items';
+import { cycleType, insertAfter, migrateTo, newItem, removeById, typeAfterEnter } from './lib/items';
 import { fmtQ, rel, shiftDay } from './lib/time';
 import type { Block, ItemType } from './lib/types';
 
@@ -156,3 +156,24 @@ export function migrateItem(
 
 export const migrateToTomorrow = (id: string): void =>
   migrateItem(id, shiftDay(app.viewDay, 1), 'migrated');
+
+/** Nowa pozycja pod wskazaną (albo na końcu listy dnia, gdy `afterId` jest null). */
+export function addItemAfter(afterId: string | null): void {
+  const prev = afterId ? app.S.items.find((i) => i.id === afterId) : undefined;
+  const type = prev ? typeAfterEnter(prev.type) : 'task';
+  const item = newItem(app.viewDay, type, Date.now(), uid);
+  commit(() => (app.S.items = insertAfter(app.S.items, afterId, item)));
+  ui.focusItem = item.id;
+}
+
+export function deleteItem(id: string, focusAfter: string | null): void {
+  commit(() => (app.S.items = removeById(app.S.items, id)));
+  ui.focusItem = focusAfter;
+}
+
+/** Tekst zmienia się bez migawki — tę robi `pushHistory()` przy pierwszym
+ *  znaku w danej pozycji, a `save()` utrwala każdą zmianę. */
+export function setItemText(id: string, text: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (item) item.text = text;
+}
