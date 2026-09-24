@@ -100,3 +100,44 @@ export function actAt(q: number, x: number, y: number): void {
   if (b) advance(b);
   else openMenu(q, x, y);
 }
+
+export function openEdit(id: string): void {
+  const b = app.S.blocks.find((x) => x.id === id);
+  if (!b) return;
+  ui.menu = null;
+  ui.edit = { id, cat: b.cat };
+}
+
+/** Środek komórki kwantu — potrzebny, żeby menu otworzyło się tam, gdzie pole. */
+export function cellCenter(q: number): [number, number] | null {
+  const el = document.querySelector<HTMLElement>(`#grid .cell[data-q="${q}"]`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return [r.left + r.width / 2, r.top + r.height / 2];
+}
+
+// Cyfra przypisuje kategorię: istniejącemu blokowi zmienia kategorię, puste pole
+// wypełnia, a kategoria z dziećmi otwiera drugi pierścień zamiast zgadywać.
+export function assignDigit(n: number, cursorQ: number | null): void {
+  const cat = topCats(app.S.cats)[n - 1];
+  if (!cat) return;
+  if (cursorQ === null) {
+    app.toast = { msg: 'Użyj strzałek, aby wskazać pole', undoable: false };
+    return;
+  }
+
+  const b = occ(app.S.blocks, app.viewDay)[cursorQ];
+  if (b) {
+    if (b.cat !== cat.id) commit(() => void (b.cat = cat.id));
+    return;
+  }
+
+  if (kids(app.S.cats, cat.id).length) {
+    const c = cellCenter(cursorQ);
+    if (!c) return;
+    openMenu(cursorQ, c[0], c[1]);
+    if (ui.menu) ui.menu.level = cat.id;
+    return;
+  }
+  createAt(cursorQ, cat.id);
+}

@@ -6,6 +6,7 @@
   import type { Segment } from '../lib/segments';
   import type { Block } from '../lib/types';
   import Icon from './Icon.svelte';
+  import { advance, openEdit } from '../actions.svelte';
 
   interface Props {
     block: Block;
@@ -67,6 +68,12 @@
   )});--p:{progress.toFixed(4)}"
   onmouseenter={() => (ui.hover = block.id)}
   onmouseleave={() => (ui.hover = null)}
+  onclick={() => advance(block)}
+  ondblclick={() => openEdit(block.id)}
+  oncontextmenu={(e) => {
+    e.preventDefault();
+    openEdit(block.id);
+  }}
 >
   {#if seg.first}
     <Icon name={iconName} fallback={letter} />

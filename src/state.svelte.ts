@@ -37,7 +37,26 @@ export const ui = $state({
   hover: null as string | null,
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
+  edit: null as { id: string; cat: string } | null,
+  settings: null as 'cats' | 'day' | 'data' | null,
+  help: false,
 });
+
+/** Wierzchnia warstwa decyduje, co robią klawisze. */
+export function activeLayer(): 'grid' | 'menu' | 'edit' | 'settings' | 'help' {
+  if (ui.menu) return 'menu';
+  if (ui.edit) return 'edit';
+  if (ui.settings) return 'settings';
+  if (ui.help) return 'help';
+  return 'grid';
+}
+
+export function closeAll(): void {
+  ui.menu = null;
+  ui.edit = null;
+  ui.settings = null;
+  ui.help = false;
+}
 
 export const save = () => writeJSON(localStorage, KEY, $state.snapshot(app.S));
 export const savePrefs = () => writeJSON(localStorage, PREF, $state.snapshot(app.prefs));
