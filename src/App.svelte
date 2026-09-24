@@ -26,7 +26,7 @@
   import { nextTheme, themeColor } from './lib/theme';
   import { occ } from './lib/occupancy';
   import { nowQ, pad, qTime, shiftDay, today } from './lib/time';
-  import Grid from './components/Grid.svelte';
+  import Panes from './components/Panes.svelte';
   import Header from './components/Header.svelte';
   import RadialMenu from './components/RadialMenu.svelte';
   import EditSheet from './components/EditSheet.svelte';
@@ -176,7 +176,7 @@
   onHelp={() => (ui.help = true)}
   onSettings={() => (ui.settings = 'cats')}
 />
-<Grid />
+<Panes />
 
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}
 {#if ui.edit}<EditSheet edit={ui.edit} />{/if}

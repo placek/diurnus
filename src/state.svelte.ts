@@ -37,6 +37,12 @@ export const ui = $state({
   hover: null as string | null,
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
+  /** widoczny panel na wąskim ekranie; na szerokim widać oba */
+  pane: 'grid' as 'grid' | 'list',
+  /** czy ekran jest za wąski na dwa panele — ustawia Panes.svelte */
+  narrow: false,
+  /** pozycja listy, która ma dostać fokus po operacji strukturalnej */
+  focusItem: null as string | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,

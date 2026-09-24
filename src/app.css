@@ -88,6 +88,23 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   padding:0 env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
 }
+/* ───────────── Podział ekranu ───────────── */
+/* min-height:0 powtórzone celowo: bez niego zagnieżdżony flex rozpycha
+   stronę i psuje niezmiennik „brak przewijania". */
+#panes{flex:1;min-height:0;display:flex}
+#panes > *{flex:1;min-width:0}
+#panes.narrow > *{flex:1 0 100%}
+
+/* Jedyna przewijalna powierzchnia w aplikacji: doba ma skończoną liczbę
+   kwantów, ale nie ma skończonej liczby notatek. */
+#list{
+  min-height:0;overflow-y:auto;overflow-x:hidden;
+  border-left:1px solid var(--line-2);
+  padding:10px max(10px,env(safe-area-inset-right)) 10px 10px;
+}
+#panes.narrow #list{border-left:0}
+.list-empty{margin:4px 2px;font:400 14px var(--sans);color:var(--fg-faint)}
+
 .row{
   position:relative;min-height:0;display:grid;
   grid-template-columns:var(--hourw) repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);
