@@ -24,3 +24,11 @@ export function newBlock(
 ): Block {
   return { id: makeId(), day, q, len, cat, title: '', status, created };
 }
+
+/**
+ * Status bloku po przeniesieniu w czasie. Plan i wykonanie to deklaracje
+ * użytkownika — zostają. Blok w toku jest stanem chwili: przeniesiony poza
+ * TERAZ przestaje trwać, więc dostaje status wynikający z nowego czasu.
+ */
+export const movedStatus = (b: Block, q: number, now: number): Status =>
+  b.status === 'active' ? statusFor(b.day, q, b.len, now) : b.status;

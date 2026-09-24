@@ -26,3 +26,4 @@ export function fit(
 
 export const activeBlock = (blocks: readonly Block[]) =>
   blocks.find((b) => b.status === 'active');
+

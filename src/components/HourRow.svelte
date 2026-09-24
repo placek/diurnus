@@ -42,6 +42,17 @@
     ui.menu ? segments(ui.menu.fit.q, ui.menu.fit.len, hour, hour + 1) : [],
   );
 
+  // Podgląd miejsca, na które spadnie przeciągany blok; `bad` = zajęte albo
+  // poza oknem dnia — blok tam nie wyląduje, ale użytkownik widzi, dlaczego.
+  const drop = $derived(
+    ui.blockDrag && ui.blockDrag.q !== null
+      ? segments(ui.blockDrag.q, ui.blockDrag.len, hour, hour + 1).map((seg) => ({
+          seg,
+          ok: ui.blockDrag!.ok,
+        }))
+      : [],
+  );
+
   const segs = $derived(
     blocks.flatMap((b) =>
       segments(b.q, b.len, hour, hour + 1).map((seg) => ({ block: b, seg })),
@@ -78,6 +89,16 @@
       class:first={g.first}
       class:last={g.last}
       style="grid-column:{g.from - hour * 4 + 2}/span {g.to - g.from}"
+    ></div>
+  {/each}
+
+  {#each drop as { seg, ok } (seg.from)}
+    <div
+      class="blk ghost drop"
+      class:bad={!ok}
+      class:first={seg.first}
+      class:last={seg.last}
+      style="grid-column:{seg.from - hour * 4 + 2}/span {seg.to - seg.from}"
     ></div>
   {/each}
 

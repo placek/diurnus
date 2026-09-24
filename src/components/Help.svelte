@@ -53,6 +53,8 @@
     <dd class="kb">ustawienia: kategorie, dzień</dd>
     <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
     <dd class="kb">na listach: nowa pozycja, zmiana znacznika</dd>
+    <dt>Przeciągnięcie bloku</dt>
+    <dd>przenosi go na inną godzinę — tylko na wolne miejsce</dd>
     <dt>Przeciągnięcie znacznika</dt>
     <dd>w obrębie listy przestawia; między listami planuje albo bierze na dziś</dd>
     <dt>Prawy przycisk na znaczniku</dt>

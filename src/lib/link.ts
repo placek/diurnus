@@ -1,4 +1,5 @@
 import { occ } from './occupancy';
+import { QDAY } from './types';
 import type { Block, Item, ItemType, Status } from './types';
 
 /** Blok, którego odbiciem jest ta pozycja. */
@@ -99,3 +100,18 @@ export function slotFree(
   for (let i = q; i < q + len; i++) if (map[i]) return false;
   return true;
 }
+
+/**
+ * Czy blok `id` da się przenieść tak, by zajmował `[q, q+len)`: w całości
+ * w oknie `[lo, hi)` i bez kolizji z innymi blokami dnia. Sam blok jest
+ * pomijany — przesunięcie o kwant na własne dotychczasowe miejsce jest legalne.
+ */
+export const canPlace = (
+  blocks: readonly Block[],
+  day: string,
+  id: string,
+  q: number,
+  len: number,
+  lo = 0,
+  hi = QDAY,
+): boolean => q >= lo && q + len <= hi && slotFree(blocks, day, q, len, id);

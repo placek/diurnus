@@ -65,6 +65,9 @@ export const ui = $state({
   focusItem: null as string | null,
   /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
   drag: null as { id: string; toIndex: number } | null,
+  /** trwające przeciąganie bloku po siatce; `q` to kwant, na którym by wylądował
+   *  (null = kursor poza siatką), `ok` — czy to miejsce jest wolne */
+  blockDrag: null as { id: string; len: number; q: number | null; ok: boolean } | null,
   /** okienko wyboru daty otwarte dla tej pozycji */
   datePrompt: null as { itemId: string; x: number; y: number } | null,
   /** pozycja czekająca na wybór kategorii po przeciągnięciu z backlogu */
