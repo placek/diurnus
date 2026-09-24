@@ -2,6 +2,7 @@ import { app, commit, ui, uid } from './state.svelte';
 import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
+import { reconcile, slotFree } from './lib/link';
 import {
   cycleType,
   insertAfter,
@@ -153,13 +154,45 @@ export function migrateItem(
   targetDay: string,
   type: 'migrated' | 'scheduled',
 ): void {
-  const before = app.S.items;
-  const after = migrateTo(before, id, targetDay, Date.now(), uid, type);
-  if (after.length === before.length) {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item || item.movedTo) {
     app.toast = { msg: 'Ta pozycja została już przeniesiona', undoable: false };
     return;
   }
-  commit(() => (app.S.items = after), `Przeniesiono na ${targetDay}`, true);
+
+  const block = item.block ? app.S.blocks.find((b) => b.id === item.block) : undefined;
+
+  // Pozycja swobodna: kopiujemy ją, jak dotąd.
+  if (!block) {
+    const before = app.S.items;
+    const after = migrateTo(before, id, targetDay, Date.now(), uid, type);
+    if (after.length === before.length) return;
+    commit(() => (app.S.items = after), `Przeniesiono na ${targetDay}`, true);
+    return;
+  }
+
+  // Pozycja powiązana: przenosi się BLOK, a pozycję w dniu docelowym
+  // materializuje reconcile — nie ma tu osobnego kopiowania.
+  if (!slotFree(app.S.blocks, targetDay, block.q, block.len, block.id)) {
+    app.toast = {
+      msg: `W dniu ${targetDay} o ${fmtQ(targetDay, block.q)} jest już zajęte`,
+      undoable: false,
+    };
+    return;
+  }
+
+  commit(
+    () => {
+      block.day = targetDay;
+      item.block = undefined;
+      item.type = type;
+      item.movedTo = targetDay;
+      // commit() uzgadnia tylko dzień oglądany; dzień docelowy trzeba osobno.
+      app.S.items = reconcile(app.S.items, app.S.blocks, targetDay, Date.now(), uid);
+    },
+    `Przeniesiono na ${targetDay}`,
+    true,
+  );
 }
 
 export const migrateToTomorrow = (id: string): void =>
