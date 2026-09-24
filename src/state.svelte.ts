@@ -45,6 +45,10 @@ export const ui = $state({
   focusItem: null as string | null,
   /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
   drag: null as { id: string; toIndex: number } | null,
+  /** okienko wyboru daty otwarte dla tej pozycji */
+  datePrompt: null as { itemId: string; x: number; y: number } | null,
+  /** pozycja czekająca na wybór kategorii po przeciągnięciu z backlogu */
+  pullTo: null as string | null,
   edit: null as { id: string; cat: string } | null,
   settings: null as 'cats' | 'day' | 'data' | null,
   help: false,

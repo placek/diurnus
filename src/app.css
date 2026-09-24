@@ -482,3 +482,12 @@ kbd{
   border:2px solid currentColor;border-radius:50%;
   width:20px;height:20px;font-size:0;
 }
+.date-prompt{
+  position:fixed;z-index:60;min-width:220px;padding:12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.dp-field{display:flex;flex-direction:column;gap:4px;font:400 13px var(--sans);color:var(--fg-dim)}
+.dp-field input{
+  font:500 15px var(--sans);color:var(--fg);background:var(--bg);
+  border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;
+}

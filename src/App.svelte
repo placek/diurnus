@@ -25,6 +25,7 @@
   import Help from './components/Help.svelte';
   import Toast from './components/Toast.svelte';
   import Settings from './components/settings/Settings.svelte';
+  import DatePrompt from './components/backlog/DatePrompt.svelte';
 
   // Przeniesienie niedokończonych: przy starcie i przy każdej zmianie doby.
   // Skanowanie wstecz, a nie „tylko wczoraj" — weekend poza domem nie może
@@ -191,6 +192,7 @@
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}
 {#if ui.edit}<EditSheet edit={ui.edit} />{/if}
 {#if ui.settings}<Settings tab={ui.settings} />{/if}
+{#if ui.datePrompt}<DatePrompt prompt={ui.datePrompt} />{/if}
 {#if ui.help}<Help />{/if}
 
 <Toast />

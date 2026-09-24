@@ -2,6 +2,7 @@
   import { MARK } from '../../lib/items';
   import {
     completeBacklogItem,
+    pullToToday,
     setRepeat,
     moveItemTo,
     setItemType,
@@ -107,6 +108,18 @@
     ui.drag = { id: item.id, toIndex: insertionIndex(e.clientY, item.id) };
   }
 
+  /** Panel pod kursorem decyduje, czy to przestawienie, czy przeniesienie. */
+  function paneUnder(x: number, y: number): 'list' | 'backlog' | null {
+    // Brak elementsFromPoint (starsze środowiska, jsdom) znaczy „nie wiem",
+    // a nie wiedzieć = zostań w swoim panelu. Przestawienie jest bezpieczne.
+    if (typeof document.elementsFromPoint !== 'function') return null;
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el.id === 'backlog') return 'backlog';
+      if (el.id === 'list') return 'list';
+    }
+    return null;
+  }
+
   function onPointerUp(e: PointerEvent) {
     const el = e.currentTarget as HTMLElement;
     if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
@@ -116,7 +129,21 @@
     suppressClick = true; // po przeciągnięciu i tak przyjdzie click
     const drag = ui.drag;
     ui.drag = null;
-    if (drag) moveItemTo(drag.id, drag.toIndex);
+    if (!drag) return;
+
+    const target = paneUnder(e.clientX, e.clientY);
+    const from = inBacklog ? 'backlog' : 'list';
+
+    if (target === from || target === null) {
+      moveItemTo(drag.id, drag.toIndex); // przestawienie w obrębie panelu
+      return;
+    }
+    if (target === 'backlog') {
+      // Do backlogu trzeba terminu — pytamy, podpowiadając jutro.
+      ui.datePrompt = { itemId: drag.id, x: e.clientX, y: e.clientY };
+      return;
+    }
+    pullToToday(drag.id, e.clientX, e.clientY);
   }
 
   function onClick() {

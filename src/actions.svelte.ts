@@ -80,8 +80,13 @@ export function chooseCat(id: string): void {
     return;
   }
   const q = menu.q;
+  const pulling = ui.pullTo;
   ui.menu = null;
-  createAt(q, id);
+  ui.pullTo = null;
+  // Menu obsługuje dwa źródła: klik w pustą komórkę i pozycję ciągniętą
+  // z backlogu. Różni je tylko to, skąd bierze się tekst bloku.
+  if (pulling) finishPull(pulling, id);
+  else createAt(q, id);
 }
 
 /** Kliknięcie w komórkę: blok awansuje, puste miejsce otwiera menu. */
@@ -258,5 +263,75 @@ export function setRepeat(id: string, repeat: Repeat | undefined): void {
       delete item.repeat;
       delete item.nextOn;
     }
+  });
+}
+
+/** Przeniesienie pozycji do backlogu: dzień, opcjonalna pora, koniec powiązania. */
+export function scheduleItem(id: string, day: string | null, at?: number): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  commit(() => {
+    item.day = day;
+    if (at === undefined) delete item.at;
+    else item.at = at;
+    // Pozycja opuszczająca dziś nie może dalej wskazywać na dzisiejszy blok.
+    if (item.block) delete item.block;
+  });
+}
+
+/**
+ * Wzięcie rzeczy z backlogu na dziś. Godzina, którą pozycja już nosi, staje się
+ * blokiem — jeśli slot jest wolny. Kategorię wybiera menu radialne; pozycja bez
+ * godziny pomija je i ląduje jako zwykła notatka.
+ */
+export function pullToToday(id: string, x: number, y: number): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  const today = currentDay.value;
+
+  if (item.at === undefined) {
+    commit(() => {
+      item.day = today;
+      delete item.repeat;
+      delete item.nextOn;
+    });
+    return;
+  }
+
+  if (!slotFree(app.S.blocks, today, item.at, 2)) {
+    const at = item.at;
+    commit(() => {
+      item.day = today;
+      delete item.at;
+      delete item.repeat;
+      delete item.nextOn;
+    });
+    app.toast = {
+      msg: `O ${fmtQ(today, at)} jest już zajęte — pozycja bez bloku`,
+      undoable: false,
+    };
+    return;
+  }
+
+  // Godzina jest, miejsce jest — brakuje kategorii, więc pytamy o nią tak,
+  // jak przy tworzeniu bloku na siatce.
+  ui.pullTo = id;
+  openMenu(item.at, x, y);
+}
+
+/** Domknięcie `pullToToday` po wyborze kategorii w menu radialnym. */
+export function finishPull(id: string, catId: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item || item.at === undefined) return;
+  const today = currentDay.value;
+  const at = item.at;
+  const block = newBlock(today, at, 2, catId, statusFor(today, at, 2, app.now), Date.now(), uid);
+  commit(() => {
+    app.S.blocks.push(block);
+    item.day = today;
+    delete item.at;
+    delete item.repeat;
+    delete item.nextOn;
+    item.block = block.id;
   });
 }
