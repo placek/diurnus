@@ -175,7 +175,14 @@ export function addItemAfter(afterId: string | null): void {
 }
 
 export function deleteItem(id: string, focusAfter: string | null): void {
-  commit(() => (app.S.items = removeById(app.S.items, id)));
+  const item = app.S.items.find((i) => i.id === id);
+  // Lustro: pozycja JEST blokiem, więc usunięcie jednej strony usuwa drugą.
+  // Blok znika w tej samej migawce, więc jedno Ctrl+Z przywraca oba.
+  const blockId = item?.block;
+  commit(() => {
+    app.S.items = removeById(app.S.items, id);
+    if (blockId) app.S.blocks = app.S.blocks.filter((b) => b.id !== blockId);
+  });
   ui.focusItem = focusAfter;
 }
 
@@ -183,7 +190,14 @@ export function deleteItem(id: string, focusAfter: string | null): void {
  *  znaku w danej pozycji, a `save()` utrwala każdą zmianę. */
 export function setItemText(id: string, text: string): void {
   const item = app.S.items.find((i) => i.id === id);
-  if (item) item.text = text;
+  if (!item) return;
+  item.text = text;
+  // Tekst piszą obie ścieżki edycji, nie reconcile — inaczej trzeba by zgadywać,
+  // która strona zmieniła się jako ostatnia.
+  if (item.block) {
+    const block = app.S.blocks.find((b) => b.id === item.block);
+    if (block) block.title = text;
+  }
 }
 
 /** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
