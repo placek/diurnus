@@ -10,7 +10,28 @@ export default defineConfig({
   plugins: [svelte()],
   build: { target: 'es2022' },
   test: {
-    environment: 'node',
-    include: ['test/**/*.test.ts'],
+    // Dwa zestawy, bo potrzebują przeciwnych wariantów kompilacji Svelte:
+    // testy renderu używają builda serwerowego (render() z svelte/server),
+    // a testy montowania klienckiego (mount()) wymagają warunku `browser`.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+          exclude: ['test/**/*.mount.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        resolve: { conditions: ['browser'] },
+        test: {
+          name: 'mount',
+          environment: 'jsdom',
+          include: ['test/**/*.mount.test.ts'],
+        },
+      },
+    ],
   },
 });
