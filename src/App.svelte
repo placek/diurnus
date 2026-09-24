@@ -33,6 +33,7 @@
   import EditSheet from './components/EditSheet.svelte';
   import Help from './components/Help.svelte';
   import Toast from './components/Toast.svelte';
+  import Settings from './components/settings/Settings.svelte';
 
   $effect(() => startClock());
   $effect(() => startCrossTabSync());
@@ -179,6 +180,7 @@
 
 {#if ui.menu}<RadialMenu menu={ui.menu} />{/if}
 {#if ui.edit}<EditSheet edit={ui.edit} />{/if}
+{#if ui.settings}<Settings tab={ui.settings} />{/if}
 {#if ui.help}<Help />{/if}
 
 <Toast />
