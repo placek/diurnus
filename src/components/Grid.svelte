@@ -8,8 +8,8 @@
   const hours = $derived(Array.from({ length: win.hours }, (_, i) => win.startH + i));
 </script>
 
-<div id="grid" style="--hours:{win.hours}">
+<main id="grid" style="--hours:{win.hours}">
   {#each hours as hour, row (hour)}
     <HourRow {hour} {row} {blocks} />
   {/each}
-</div>
+</main>
