@@ -13,7 +13,12 @@
   // kopia zapasowa byłaby pełna pustych wierszy.
   let draft = $state('');
 
-  const others = $derived(ui.drag ? items.filter((i) => i.id !== ui.drag!.id) : []);
+  // Kreska wstawienia dotyczy tylko przestawiania, a przestawiają się
+  // wyłącznie pozycje swobodne.
+  const dragFree = $derived(
+    ui.drag ? (app.S.items.find((i) => i.id === ui.drag!.id)?.block ?? null) === null : false,
+  );
+  const others = $derived(dragFree && ui.drag ? items.filter((i) => i.id !== ui.drag!.id) : []);
   const dropBefore = (id: string) => others.findIndex((i) => i.id === id) === ui.drag!.toIndex;
   const dropAtEnd = () => ui.drag!.toIndex >= others.length;
 
@@ -33,12 +38,12 @@
   {#each items as item (item.id)}
     <!-- Kreska wstawienia liczy się wśród pozycji BEZ przeciąganej, więc
          rysujemy ją przed wierszem o tym numerze w tak liczonej sekwencji. -->
-    {#if ui.drag && ui.drag.id !== item.id && dropBefore(item.id)}
+    {#if dragFree && ui.drag && ui.drag.id !== item.id && dropBefore(item.id)}
       <div class="drop-line"></div>
     {/if}
     <ListItem {item} />
   {/each}
-  {#if ui.drag && dropAtEnd()}<div class="drop-line"></div>{/if}
+  {#if dragFree && ui.drag && dropAtEnd()}<div class="drop-line"></div>{/if}
 
   <div class="item t-task is-draft">
     <span class="bullet t-task" aria-hidden="true">·</span>

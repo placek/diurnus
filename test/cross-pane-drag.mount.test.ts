@@ -61,52 +61,60 @@ const backlogBullet = () =>
   document.querySelector<HTMLElement>('#backlog .backlog-item:not(.is-draft) .bullet')!;
 const noteBullet = () => document.querySelector<HTMLElement>('#list .item[data-id] .bullet')!;
 
-test('przeciągnięcie notatki na backlog otwiera okienko daty z jutrem', async () => {
-  seed([{ id: 'a', day: today(), text: 'Odłożyć', type: 'task', created: 0 }]);
-  const flush = await mountApp();
-  dropOn('backlog');
-  drag(noteBullet(), flush);
-
-  const prompt = document.querySelector('.date-prompt');
-  expect(prompt).not.toBeNull();
-  expect(prompt!.querySelector<HTMLInputElement>('input[type="date"]')!.value).toBe(shiftDay(today(), 1));
-});
-
-test('zatwierdzenie okienka przenosi pozycję do backlogu', async () => {
+test('przeciągnięcie notatki na backlog nie pyta o nic — pozycja jest bez daty', async () => {
   seed([{ id: 'a', day: today(), text: 'Odłożyć', type: 'task', created: 0 }]);
   const flush = await mountApp();
   const { app } = await import('../src/state.svelte');
   dropOn('backlog');
   drag(noteBullet(), flush);
 
-  document.querySelector<HTMLElement>('.date-prompt .btn.primary')!.click();
+  expect(document.querySelector('.date-prompt')).toBeNull();
+  expect(app.S.items.find((i) => i.id === 'a')!.day).toBeNull();
+  expect(document.querySelectorAll('#backlog .backlog-item:not(.is-draft)')).toHaveLength(1);
+});
+
+test('przeciągnięcie pozycji powiązanej do backlogu zrywa powiązanie z blokiem', async () => {
+  seed(
+    [{ id: 'a', day: today(), text: 'Nauka', type: 'task', created: 0, block: 'b1' }],
+    [{ id: 'b1', day: today(), q: 36, len: 2, cat: 'learn', title: 'Nauka', status: 'planned', created: 0 }],
+  );
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+  dropOn('backlog');
+  drag(noteBullet(), flush);
+
+  expect(app.S.items.find((i) => i.id === 'a')!.block).toBeUndefined();
+});
+
+test('menu znacznika w backlogu pozwala nadać termin', async () => {
+  seed([{ id: 'a', day: null, text: 'X', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  backlogBullet().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
+  const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) => b.textContent?.trim());
+  expect(labels).toContain('→jutro');
+  expect(labels).toContain('→za tydzień');
+  expect(labels).toContain('…wybierz datę…');
+  expect(labels).toContain('→bez daty');
+
+  [...document.querySelectorAll<HTMLElement>('.bullet-menu button')]
+    .find((b) => b.textContent?.includes('jutro'))!.click();
   flush();
   expect(app.S.items.find((i) => i.id === 'a')!.day).toBe(shiftDay(today(), 1));
-  expect(document.querySelector('.date-prompt')).toBeNull();
 });
 
-test('anulowanie okienka nie zmienia niczego', async () => {
-  seed([{ id: 'a', day: today(), text: 'Odłożyć', type: 'task', created: 0 }]);
+test('„wybierz datę…" otwiera okienko', async () => {
+  seed([{ id: 'a', day: null, text: 'X', type: 'task', created: 0 }]);
   const flush = await mountApp();
-  const { app } = await import('../src/state.svelte');
-  dropOn('backlog');
-  drag(noteBullet(), flush);
 
-  [...document.querySelectorAll<HTMLElement>('.date-prompt .btn')].find((b) => b.textContent === 'Anuluj')!.click();
+  backlogBullet().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   flush();
-  expect(app.S.items.find((i) => i.id === 'a')!.day).toBe(today());
-});
-
-test('„bez daty" odkłada pozycję na kiedyś', async () => {
-  seed([{ id: 'a', day: today(), text: 'Kiedyś', type: 'task', created: 0 }]);
-  const flush = await mountApp();
-  const { app } = await import('../src/state.svelte');
-  dropOn('backlog');
-  drag(noteBullet(), flush);
-
-  [...document.querySelectorAll<HTMLElement>('.date-prompt .btn')].find((b) => b.textContent === 'Bez daty')!.click();
+  [...document.querySelectorAll<HTMLElement>('.bullet-menu button')]
+    .find((b) => b.textContent?.includes('wybierz datę'))!.click();
   flush();
-  expect(app.S.items.find((i) => i.id === 'a')!.day).toBeNull();
+  expect(document.querySelector('.date-prompt')).not.toBeNull();
 });
 
 test('przeciągnięcie pozycji bez godziny z backlogu na dziś czyni ją dzisiejszą', async () => {

@@ -500,3 +500,4 @@ kbd{
   font:500 15px var(--sans);color:var(--fg);background:var(--bg);
   border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;
 }
+.bm-sep{height:1px;margin:4px 6px;background:var(--line-2)}

@@ -119,7 +119,7 @@ test('pozycje powiązane stoją nad swobodnymi, posortowane po godzinie', async 
   expect(rows[2]!.classList.contains('is-linked')).toBe(false);
 });
 
-test('przeciąganie pozycji powiązanej nic nie zmienia', async () => {
+test('przeciąganie pozycji powiązanej w obrębie listy nie przestawia jej', async () => {
   const flush = await mountApp();
   const { app, currentDay } = await import('../src/state.svelte');
   await createBlock(flush);

@@ -3,6 +3,7 @@
   import {
     completeBacklogItem,
     pullToToday,
+    scheduleItem,
     setRepeat,
     moveItemTo,
     setItemType,
@@ -10,7 +11,7 @@
   } from '../../actions.svelte';
   import { isBacklog } from '../../lib/backlog';
   import { describeRepeat } from '../../lib/repeat';
-  import { splitDay } from '../../lib/time';
+  import { shiftDay, splitDay } from '../../lib/time';
   import type { Repeat } from '../../lib/types';
   import { app, currentDay, ui } from '../../state.svelte';
   import type { Item, ItemType } from '../../lib/types';
@@ -24,6 +25,8 @@
   const { item, draggable = true }: Props = $props();
 
   let menu = $state(false);
+  let menuX = 0;
+  let menuY = 0;
 
   // Menu otwiera prawy przycisk, więc zwykły klik nie zamknie go od razu
   // po otwarciu; bez tego nasłuchu nie ma z niego wyjścia poza wyborem typu.
@@ -48,6 +51,18 @@
   // Wzorce budowane z dzisiejszej daty — „co poniedziałek" znaczy ten dzień
   // tygodnia, „3. każdego miesiąca" ten dzień miesiąca. Bez osobnego formularza.
   const inBacklog = $derived(isBacklog(item, currentDay.value));
+  // Terminy jako gotowe wybory; „wybierz datę…" otwiera okienko dla reszty.
+  type DateChoice = { label: string; day: string | null } | 'pick';
+  const DATES = $derived.by((): DateChoice[] => {
+    if (!inBacklog) return [];
+    return [
+      { label: 'jutro', day: shiftDay(currentDay.value, 1) },
+      { label: 'za tydzień', day: shiftDay(currentDay.value, 7) },
+      'pick',
+      { label: 'bez daty', day: null },
+    ];
+  });
+
   const REPEATS = $derived.by((): (Repeat | undefined)[] => {
     if (!inBacklog) return [];
     const [, month, dom] = splitDay(currentDay.value);
@@ -88,7 +103,7 @@
   }
 
   function onPointerDown(e: PointerEvent) {
-    if (!draggable) return; // pozycja powiązana: jej miejsce to jej godzina
+    if (!draggable) return;
     if (e.button !== 0) return; // prawy przycisk należy do menu
     startX = e.clientX;
     startY = e.clientY;
@@ -135,12 +150,15 @@
     const from = inBacklog ? 'backlog' : 'list';
 
     if (target === from || target === null) {
-      moveItemTo(drag.id, drag.toIndex); // przestawienie w obrębie panelu
+      // Pozycja powiązana nie przestawia się — jej miejsce to jej godzina.
+      // Przeciągnąć ją jednak wolno: to jedyna droga do odłożenia bloku.
+      if (!item.block) moveItemTo(drag.id, drag.toIndex);
       return;
     }
     if (target === 'backlog') {
-      // Do backlogu trzeba terminu — pytamy, podpowiadając jutro.
-      ui.datePrompt = { itemId: drag.id, x: e.clientX, y: e.clientY };
+      // Bez pytania: rzecz odłożona jest najpierw „kiedyś". Termin nadaje się
+      // osobno, z menu znacznika — tak samo jak powtarzalność.
+      scheduleItem(drag.id, null);
       return;
     }
     pullToToday(drag.id, e.clientX, e.clientY);
@@ -177,6 +195,8 @@
   onpointercancel={onPointerUp}
   oncontextmenu={(e) => {
     e.preventDefault();
+    menuX = e.clientX;
+    menuY = e.clientY;
     menu = !menu;
   }}>{MARK[item.type]}</button
 >
@@ -188,6 +208,20 @@
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}
       </button>
     {/each}
+    {#each DATES as d, i (i)}
+      <button
+        role="menuitem"
+        onclick={() => {
+          menu = false;
+          if (d === 'pick') ui.datePrompt = { itemId: item.id, x: menuX, y: menuY };
+          else scheduleItem(item.id, d.day);
+        }}
+      >
+        <span class="bm-mark">{d === 'pick' ? '…' : '→'}</span>{d === 'pick' ? 'wybierz datę…' : d.label}
+      </button>
+    {/each}
+    {#if DATES.length}<div class="bm-sep"></div>{/if}
+
     {#each REPEATS as r, i (i)}
       <button
         role="menuitem"

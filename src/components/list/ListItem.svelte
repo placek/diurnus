@@ -99,7 +99,7 @@
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}
 >
-  <Bullet {item} draggable={!block} />
+  <Bullet {item} />
   {#if block}<span class="item-hour">{fmtQ(block.day, block.q)}</span>{/if}
   <input
     bind:this={el}
