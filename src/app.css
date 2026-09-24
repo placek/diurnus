@@ -97,12 +97,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .row.band-start{border-top-color:var(--line-2)}
 .hour{
   grid-column:1;grid-row:1;position:relative;min-width:0;overflow:hidden;
-  display:flex;flex-direction:column;justify-content:center;padding-left:11px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 4px;text-align:center;
   border-right:1px solid var(--line);
+  /* Pora dnia barwi całą kolumnę godziny. Wcześniej był to 3-pikselowy pasek
+     przy lewej krawędzi — łatwy do przeoczenia przy kilku porach z rzędu.
+     --band to `transparent`, gdy godzina nie należy do żadnej pory, a wtedy
+     color-mix daje przezroczystość, więc nie trzeba osobnej reguły. */
+  background:color-mix(in srgb, var(--band) 16%, transparent);
 }
-.hour::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--band);opacity:.5}
-.hour .h{font:500 14px var(--mono);color:var(--fg-faint)}
-.hour .bn{font:400 12px/1.1 var(--sans);color:var(--fg-faint);white-space:nowrap;margin-top:1px}
+.hour .h{font:500 14px var(--mono);color:var(--fg-dim)}
+.hour .bn{font:400 12px/1.1 var(--sans);color:var(--fg-faint);white-space:nowrap;margin-top:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .row.is-now .hour .h{color:var(--now);font-weight:600}
 
 .cell{grid-row:1;min-width:0;cursor:pointer;border-left:1px solid var(--line)}
@@ -368,7 +373,7 @@ kbd{
   #top{gap:8px}
   #date{font-size:16px;padding:6px 4px}
   #clock{font-size:16px;margin-left:6px}
-  .hour{padding-left:8px}
+  .hour{padding:0 2px}
   .hour .h{font-size:11px}
   .hour .bn{display:none}
   .blk{margin:3px 2px;padding:0 6px;gap:5px;font-size:12px}

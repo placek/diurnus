@@ -81,6 +81,18 @@ test('wskaźnik TERAZ pojawia się dokładnie raz, w rzędzie 10', () => {
   expect(html.match(/class="row is-now/g) ?? html.match(/is-now/g)).toHaveLength(1);
 });
 
+test('kolumna godziny niesie kolor pory dnia jako --band', () => {
+  // Pora dnia barwi tło kolumny godziny (CSS), więc zmienna musi trafić na rząd.
+  expect(html).toContain('--band:var(--aqua)');
+});
+
+test('godziny spoza jakiejkolwiek pory dostają --band:transparent', () => {
+  // Okno 06–22 z jedną porą od 06:00 — wszystkie rzędy są w niej, więc
+  // sprawdzamy na dniu bez pór, że brak pory nie daje pustej wartości.
+  expect(html).not.toContain('--band:var(--undefined)');
+  expect(html).not.toContain('--band:;');
+});
+
 test('kolor bloku bierze się z koloru kategorii', () => {
   expect(html).toContain('--c:var(--yellow)');
 });
