@@ -31,6 +31,15 @@
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
 
+  const PANE_ORDER = ['grid', 'list', 'backlog'] as const;
+  const PANE_ICON = { grid: 'table-cells', list: 'list-check', backlog: 'layer-group' } as const;
+  const PANE_TITLE = {
+    grid: 'Siatka — przełącz na notatki',
+    list: 'Notatki — przełącz na backlog',
+    backlog: 'Backlog — przełącz na siatkę',
+  } as const;
+  const nextPane = () => PANE_ORDER[(PANE_ORDER.indexOf(ui.pane) + 1) % PANE_ORDER.length]!;
+
   const stats = $derived(tokenStats(app.S.blocks, currentDay.value, app.S.cats, win.q0, win.q1));
 
 </script>
@@ -45,13 +54,8 @@
 
   <div class="tools">
     {#if ui.narrow}
-      <button
-        class="ib"
-        onclick={() => (ui.pane = ui.pane === 'grid' ? 'list' : 'grid')}
-        aria-label="Przełącz panel"
-        title="Przełącz siatkę i listę"
-      >
-        <Icon name={ui.pane === 'grid' ? 'list-check' : 'table-cells'} fallback="≡" />
+      <button class="ib" onclick={() => (ui.pane = nextPane())} aria-label="Przełącz panel" title={PANE_TITLE[ui.pane]}>
+        <Icon name={PANE_ICON[ui.pane]} fallback="≡" />
       </button>
     {/if}
     <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">

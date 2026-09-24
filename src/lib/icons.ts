@@ -31,6 +31,7 @@ import { faHammer } from '@fortawesome/free-solid-svg-icons/faHammer';
 import { faHandsPraying } from '@fortawesome/free-solid-svg-icons/faHandsPraying';
 import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart';
 import { faHouse } from '@fortawesome/free-solid-svg-icons/faHouse';
+import { faLayerGroup } from '@fortawesome/free-solid-svg-icons/faLayerGroup';
 import { faKeyboard } from '@fortawesome/free-solid-svg-icons/faKeyboard';
 import { faLaptopCode } from '@fortawesome/free-solid-svg-icons/faLaptopCode';
 import { faListCheck } from '@fortawesome/free-solid-svg-icons/faListCheck';
@@ -57,7 +58,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark';
 
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
-const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChevronLeft, faChevronRight, faChild, faChurch, faCircle, faCircleHalfStroke, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faKeyboard, faLaptopCode, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faQuestion, faPlus, faRotateLeft, faSeedling, faSliders, faStar, faTableCells, faSun, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
+const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChevronLeft, faChevronRight, faChild, faChurch, faCircle, faCircleHalfStroke, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faKeyboard, faLayerGroup, faLaptopCode, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faQuestion, faPlus, faRotateLeft, faSeedling, faSliders, faStar, faTableCells, faSun, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
 
 /** nazwa kebab-case → [szerokość, wysokość, ścieżka SVG] */
 export const ICON_PATHS: Record<string, [number, number, string]> = Object.fromEntries(

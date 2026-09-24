@@ -38,7 +38,7 @@ export const ui = $state({
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
   /** widoczny panel na wąskim ekranie; na szerokim widać oba */
-  pane: 'grid' as 'grid' | 'list',
+  pane: 'grid' as 'grid' | 'list' | 'backlog',
   /** czy ekran jest za wąski na dwa panele — ustawia Panes.svelte */
   narrow: false,
   /** pozycja listy, która ma dostać fokus po operacji strukturalnej */

@@ -97,12 +97,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 
 /* Jedyna przewijalna powierzchnia w aplikacji: doba ma skończoną liczbę
    kwantów, ale nie ma skończonej liczby notatek. */
+/* Panel środkowy jest wyniesiony: to miejsce, w którym się pisze. */
 #list{
   min-height:0;overflow-y:auto;overflow-x:hidden;
-  border-left:1px solid var(--line-2);
+  background:var(--raise);
+  border-left:1px solid var(--line-2);border-right:1px solid var(--line-2);
+  padding:10px 16px;
+}
+#backlog{
+  min-height:0;overflow-y:auto;overflow-x:hidden;
   padding:10px max(10px,env(safe-area-inset-right)) 10px 10px;
 }
-#panes.narrow #list{border-left:0}
+#panes.narrow #list{border-left:0;border-right:0}
+.pane-title{
+  margin:0 0 8px;font:600 12px var(--sans);color:var(--fg-faint);
+  text-transform:uppercase;letter-spacing:.07em;
+}
 .list-empty{margin:4px 2px;font:400 14px var(--sans);color:var(--fg-faint)}
 
 .row{
