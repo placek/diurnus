@@ -1,7 +1,13 @@
 <script lang="ts">
   import { MARK } from '../../lib/items';
-  import { moveItemTo, setItemType, toggleBlockDone } from '../../actions.svelte';
-  import { app, ui } from '../../state.svelte';
+  import {
+    completeBacklogItem,
+    moveItemTo,
+    setItemType,
+    toggleBlockDone,
+  } from '../../actions.svelte';
+  import { isBacklog } from '../../lib/backlog';
+  import { app, currentDay, ui } from '../../state.svelte';
   import type { Item, ItemType } from '../../lib/types';
 
   interface Props {
@@ -98,7 +104,9 @@
       suppressClick = false;
       return;
     }
+    // Trzy konteksty, trzy znaczenia kliknięcia w znacznik.
     if (item.block) toggleBlockDone(item.id);
+    else if (isBacklog(item, currentDay.value)) completeBacklogItem(item.id);
     else setItemType(item.id, item.type === 'done' ? 'task' : 'done');
   }
 

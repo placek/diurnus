@@ -3,6 +3,8 @@ import { acceptTarget, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
 import { reconcile, slotFree } from './lib/link';
+import { isBacklog } from './lib/backlog';
+import { nextOccurrence } from './lib/repeat';
 import {
   cycleType,
   insertAfter,
@@ -12,7 +14,7 @@ import {
   typeAfterEnter,
 } from './lib/items';
 import { fmtQ, rel, shiftDay } from './lib/time';
-import type { Block, ItemType } from './lib/types';
+import type { Block, Item, ItemType } from './lib/types';
 
 function stopOtherActive(exceptId: string): void {
   for (const b of app.S.blocks) {
@@ -207,4 +209,38 @@ export function moveItemTo(id: string, toIndex: number): void {
   const after = moveItem(before, id, toIndex, currentDay.value);
   if (after.every((x, i) => x === before[i])) return; // nic się nie przesunęło
   commit(() => (app.S.items = after), undefined, true);
+}
+
+/**
+ * Odhaczenie w backlogu: rzecz zrobiona należy do dzisiejszego dziennika,
+ * nie do dnia, na który była zaplanowana.
+ */
+export function completeBacklogItem(id: string): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  const today = currentDay.value;
+
+  if (!item.repeat) {
+    commit(() => {
+      item.day = today;
+      item.type = 'done';
+      // Pora opisywała plan; dziś rzecz jest po prostu zrobiona.
+      delete item.at;
+    });
+    return;
+  }
+
+  // Powtarzalna: szablon zostaje w backlogu, kopia idzie do dziś,
+  // a termin przesuwa się na następne wystąpienie.
+  const copy: Item = {
+    id: uid(),
+    day: today,
+    text: item.text,
+    type: 'done',
+    created: Date.now(),
+  };
+  commit(() => {
+    app.S.items = [...app.S.items, copy];
+    item.nextOn = nextOccurrence(item.repeat!, item.nextOn ?? today);
+  });
 }
