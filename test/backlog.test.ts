@@ -81,3 +81,17 @@ test('carryOver bez dnia źródłowego nic nie robi', () => {
   const all = [item('a', T)];
   expect(carryOver(all, T, null)).toEqual(all);
 });
+
+test('carryOver zwraca TĘ SAMĄ tablicę, gdy nie ma czego przenieść', () => {
+  // Wołający rozpoznaje „nic się nie stało" po tożsamości referencji;
+  // porównywanie długości albo kolejności myli się przy jednej pozycji.
+  const all = [item('a', T), item('zrobione', '2026-09-22', { type: 'done' })];
+  expect(carryOver(all, T, null)).toBe(all);
+  expect(carryOver(all, T, '2026-09-22')).toBe(all);
+  expect(carryOver(all, T, '2026-09-21')).toBe(all);
+});
+
+test('carryOver zwraca NOWĄ tablicę, gdy coś przeniósł', () => {
+  const all = [item('a', '2026-09-22')];
+  expect(carryOver(all, T, '2026-09-22')).not.toBe(all);
+});

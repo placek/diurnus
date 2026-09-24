@@ -43,9 +43,12 @@ export function carryOver(
   today: string,
   sourceDay: string | null,
 ): Item[] {
-  if (sourceDay === null) return [...items];
+  // Zwraca TĘ SAMĄ tablicę, gdy nic się nie przenosi. Wołający rozpoznaje po
+  // tożsamości referencji, że nie ma czego zapisywać — porównywanie długości
+  // albo kolejności myli się, gdy przenoszona jest jedna pozycja.
+  if (sourceDay === null) return items as Item[];
   const moves = items.filter((i) => i.day === sourceDay && i.type === 'task' && !i.block);
-  if (!moves.length) return [...items];
+  if (!moves.length) return items as Item[];
 
   const ids = new Set(moves.map((i) => i.id));
   return [...moves.map((i) => ({ ...i, day: today })), ...items.filter((i) => !ids.has(i.id))];

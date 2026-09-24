@@ -1,6 +1,7 @@
 <script lang="ts">
   import { activeLayer, app, closeAll, currentDay, save, savePrefs, startClock, startCrossTabSync, ui, uid, undo, win } from './state.svelte';
   import { reconcile } from './lib/link';
+  import { carryOver, lastDayWithItems } from './lib/backlog';
   import {
     actAt,
     assignDigit,
@@ -24,6 +25,21 @@
   import Help from './components/Help.svelte';
   import Toast from './components/Toast.svelte';
   import Settings from './components/settings/Settings.svelte';
+
+  // Przeniesienie niedokończonych: przy starcie i przy każdej zmianie doby.
+  // Skanowanie wstecz, a nie „tylko wczoraj" — weekend poza domem nie może
+  // zgubić piątkowych resztek.
+  let carriedFor = $state<string | null>(null);
+  $effect(() => {
+    const day = currentDay.value;
+    if (carriedFor === day) return;
+    carriedFor = day;
+    const source = lastDayWithItems(app.S.items, day);
+    const next = carryOver(app.S.items, day, source);
+    if (next === app.S.items) return; // nic się nie przeniosło
+    app.S.items = next;
+    save();
+  });
 
   // Wejście na dzień, którego bloki powstały wcześniej (albo przed migracją),
   // musi dorobić ich pozycje — to nie jest mutacja, więc commit() tu nie sięga.
