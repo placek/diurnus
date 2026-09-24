@@ -9,6 +9,7 @@
     cellCenter,
     chooseCat,
     closeMenu,
+    moveBlock,
     openEdit,
     removeBlock,
   } from './actions.svelte';
@@ -125,6 +126,7 @@
       inInput: !!target?.matches?.('input'),
       menuHasLevel: !!ui.menu?.level,
       cursorVisible: ui.cursor.visible,
+      shift: e.shiftKey,
       ctrl: e.ctrlKey,
       meta: e.metaKey,
       alt: e.altKey,
@@ -153,6 +155,18 @@
           ui.cursor.q = nowQ(currentDay.value, app.now) ?? win.q0;
         } else {
           ui.cursor.q = clampCursor(ui.cursor.q, action.delta, win.q0, win.q1);
+        }
+        break;
+      case 'moveBlock':
+        e.preventDefault();
+        if (!blockAtCursor) {
+          app.toast = { msg: 'Pod kursorem nie ma bloku', undoable: false };
+          break;
+        }
+        // Kursor jedzie razem z blokiem, więc kolejne wciśnięcie przesuwa
+        // ten sam blok dalej. Odmowa (zajęte, koniec dnia) zostawia oba.
+        if (moveBlock(blockAtCursor.id, blockAtCursor.q + action.delta)) {
+          ui.cursor.q += action.delta;
         }
         break;
       case 'digit':

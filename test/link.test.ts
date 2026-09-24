@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { reconcile, linkedItems, freeItems, blockOfItem, slotFree } from '../src/lib/link';
+import { reconcile, linkedItems, freeItems, blockOfItem, slotFree, canPlace } from '../src/lib/link';
 import type { Block, Item, Status } from '../src/lib/types';
 
 const A = '2026-09-24';
@@ -156,4 +156,39 @@ test('reconcile ze zsynchronizowanym znacznikiem jest nadal idempotentny', () =>
   const blocks = [blk('b1', 32, A, 'confirmed')];
   const once = reconcile([], blocks, A, 0, ids);
   expect(reconcile(once, blocks, A, 0, ids)).toEqual(once);
+});
+
+test('canPlace: wolne miejsce w oknie przyjmuje blok', () => {
+  expect(canPlace([blk('a', 32)], A, 'a', 40, 2)).toBe(true);
+});
+
+test('canPlace: dotychczasowe miejsce bloku nie liczy się jako zajęte', () => {
+  const blocks = [blk('a', 32)];
+  expect(canPlace(blocks, A, 'a', 32, 2)).toBe(true);
+  expect(canPlace(blocks, A, 'a', 33, 2)).toBe(true); // nachodzi tylko na siebie
+});
+
+test('canPlace: cudzy blok blokuje także częściowe nałożenie', () => {
+  const blocks = [blk('a', 32), blk('b', 40)];
+  expect(canPlace(blocks, A, 'a', 40, 2)).toBe(false);
+  expect(canPlace(blocks, A, 'a', 39, 2)).toBe(false);
+  expect(canPlace(blocks, A, 'a', 41, 2)).toBe(false);
+  expect(canPlace(blocks, A, 'a', 38, 2)).toBe(true);
+  expect(canPlace(blocks, A, 'a', 42, 2)).toBe(true);
+});
+
+test('canPlace: blok musi zmieścić się w oknie w całości', () => {
+  const blocks = [blk('a', 32)];
+  expect(canPlace(blocks, A, 'a', 24, 2, 24, 88)).toBe(true);
+  expect(canPlace(blocks, A, 'a', 23, 2, 24, 88)).toBe(false);
+  expect(canPlace(blocks, A, 'a', 86, 2, 24, 88)).toBe(true);
+  expect(canPlace(blocks, A, 'a', 87, 2, 24, 88)).toBe(false);
+});
+
+test('canPlace: bez okna obowiązuje cała doba', () => {
+  const blocks = [blk('a', 32)];
+  expect(canPlace(blocks, A, 'a', 0, 2)).toBe(true);
+  expect(canPlace(blocks, A, 'a', -1, 2)).toBe(false);
+  expect(canPlace(blocks, A, 'a', 94, 2)).toBe(true);
+  expect(canPlace(blocks, A, 'a', 95, 2)).toBe(false);
 });

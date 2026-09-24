@@ -1,8 +1,8 @@
-import { app, commit, currentDay, ui, uid } from './state.svelte';
-import { acceptTarget, newBlock, statusFor } from './lib/actions';
+import { app, commit, currentDay, ui, uid, win } from './state.svelte';
+import { acceptTarget, movedStatus, newBlock, statusFor } from './lib/actions';
 import { kids, topCats } from './lib/categories';
 import { fit, occ } from './lib/occupancy';
-import { reconcile, slotFree } from './lib/link';
+import { canPlace, reconcile, slotFree } from './lib/link';
 import { isBacklog } from './lib/backlog';
 import { nextOccurrence } from './lib/repeat';
 import {
@@ -13,7 +13,7 @@ import {
   removeById,
   typeAfterEnter,
 } from './lib/items';
-import { fmtQ, rel, shiftDay } from './lib/time';
+import { fmtQ, pad, rel, shiftDay } from './lib/time';
 import type { Block, Item, ItemType, Repeat } from './lib/types';
 
 function stopOtherActive(exceptId: string): void {
@@ -99,6 +99,42 @@ export function actAt(q: number, x: number, y: number): void {
   else openMenu(q, x, y);
 }
 
+/** Czy blok da się przenieść tak, by zaczynał się w `q` — w oknie dnia i na wolne miejsce. */
+export function canMoveTo(id: string, q: number): boolean {
+  const b = app.S.blocks.find((x) => x.id === id);
+  if (!b) return false;
+  return canPlace(app.S.blocks, b.day, b.id, q, b.len, win.q0, win.q1);
+}
+
+/** Przeniesienie bloku w czasie: nowy kwant początkowy, ta sama długość i kategoria.
+ *  Zwraca, czy blok się przeniósł — klawiatura przesuwa kursor tylko wtedy. */
+export function moveBlock(id: string, q: number): boolean {
+  const b = app.S.blocks.find((x) => x.id === id);
+  if (!b || q === b.q) return false;
+  // Odmowa mówi dlaczego: duch pokazywał, że nie wolno, ale nie tłumaczył.
+  if (q < win.q0 || q + b.len > win.q1) {
+    app.toast = {
+      msg: `Poza zakresem dnia ${pad(win.startH)}:00–${pad(win.endH)}:00`,
+      undoable: false,
+    };
+    return false;
+  }
+  if (!slotFree(app.S.blocks, b.day, q, b.len, b.id)) {
+    app.toast = { msg: `O ${fmtQ(b.day, q)} jest już zajęte`, undoable: false };
+    return false;
+  }
+  const status = movedStatus(b, q, app.now);
+  commit(
+    () => {
+      b.q = q;
+      b.status = status;
+    },
+    `Przeniesiono na ${fmtQ(b.day, q)}`,
+    true,
+  );
+  return true;
+}
+
 export function openEdit(id: string): void {
   const b = app.S.blocks.find((x) => x.id === id);
   if (!b) return;
@@ -112,6 +148,36 @@ export function cellCenter(q: number): [number, number] | null {
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return [r.left + r.width / 2, r.top + r.height / 2];
+}
+
+/* Po przeciągnięciu przeglądarka i tak wysyła click. Komponent bloku nie
+   może go połknąć sam: przeniesiony blok jest już nowym elementem w innym
+   rzędzie, a click może trafić w komórkę pod nim. Znacznik gaśnie w
+   następnym zadaniu — click przychodzi w tym samym — więc brak clicka nie
+   połknie kolejnego, prawdziwego kliknięcia. */
+let swallowClick = false;
+
+export function swallowNextClick(): void {
+  swallowClick = true;
+  setTimeout(() => (swallowClick = false), 0);
+}
+
+/** Czy to kliknięcie jest echem przeciągnięcia i ma zostać zignorowane. */
+export function consumeSwallowedClick(): boolean {
+  const s = swallowClick;
+  swallowClick = false;
+  return s;
+}
+
+/** Kwant komórki siatki pod wskazanym punktem ekranu; null poza siatką
+ *  albo gdy środowisko nie umie trafiać w elementy (jsdom). */
+export function qAtPoint(x: number, y: number): number | null {
+  if (typeof document.elementsFromPoint !== 'function') return null;
+  for (const el of document.elementsFromPoint(x, y)) {
+    const q = (el as HTMLElement).dataset?.q;
+    if (q !== undefined && el.classList.contains('cell')) return Number(q);
+  }
+  return null;
 }
 
 // Cyfra przypisuje kategorię: istniejącemu blokowi zmienia kategorię, puste pole

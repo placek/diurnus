@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { statusFor, acceptTarget, newBlock } from '../src/lib/actions';
+import { statusFor, acceptTarget, movedStatus, newBlock } from '../src/lib/actions';
 import type { Block, Status } from '../src/lib/types';
 
 const DAY = '2026-09-24';
@@ -37,4 +37,28 @@ test('newBlock: składa blok z podanym identyfikatorem i pustym tytułem', () =>
   expect(b).toEqual({
     id: 'id-1', day: DAY, q: 32, len: 2, cat: 'work', title: '', status: 'planned', created: 1234,
   });
+});
+
+test('movedStatus: plan zostaje planem, nawet przeniesiony w przeszłość', () => {
+  expect(movedStatus(blk('a', 60, 2, 'planned'), 32, at(12))).toBe('planned');
+});
+
+test('movedStatus: wykonanie zostaje wykonaniem, nawet przeniesione w przyszłość', () => {
+  expect(movedStatus(blk('a', 32, 2, 'confirmed'), 60, at(12))).toBe('confirmed');
+});
+
+test('movedStatus: sugestia zostaje sugestią', () => {
+  expect(movedStatus(blk('a', 60, 2, 'suggested'), 32, at(12))).toBe('suggested');
+});
+
+test('movedStatus: blok w toku przeniesiony w przyszłość staje się planem', () => {
+  expect(movedStatus(blk('a', 40, 2, 'active'), 60, at(10, 7))).toBe('planned');
+});
+
+test('movedStatus: blok w toku przeniesiony w przeszłość jest wykonany', () => {
+  expect(movedStatus(blk('a', 40, 2, 'active'), 32, at(10, 7))).toBe('confirmed');
+});
+
+test('movedStatus: blok w toku przesunięty tak, że wciąż obejmuje teraz, dalej trwa', () => {
+  expect(movedStatus(blk('a', 40, 2, 'active'), 39, at(10, 7))).toBe('active');
 });

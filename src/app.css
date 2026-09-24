@@ -166,6 +166,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   font:500 16px/1.1 var(--sans);cursor:pointer;
   border:1.5px solid transparent;
   transition:filter .15s, box-shadow .15s, opacity .15s;
+  touch-action:none;                       /* przeciąganie zamiast przewijania */
 }
 .blk.first{border-top-left-radius:var(--shape-r);border-bottom-left-radius:var(--shape-r)}
 .blk.last{border-top-right-radius:var(--shape-r);border-bottom-right-radius:var(--shape-r)}
@@ -205,6 +206,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .blk.ghost{z-index:3;pointer-events:none;border:1.5px dashed var(--fg-faint);background:color-mix(in srgb,var(--fg) 6%,transparent)}
 .blk.ghost:not(.first){border-left-width:0}
 .blk.ghost:not(.last){border-right-width:0}
+/* Duch celu przeciągania stoi nad blokami (z-index wyżej niż .blk), bo cel
+   może częściowo nachodzić na sąsiada — wtedy jest czerwony i mówi „nie". */
+.blk.ghost.drop{z-index:5;border-color:var(--fg-dim);background:color-mix(in srgb,var(--fg) 10%,transparent)}
+.blk.ghost.drop.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.blk.is-dragging{opacity:.4;cursor:grabbing}
 
 .kcur{grid-row:1;z-index:4;margin:2px 1px;border-radius:7px;box-shadow:0 0 0 2px var(--fg);pointer-events:none}
 
@@ -285,7 +291,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .btn.danger:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
 .btn .ic{font-size:12px}
 
-#helpbox{width:min(460px,calc(100vw - 24px))}
+#helpbox{width:min(560px,calc(100vw - 24px))}
+#helpbox h3{
+  margin:18px 0 8px;font:600 12px var(--sans);color:var(--fg-faint);
+  text-transform:uppercase;letter-spacing:.07em;
+}
 #helpbox h2{font:600 23px var(--sans);margin:2px 0 4px}
 #helpbox p{margin:0 0 14px;color:var(--fg-dim);font-size:14px;line-height:1.45}
 .legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
