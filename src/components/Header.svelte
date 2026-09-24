@@ -70,7 +70,7 @@
       <Icon name="circle-half-stroke" fallback="◐" />
     </button>
     <button class="ib" onclick={onSettings} aria-label="Ustawienia" title="Ustawienia: kategorie C, dzień D">
-      <Icon name="sliders" fallback="U" />
+      <Icon name="gear" fallback="⚙" />
     </button>
   </div>
 </header>
