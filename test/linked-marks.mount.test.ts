@@ -194,3 +194,56 @@ test('prawy przycisk na znaczniku pozycji swobodnej nadal otwiera menu', async (
   expect(document.querySelector('.bullet-menu')).not.toBeNull();
   expect(ev.defaultPrevented).toBe(true);
 });
+
+test('ton pozycji powiązanej idzie za stanem bloku', async () => {
+  const flush = await mountApp();
+  const { app, commit } = await import('../src/state.svelte');
+  await createFutureBlock(flush); // blok o 21:30, więc jeszcze przed nami
+
+  const row = () => document.querySelector('#list .item.is-linked')!;
+  expect(row().classList.contains('tone-incoming')).toBe(true);
+
+  commit(() => (app.S.blocks[0]!.status = 'active'));
+  flush();
+  expect(row().classList.contains('tone-active')).toBe(true);
+
+  commit(() => (app.S.blocks[0]!.status = 'confirmed'));
+  flush();
+  expect(row().classList.contains('tone-done')).toBe(true);
+});
+
+test('zaplanowany blok, któremu minął czas, dostaje ton przegapionego', async () => {
+  const flush = await mountApp();
+  const { app, commit, uid } = await import('../src/state.svelte');
+  const { currentDay } = await import('../src/state.svelte');
+
+  commit(() => {
+    app.S.blocks.push({
+      id: uid(), day: currentDay.value, q: 0, len: 2, cat: 'learn',
+      title: '', status: 'planned', created: 0,
+    });
+  });
+  flush();
+
+  const row = document.querySelector('#list .item.is-linked')!;
+  expect(row.classList.contains('tone-missed')).toBe(true);
+});
+
+test('zwykła notatka nie dostaje tonu zadania', async () => {
+  const flush = await mountApp();
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const free = document.querySelector('#list .item:not(.is-linked):not(.is-draft)')!;
+  expect(free.classList.contains('tone-incoming')).toBe(true);
+
+  const bullet = free.querySelector<HTMLElement>('.bullet')!;
+  bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
+  [...document.querySelectorAll<HTMLElement>('.bullet-menu button')]
+    .find((b) => b.textContent?.includes('Notatka'))!.click();
+  flush();
+  expect(document.querySelector('#list .item:not(.is-linked):not(.is-draft)')!.classList.contains('tone-note')).toBe(true);
+});

@@ -491,7 +491,7 @@ kbd{
   font:500 16px var(--sans);color:var(--fg);
 }
 .item-text:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
-.item.t-note .item-text{color:var(--fg-dim)}
+
 .is-draft .bullet{opacity:.35;cursor:default}
 .item-text::placeholder{color:var(--fg-faint)}
 .item-moved{flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap}
@@ -508,12 +508,26 @@ kbd{
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
 .item.is-linked .item-text{color:var(--fg)}
 
-/* Stan „wykonane" musi wygrać z kolorem pozycji powiązanej: obie reguły mają
-   tę samą szczegółowość, więc decyduje kolejność. Podpowiedź dostaje ten sam
-   odcień, bo blok bez własnego tytułu pokazuje nazwę kategorii właśnie nią —
-   inaczej odhaczony blok z tytułem świeciłby jaśniej niż odhaczony bez. */
-.item.t-done .item-text{color:var(--fg-faint);text-decoration:line-through}
-.item.t-done .item-text::placeholder{color:var(--fg-faint)}
+/* Jeden schemat barw tekstu na obu listach. Reguły stoją PO regule pozycji
+   powiązanej, bo mają tę samą szczegółowość i decyduje kolejność; podpowiedź
+   dostaje ten sam odcień, bo blok bez tytułu pokazuje nazwę kategorii właśnie
+   nią — inaczej ta sama rzecz wyglądałaby inaczej zależnie od tego, czy ktoś
+   wpisał jej nazwę. */
+.item.tone-incoming .item-text,
+.item.tone-incoming .item-text::placeholder{color:var(--fg)}
+
+.item.tone-active .item-text,
+.item.tone-active .item-text::placeholder{color:var(--orange)}
+
+.item.tone-missed .item-text,
+.item.tone-missed .item-text::placeholder{color:var(--red)}
+
+.item.tone-done .item-text,
+.item.tone-done .item-text::placeholder{color:var(--fg-faint)}
+.item.tone-done .item-text{text-decoration:line-through}
+
+.item.tone-note .item-text,
+.item.tone-note .item-text::placeholder{color:var(--fg-dim)}
 .backlog-item{position:relative}
 .backlog-meta{
   flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap;

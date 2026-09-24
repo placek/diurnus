@@ -2,6 +2,7 @@
   import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
   import { blockOfItem, freeItems, linkedItems } from '../../lib/link';
+  import { itemTone } from '../../lib/tone';
   import { catOf, colorOf } from '../../lib/categories';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
@@ -32,6 +33,7 @@
   // Godzina i kolor są wyliczane z bloku, nie przechowywane w pozycji: zmiana
   // kategorii bloku przebarwia pozycję sama, bez trzeciego pola do rozjechania.
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
+  const tone = $derived(itemTone(item, block, app.now));
 
   // Nawigacja klawiszami idzie przez OBIE grupy w kolejności wyświetlania:
   // powiązane według godzin, potem swobodne. Liczenie samych swobodnych
@@ -93,7 +95,7 @@
 </script>
 
 <div
-  class="item t-{item.type}"
+  class="item t-{item.type} tone-{tone}"
   class:is-linked={!!block}
   class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}

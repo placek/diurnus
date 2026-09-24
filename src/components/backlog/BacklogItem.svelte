@@ -3,6 +3,7 @@
   import { addItemAfter, deleteItem, setItemText } from '../../actions.svelte';
   import { backlogItems, sortBacklog } from '../../lib/backlog';
   import { describeRepeat } from '../../lib/repeat';
+  import { itemTone } from '../../lib/tone';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import Bullet from '../list/Bullet.svelte';
@@ -23,6 +24,9 @@
       ui.focusItem = null;
     }
   });
+
+  // Pozycja backlogu nigdy nie ma bloku, więc ton wynika z samego typu.
+  const tone = $derived(itemTone(item, undefined, app.now));
 
   const siblings = $derived(sortBacklog(backlogItems(app.S.items, currentDay.value)));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));

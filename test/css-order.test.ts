@@ -4,22 +4,31 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../src/app.css', import.meta.url), 'utf8');
 const at = (selector: string) => css.indexOf(selector);
 
-test('stan „wykonane" wygrywa z kolorem pozycji powiązanej', () => {
+test('schemat tonów wygrywa z kolorem pozycji powiązanej', () => {
   // Obie reguły mają tę samą szczegółowość (dwie klasy + element), więc
-  // o zwycięzcy decyduje wyłącznie kolejność. Odwrócenie jej sprawia, że
-  // odhaczony blok z własnym tytułem świeci jaśniej niż odhaczony bez tytułu.
-  const done = at('.item.t-done .item-text{');
+  // o zwycięzcy decyduje wyłącznie kolejność.
   const linked = at('.item.is-linked .item-text{');
-  expect(done, 'reguła .item.t-done').toBeGreaterThan(-1);
   expect(linked, 'reguła .item.is-linked').toBeGreaterThan(-1);
-  expect(done).toBeGreaterThan(linked);
+  for (const tone of ['incoming', 'active', 'missed', 'done', 'note']) {
+    const rule = at(`.item.tone-${tone} .item-text`);
+    expect(rule, `reguła tone-${tone}`).toBeGreaterThan(-1);
+    expect(rule, `tone-${tone} po is-linked`).toBeGreaterThan(linked);
+  }
 });
 
-test('wykonana pozycja barwi tak samo tekst wpisany i podpowiedź', () => {
+test('każdy ton barwi tak samo tekst wpisany i podpowiedź', () => {
   // Blok bez własnego tytułu pokazuje nazwę kategorii jako placeholder;
   // musi wyglądać tak samo jak blok z tytułem.
-  expect(css).toContain('.item.t-done .item-text::placeholder{color:var(--fg-faint)}');
-  expect(css).toContain('.item.t-done .item-text{color:var(--fg-faint)');
+  for (const tone of ['incoming', 'active', 'missed', 'done', 'note']) {
+    expect(css, tone).toContain(`.item.tone-${tone} .item-text::placeholder`);
+  }
+});
+
+test('tony używają zadeklarowanych barw schematu', () => {
+  expect(css).toMatch(/\.item\.tone-incoming[^}]*color:var\(--fg\)/);
+  expect(css).toMatch(/\.item\.tone-active[^}]*color:var\(--orange\)/);
+  expect(css).toMatch(/\.item\.tone-missed[^}]*color:var\(--red\)/);
+  expect(css).toMatch(/\.item\.tone-done[^}]*color:var\(--fg-faint\)/);
 });
 
 test('arkusz nie odwołuje się do usuniętych znaczników', () => {
