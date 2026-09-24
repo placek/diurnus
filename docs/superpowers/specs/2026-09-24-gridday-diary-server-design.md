@@ -61,7 +61,15 @@ GET  /api/entries          → { ids: string[] }
 GET  /api/entry/:id        → { text: string, mtime: number | null }
 PUT  /api/entry/:id        ← { text: string, mtime: number | null }
                            → { mtime: number }   albo 409
+GET  /api/config           → { text: string, mtime: number | null }
+PUT  /api/config           ← { text: string, mtime: number | null }
+                           → { mtime: number }   albo 409
 ```
+
+Konfiguracja (`.gridday.json`, faza 2 §5) ma własną parę tras, a nie identyfikator wpisu:
+kropka na początku nazwy nie przechodzi przez wzorzec identyfikatora i nie powinna, bo ten
+wzorzec ma zostać maksymalnie wąski. Poza nazwą pliku zachowuje się dokładnie tak samo —
+te same reguły braku pliku, pustej treści i nieaktualnego zapisu.
 
 `:id` to **`YYYY-MM-DD` albo `BACKLOG`**. Backlog jest po prostu kolejnym wpisem, nie osobnym
 bytem — jedna ścieżka kodu zamiast dwóch równoległych.
@@ -117,13 +125,17 @@ o który nikt nie prosił, w miejscu podanym ze zmiennej środowiskowej, jest go
 server/
 ├── index.ts        start, konfiguracja, odmowa startu przy złej konfiguracji
 ├── router.ts       trasy API, walidacja identyfikatora, kody odpowiedzi
-├── entries.ts      odczyt i zapis pliku wpisu, reguły z §3
+├── entries.ts      odczyt i zapis pliku, reguły z §3 — przyjmuje gotową nazwę
 ├── static.ts       serwowanie dist/ z typami MIME
 └── auth.ts         sprawdzenie tokenu czasem stałym
 ```
 
 Bez frameworka — `node:http` wprost. Trzy trasy nie uzasadniają zależności, a projekt trzyma
 się zasady zerowych zależności runtime. `server/` kompiluje się tym samym `tsc`, co reszta.
+
+`entries.ts` dostaje gotową nazwę pliku, a nie identyfikator: rozstrzyganie, czy chodzi
+o `2026-09-24.md` czy o `.gridday.json`, należy do routera. Dzięki temu obie pary tras
+dzielą jedną implementację reguł z §3, a walidacja identyfikatora zostaje w jednym miejscu.
 
 `entries.ts` nie wie nic o formacie wpisu. Serwer nigdy nie rozumie, co czyta — to jest cała
 jego prostota i powód, dla którego mieści się w około stu liniach.
@@ -156,6 +168,8 @@ testowanie go przez podstawianie modułów sprawdzałoby wyłącznie atrapy.
 - `/api/entries` listuje wyłącznie pliki o poprawnych nazwach i pomija resztę katalogu.
 - Bez tokenu przy `HOST` publicznym serwer nie startuje.
 - Z tokenem: żądanie bez nagłówka daje 401, z błędnym 401, z poprawnym 200.
+- `/api/config` przechodzi ten sam zestaw reguł co wpis: brak pliku, pusta treść,
+  nieaktualny zapis. Nazwa `.gridday.json` nie jest osiągalna przez `/api/entry/:id`.
 - Serwowanie statyczne oddaje `index.html` dla ścieżki nieznanej API (obsługa trasy klienta).
 
 ## 8. Świadomie poza zakresem
