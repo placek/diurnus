@@ -28,13 +28,22 @@ async function mountApp() {
   return flushSync;
 }
 
-const inputs = () => [...document.querySelectorAll<HTMLInputElement>('#list .item-text')];
-const marks = () => [...document.querySelectorAll('#list .bullet')].map((b) => b.textContent);
+// Pole początkowe nie jest pozycją w stanie, więc nie liczy się do `inputs()`.
+const inputs = () =>
+  [...document.querySelectorAll<HTMLInputElement>('#list .item:not(.is-draft) .item-text')];
+const draft = () => document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+const marks = () =>
+  [...document.querySelectorAll('#list .item:not(.is-draft) .bullet')].map((b) => b.textContent);
 
 function typeInto(el: HTMLInputElement, text: string, flush: () => void) {
   el.value = text;
   el.dispatchEvent(new Event('input', { bubbles: true }));
   flush();
+}
+
+/** Pierwszy tekst dnia trafia do pola początkowego, które tworzy pozycję. */
+function startTyping(text: string, flush: () => void) {
+  typeInto(draft(), text, flush);
 }
 
 function press(el: HTMLElement, key: string, init: KeyboardEventInit = {}) {
@@ -49,16 +58,16 @@ test('oba panele są na szerokim ekranie', async () => {
   expect(document.querySelector('#list')).not.toBeNull();
 });
 
-test('pusty dzień dostaje jedno puste pole do pisania', async () => {
+test('pusty dzień pokazuje samo pole początkowe, bez pozycji', async () => {
   await mountApp();
-  expect(inputs()).toHaveLength(1);
-  expect(inputs()[0]!.value).toBe('');
-  expect(marks()).toEqual(['·']);
+  expect(inputs()).toHaveLength(0);
+  expect(draft()).not.toBeNull();
+  expect(draft().placeholder).toBe('Zacznij pisać…');
 });
 
 test('wpisanie tekstu utrwala pozycję w localStorage', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Kupić chleb', flush);
+  startTyping('Kupić chleb', flush);
   const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Kupić chleb');
@@ -67,7 +76,7 @@ test('wpisanie tekstu utrwala pozycję w localStorage', async () => {
 
 test('Enter tworzy kolejną pozycję i przenosi do niej fokus', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   expect(inputs()).toHaveLength(2);
@@ -77,6 +86,7 @@ test('Enter tworzy kolejną pozycję i przenosi do niej fokus', async () => {
 
 test('Enter po notatce tworzy notatkę, po wykonanym zadaniu zwykłe zadanie', async () => {
   const flush = await mountApp();
+  startTyping('Notatka', flush);
   press(inputs()[0]!, 'Tab');
   press(inputs()[0]!, 'Tab');
   flush();
@@ -88,7 +98,7 @@ test('Enter po notatce tworzy notatkę, po wykonanym zadaniu zwykłe zadanie', a
 
 test('Tab zmienia znacznik i nie przenosi fokusu', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Zadanie', flush);
+  startTyping('Zadanie', flush);
   const ev = press(inputs()[0]!, 'Tab');
   flush();
   expect(ev.defaultPrevented).toBe(true);
@@ -97,6 +107,7 @@ test('Tab zmienia znacznik i nie przenosi fokusu', async () => {
 
 test('Shift+Tab cykluje znacznik w drugą stronę', async () => {
   const flush = await mountApp();
+  startTyping('Zadanie', flush);
   press(inputs()[0]!, 'Tab', { shiftKey: true });
   flush();
   expect(marks()[0]).toBe('–');
@@ -104,7 +115,7 @@ test('Shift+Tab cykluje znacznik w drugą stronę', async () => {
 
 test('Backspace na pustej pozycji usuwa ją', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   const second = inputs()[1]!;
@@ -116,7 +127,7 @@ test('Backspace na pustej pozycji usuwa ją', async () => {
 
 test('Backspace na pozycji 0 NIEpustej pozycji jej nie usuwa', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   typeInto(inputs()[1]!, 'Druga', flush);
@@ -129,7 +140,7 @@ test('Backspace na pozycji 0 NIEpustej pozycji jej nie usuwa', async () => {
 
 test('strzałka w górę na początku tekstu przechodzi do poprzedniej pozycji', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   typeInto(inputs()[1]!, 'Druga', flush);
@@ -143,7 +154,7 @@ test('strzałka w górę na początku tekstu przechodzi do poprzedniej pozycji',
 
 test('strzałka w środku tekstu NIE przechodzi między pozycjami', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   typeInto(inputs()[1]!, 'Druga', flush);
@@ -156,7 +167,7 @@ test('strzałka w środku tekstu NIE przechodzi między pozycjami', async () => 
 
 test('klik w znacznik przełącza zadanie i wykonane', async () => {
   const flush = await mountApp();
-  typeInto(inputs()[0]!, 'Zadanie', flush);
+  startTyping('Zadanie', flush);
   document.querySelector<HTMLElement>('#list .bullet')!.click();
   flush();
   expect(marks()[0]).toBe('×');
@@ -168,12 +179,12 @@ test('klik w znacznik przełącza zadanie i wykonane', async () => {
 test('lista pokazuje pozycje tego dnia, na który patrzymy', async () => {
   const flush = await mountApp();
   const { app } = await import('../src/state.svelte');
-  typeInto(inputs()[0]!, 'Dzisiejsza', flush);
+  startTyping('Dzisiejsza', flush);
 
   const { shiftDay } = await import('../src/lib/time');
   app.viewDay = shiftDay(today(), 1);
   flush();
-  expect(inputs()[0]!.value).toBe('');
+  expect(inputs()).toHaveLength(0);
 
   app.viewDay = today();
   flush();
@@ -186,7 +197,7 @@ test('cofnięcie przywraca tekst sprzed edycji, a nie ten dopiero wpisany', asyn
   const flush = await mountApp();
   const { undo } = await import('../src/state.svelte');
 
-  typeInto(inputs()[0]!, 'Pierwsza wersja', flush);
+  startTyping('Pierwsza wersja', flush);
   inputs()[0]!.dispatchEvent(new Event('blur', { bubbles: true }));
   flush();
 
@@ -203,21 +214,26 @@ test('cały ciąg znaków w jednej pozycji to jeden krok cofania', async () => {
   const flush = await mountApp();
   const { undo } = await import('../src/state.svelte');
 
-  // Trzy zdarzenia input bez opuszczania pozycji.
-  typeInto(inputs()[0]!, 'a', flush);
+  startTyping('a', flush); // utworzenie pozycji — osobny krok
+  // Dwa zdarzenia input bez opuszczania pozycji to JEDEN krok cofania,
+  // więc cofnięcie wraca do stanu z chwili utworzenia, a nie o znak wstecz.
   typeInto(inputs()[0]!, 'ab', flush);
   typeInto(inputs()[0]!, 'abc', flush);
 
   undo();
   flush();
-  expect(inputs()[0]!.value).toBe('');
+  expect(inputs()[0]!.value).toBe('a');
+
+  undo();
+  flush();
+  expect(inputs()).toHaveLength(0); // cofnięte utworzenie pozycji
 });
 
 test('cofnięcie przywraca usuniętą pozycję', async () => {
   const flush = await mountApp();
   const { undo } = await import('../src/state.svelte');
 
-  typeInto(inputs()[0]!, 'Pierwsza', flush);
+  startTyping('Pierwsza', flush);
   press(inputs()[0]!, 'Enter');
   flush();
   const second = inputs()[1]!;
@@ -229,4 +245,33 @@ test('cofnięcie przywraca usuniętą pozycję', async () => {
   undo();
   flush();
   expect(inputs()).toHaveLength(2);
+});
+
+test('samo obejrzenie dnia nie zapisuje pustej pozycji', async () => {
+  // Znalezione w przeglądzie: placeholder tworzony przez efekt trafiał do
+  // stanu i do localStorage, więc każdy odwiedzony dzień zostawiał pustą
+  // pozycję — śmieci w kopii zapasowej i zaśmiecona historia cofania.
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+  const { shiftDay } = await import('../src/lib/time');
+
+  app.viewDay = shiftDay(today(), 3);
+  flush();
+  app.viewDay = shiftDay(today(), 4);
+  flush();
+  app.viewDay = today();
+  flush();
+
+  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}');
+  expect(saved.items ?? []).toEqual([]);
+});
+
+test('pisanie w polu początkowym tworzy pozycję dopiero przy pierwszym znaku', async () => {
+  const flush = await mountApp();
+  expect(JSON.parse(localStorage.getItem('gridday.v1') ?? '{"items":[]}').items ?? []).toEqual([]);
+
+  startTyping('Pierwsza', flush);
+  const saved = JSON.parse(localStorage.getItem('gridday.v1') ?? '{}');
+  expect(saved.items).toHaveLength(1);
+  expect(saved.items[0].text).toBe('Pierwsza');
 });

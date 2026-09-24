@@ -177,3 +177,11 @@ export function setItemText(id: string, text: string): void {
   const item = app.S.items.find((i) => i.id === id);
   if (item) item.text = text;
 }
+
+/** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
+ *  Używane przez pole początkowe, które samo NIE jest pozycją w stanie. */
+export function createItemWithText(text: string): void {
+  const item = { ...newItem(app.viewDay, 'task', Date.now(), uid), text };
+  commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
+  ui.focusItem = item.id;
+}
