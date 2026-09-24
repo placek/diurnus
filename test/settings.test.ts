@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { buildCats, moveUp, dayPreview, duplicateBandStart } from '../src/lib/settings';
+import { buildCats, moveUp, dayPreview, duplicateBandStart, clampDayRange } from '../src/lib/settings';
 import type { Band, Block, Category } from '../src/lib/types';
 import type { DraftCategory } from '../src/lib/settings';
 
@@ -123,4 +123,20 @@ test('dayPreview: pory poza zakresem dnia nie tworzą odcinków', () => {
 test('duplicateBandStart wykrywa dwie pory o tej samej godzinie', () => {
   expect(duplicateBandStart(bands)).toBe(false);
   expect(duplicateBandStart([...bands, { id: 'x', name: 'X', from: 8, color: 'red' }])).toBe(true);
+});
+
+// Znalezione w przeglądzie końcowym: przesunięcie początku doby za jej koniec
+// dawało zakres odwrotny. normalize() odrzuca taki dzień i po cichu przywraca
+// domyślne 06–22, więc użytkownik traci własne ustawienia przy zapisie.
+test('clampDayRange: koniec doby ustępuje przed początkiem', () => {
+  expect(clampDayRange(23, 22)).toEqual({ start: 23, end: 24 });
+  expect(clampDayRange(10, 10)).toEqual({ start: 10, end: 11 });
+});
+
+test('clampDayRange: poprawny zakres zostaje nietknięty', () => {
+  expect(clampDayRange(6, 22)).toEqual({ start: 6, end: 22 });
+});
+
+test('clampDayRange: początek nie może przekroczyć 23', () => {
+  expect(clampDayRange(24, 24)).toEqual({ start: 23, end: 24 });
 });

@@ -91,3 +91,12 @@ export function dayPreview(day: DaySettings): PreviewSegment[] {
 
 export const duplicateBandStart = (bands: readonly Band[]) =>
   new Set(bands.map((b) => b.from)).size !== bands.length;
+
+// Zakres doby musi zostać rosnący. Bez tego przesunięcie początku za koniec
+// daje dzień "od 23 do 22": podgląd pustoszeje, a normalize() przy następnym
+// wczytaniu odrzuca taki dzień i po cichu przywraca domyślne 06–22 —
+// użytkownik traci własne ustawienia, nie wiedząc dlaczego.
+export function clampDayRange(start: number, end: number): { start: number; end: number } {
+  const s = Math.min(23, Math.max(0, start));
+  return { start: s, end: Math.min(24, Math.max(s + 1, end)) };
+}

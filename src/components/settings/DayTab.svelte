@@ -1,6 +1,6 @@
 <script lang="ts">
   import { COLORS, DEFAULT_DAY, uid } from '../../lib/model';
-  import { dayPreview } from '../../lib/settings';
+  import { clampDayRange, dayPreview } from '../../lib/settings';
   import { pad } from '../../lib/time';
   import type { DaySettings } from '../../lib/types';
   import Icon from '../Icon.svelte';
@@ -54,14 +54,22 @@
 <div class="dy-range">
   <label class="dy-f">
     Początek
-    <select class="cfg-sel" bind:value={day.start}>
+    <select
+      class="cfg-sel"
+      value={day.start}
+      onchange={(e) => setDay({ ...day, ...clampDayRange(+e.currentTarget.value, day.end) })}
+    >
       {#each range(0, 23) as h (h)}<option value={h}>{pad(h)}:00</option>{/each}
     </select>
   </label>
   <span class="dy-dash">–</span>
   <label class="dy-f">
     Koniec
-    <select class="cfg-sel" bind:value={day.end}>
+    <select
+      class="cfg-sel"
+      value={day.end}
+      onchange={(e) => setDay({ ...day, ...clampDayRange(day.start, +e.currentTarget.value) })}
+    >
       {#each range(day.start + 1, 24) as h (h)}<option value={h}>{pad(h)}:00</option>{/each}
     </select>
   </label>
