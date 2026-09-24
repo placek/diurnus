@@ -18,25 +18,51 @@ niczego poza motywem.
 | Pytanie | Decyzja |
 |---|---|
 | Istniejące dane w `localStorage` | **Porzucone** — dziennik jest prawdą od pierwszego wczytania |
-| Co wczytywać | **Dziś, dzień źródłowy przeniesienia, `BACKLOG`, dni przyszłe** |
+| Co wczytywać | **Dziś, dzień źródłowy przeniesienia, `BACKLOG`** |
+| Pliki dni przyszłych | **Nie istnieją** — wszystko przyszłe mieszka w `BACKLOG.md` |
+| Nadejście terminu | **Pozycja przenosi się do dziś automatycznie** |
 | Kiedy zapisywać | **Z opóźnieniem po zmianie i natychmiast przy utracie fokusu** |
 
 ## 3. Co wczytuje się i kiedy
 
-Przy starcie aplikacja pyta `/api/entries` o listę istniejących wpisów, a następnie pobiera:
+Przy starcie aplikacja pyta `/api/entries` o listę istniejących wpisów, a następnie pobiera
+**dokładnie trzy**:
 
 1. **dziś** — panel siatki i notatek,
 2. **najpóźniejszy dzień wcześniejszy niż dziś, który ma plik** — wyłącznie po to, żeby
    przenieść niedokończone zadania,
-3. **`BACKLOG`** — pozycje bez daty,
-4. **wszystkie dni późniejsze niż dziś** — prawy panel.
+3. **`BACKLOG`** — wszystko przyszłe, z terminem i bez.
 
-Dni minione poza źródłem przeniesienia **nie są pobierane nigdy**. Dziennik ciągnący się
-latami kosztuje tyle samo co tygodniowy, a i tak nie ma czym ich pokazać, dopóki nie powstanie
-widok historii.
+Pliki dni przyszłych nie istnieją, więc nie ma czego pobierać: rzecz zaplanowana na 25 września
+jest linią w `BACKLOG.md` z datą, nie osobnym plikiem. Dni minione poza źródłem przeniesienia
+**nie są pobierane nigdy**.
 
-Przeniesienie niedokończonych zadań działa jak dotąd, tyle że zapisuje **dwa pliki**: dzień
-źródłowy traci pozycje, dzisiejszy je zyskuje. Obie zmiany idą tą samą drogą co każda inna.
+Dziennik ciągnący się latami kosztuje więc tyle samo co jednodniowy: **trzy żądania,
+niezależnie od tego, ile plików leży w katalogu.**
+
+### Dwa automatyczne ruchy przy starcie dnia
+
+**Przeniesienie niedokończonych** działa jak dotąd, tyle że zapisuje dwa pliki: dzień źródłowy
+traci pozycje, dzisiejszy je zyskuje.
+
+**Nadejście terminu** jest jego odbiciem. Pozycja backlogu, której data wypadła na dziś albo
+wcześniej, przenosi się do dzisiejszego pliku i traci datę — plik dnia już ją niesie. Pozycja
+cykliczna, której wzorzec wypada dziś (`occursOn`), zostawia szablon w backlogu i wstawia
+do dziś kopię bez wzorca.
+
+Obie zmiany idą tą samą drogą co każda inna edycja.
+
+### Dlaczego cykliczność nie mnoży zadań
+
+Te dwa ruchy same w sobie tworzą pętlę: szablon `{codziennie}` wstawia zadanie do dziś,
+niedokończone zadanie przenosi się jutro na jutro, a szablon wstawia jutro kolejne. Po tygodniu
+byłoby ich siedem.
+
+**Szablon nie wstawia kopii, jeśli dzisiejszy plik zawiera już niedokończoną linię o tym samym
+tekście i tej samej porze.** Reguła jest prymitywna i taka ma być: nie wymaga żadnego pola
+wiążącego kopię z szablonem, a więc nie wymaga niczego w formacie pliku. Ceną jest to, że
+dwóch świadomie identycznych zadań tego samego dnia nie da się mieć — przypadek na tyle
+rzadki, że nie warto za niego płacić dodatkowym polem w każdej linii.
 
 ## 4. Kiedy zapisuje się i co
 
@@ -124,8 +150,12 @@ zgłoszony jako awaria a nie pusta treść.
 **Zapis z opóźnieniem** — seria zmian daje jeden zapis; utrata fokusu wymusza zapis
 natychmiast; wpis niezmieniony nie jest zapisywany w ogóle.
 
-**Wczytywanie** — pobierane są dokładnie: dziś, dzień źródłowy przeniesienia, `BACKLOG`
-i dni przyszłe; dni minione poza źródłem nie są pobierane.
+**Wczytywanie** — pobierane są dokładnie trzy wpisy: dziś, dzień źródłowy przeniesienia
+i `BACKLOG`; katalog z setką plików daje tyle samo żądań co katalog z trzema.
+
+**Nadejście terminu** — pozycja z datą dzisiejszą przenosi się do dziś i traci datę; pozycja
+z datą jutrzejszą zostaje; pozycja cykliczna wypadająca dziś zostawia szablon i wstawia kopię;
+szablon nie wstawia drugiej kopii, gdy identyczna niedokończona linia już w dziś jest.
 
 **Konflikt** — 409 przeładowuje wpis i melduje; stan po przeładowaniu zgadza się z serwerem.
 
