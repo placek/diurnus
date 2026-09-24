@@ -13,7 +13,7 @@
     n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 
   function download() {
-    const name = `gridday-${dayKey(new Date())}.json`;
+    const name = `diurnus-${dayKey(new Date())}.json`;
     const json = bundleExport($state.snapshot(app.S), $state.snapshot(app.prefs), Date.now());
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a = document.createElement('a');

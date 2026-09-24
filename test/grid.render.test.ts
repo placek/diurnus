@@ -30,7 +30,7 @@ beforeAll(async () => {
     ],
   };
   Object.defineProperty(globalThis, 'localStorage', {
-    value: fakeStorage({ 'gridday.v1': state }),
+    value: fakeStorage({ 'diurnus.v1': state }),
     configurable: true,
   });
 
