@@ -419,9 +419,9 @@ kbd{
 
 /* ───────────── Lista notatek ───────────── */
 .bullet{
-  flex:none;width:22px;height:22px;border:0;border-radius:6px;background:transparent;
+  flex:none;width:26px;height:26px;border:0;border-radius:6px;background:transparent;
   color:var(--fg-dim);cursor:pointer;display:grid;place-items:center;
-  font:600 15px var(--sans);line-height:1;
+  font:600 18px var(--sans);line-height:1;
 }
 .bullet:hover{background:var(--line)}
 .bullet.t-done{color:var(--green)}
@@ -438,10 +438,10 @@ kbd{
 .bullet-menu button:hover{background:var(--line)}
 .bullet-menu button.sel{color:var(--fg);background:var(--line)}
 .bm-mark{width:14px;text-align:center;color:var(--fg-dim)}
-.item{display:flex;align-items:center;gap:6px;position:relative;padding:1px 0}
+.item{display:flex;align-items:center;gap:7px;position:relative;padding:2px 0}
 .item-text{
   flex:1;min-width:0;border:0;background:transparent;outline:0;padding:4px 2px;
-  font:500 15px var(--sans);color:var(--fg);
+  font:500 18px var(--sans);color:var(--fg);
 }
 .item-text:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
 .item.t-done .item-text{color:var(--fg-faint);text-decoration:line-through}
@@ -449,4 +449,4 @@ kbd{
 .item.t-migrated .item-text,.item.t-scheduled .item-text{color:var(--fg-faint)}
 .is-draft .bullet{opacity:.35;cursor:default}
 .item-text::placeholder{color:var(--fg-faint)}
-.item-moved{flex:none;font:500 11px var(--sans);color:var(--fg-faint);white-space:nowrap}
+.item-moved{flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap}
