@@ -1,8 +1,7 @@
 <script lang="ts">
   import { app, pushHistory, save, ui } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
-  import { freeItems } from '../../lib/link';
-  import { blockOfItem } from '../../lib/link';
+  import { blockOfItem, freeItems, linkedItems } from '../../lib/link';
   import { catOf, colorOf } from '../../lib/categories';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
@@ -34,8 +33,13 @@
   // kategorii bloku przebarwia pozycję sama, bez trzeciego pola do rozjechania.
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
 
-  // Nawigacja klawiszami obejmuje obie grupy w kolejności wyświetlania.
-  const siblings = $derived(freeItems(app.S.items, app.viewDay));
+  // Nawigacja klawiszami idzie przez OBIE grupy w kolejności wyświetlania:
+  // powiązane według godzin, potem swobodne. Liczenie samych swobodnych
+  // dawało dla pozycji powiązanej index -1 i strzałki przestawały działać.
+  const siblings = $derived([
+    ...linkedItems(app.S.items, app.S.blocks, app.viewDay),
+    ...freeItems(app.S.items, app.viewDay),
+  ]);
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
   function focusSibling(offset: -1 | 1) {

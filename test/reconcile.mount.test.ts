@@ -128,3 +128,36 @@ test('przeciąganie pozycji powiązanej nic nie zmienia', async () => {
   expect(document.querySelector('.drop-line')).toBeNull();
   expect(app.S.items).toHaveLength(1);
 });
+
+test('strzałki nawigują przez obie grupy w kolejności wyświetlania', async () => {
+  // Znalezione w przeglądzie: `siblings` liczyło tylko pozycje swobodne, więc
+  // dla pozycji powiązanej index wychodził -1 i strzałki przestawały działać.
+  const flush = await mountApp();
+  await createBlock(flush); // pozycja powiązana, 08:00
+
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const all = [...document.querySelectorAll<HTMLInputElement>('#list .item[data-id] .item-text')];
+  expect(all).toHaveLength(2);
+
+  // Z notatki w górę do pozycji powiązanej.
+  const free = all[1]!;
+  free.selectionStart = free.selectionEnd = 0;
+  const up = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true });
+  free.dispatchEvent(up);
+  flush();
+  expect(up.defaultPrevented).toBe(true);
+  expect(document.activeElement).toBe(all[0]);
+
+  // I z powrotem w dół.
+  const linked = all[0]!;
+  linked.selectionStart = linked.selectionEnd = linked.value.length;
+  const down = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+  linked.dispatchEvent(down);
+  flush();
+  expect(down.defaultPrevented).toBe(true);
+  expect(document.activeElement).toBe(all[1]);
+});
