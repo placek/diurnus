@@ -6,7 +6,7 @@ import { ICONS } from '../src/lib/model';
 const UI_ICONS = [
   'question', 'circle-half-stroke', 'sliders', 'keyboard', 'chevron-left',
   'chevron-right', 'xmark', 'trash-can', 'plus', 'arrow-up', 'check', 'rotate-left',
-  'download', 'upload',
+  'download', 'upload', 'table-cells', 'list-check',
 ];
 
 test('każda ikona z listy kategorii ma ścieżkę SVG', () => {

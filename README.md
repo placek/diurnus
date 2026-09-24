@@ -38,6 +38,7 @@ bazę danych.
   Testowana zwykłym `import`.
 - `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach i mutacje.
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
+- `src/components/list/` — dzienny log w duchu bullet journal (prawy panel).
 
 Jeśli komponent zaczyna liczyć, logika należy do `src/lib/`.
 

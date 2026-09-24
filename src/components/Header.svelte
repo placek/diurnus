@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, win } from '../state.svelte';
+  import { app, ui, win } from '../state.svelte';
   import { tokenStats } from '../lib/stats';
   import { pad, shiftDay, splitDay, today } from '../lib/time';
   import Icon from './Icon.svelte';
@@ -60,6 +60,16 @@
   <TokenPips {stats} />
 
   <div class="tools">
+    {#if ui.narrow}
+      <button
+        class="ib"
+        onclick={() => (ui.pane = ui.pane === 'grid' ? 'list' : 'grid')}
+        aria-label="Przełącz panel"
+        title="Przełącz siatkę i listę"
+      >
+        <Icon name={ui.pane === 'grid' ? 'list-check' : 'table-cells'} fallback="≡" />
+      </button>
+    {/if}
     <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">
       <Icon name="question" fallback="?" />
     </button>
