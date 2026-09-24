@@ -85,7 +85,13 @@ test('zajęty slot w dniu docelowym blokuje przeniesienie', async () => {
   flush();
 
   expect(app.S.blocks.find((b) => b.id === linked.block)!.day).toBe(today());
-  expect(app.S.items.find((i) => i.id === linked.id)!.type).toBe('task');
+  // Odmowa nie może oznaczyć pozycji jako przeniesionej. Znacznik pozycji
+  // powiązanej odbija status bloku, więc jego konkretna wartość zależy od pory
+  // uruchomienia testu — istotne jest, że NIE jest to 'migrated'.
+  const src = app.S.items.find((i) => i.id === linked.id)!;
+  expect(src.type).not.toBe('migrated');
+  expect(src.movedTo).toBeUndefined();
+  expect(src.block).toBe(linked.block);
   expect(app.toast?.msg).toMatch(/zajęte/);
 });
 

@@ -111,3 +111,49 @@ test('slotFree ignoruje bloki innych dni i bloki discarded', () => {
 test('slotFree potrafi pominąć wskazany blok — przy przenoszeniu go samego', () => {
   expect(slotFree([blk('b1', 32, B)], B, 32, 2, 'b1')).toBe(true);
 });
+
+import { markForStatus } from '../src/lib/link';
+
+test('markForStatus: blok potwierdzony to znacznik wykonania', () => {
+  expect(markForStatus('confirmed')).toBe('done');
+});
+
+test('markForStatus: każdy inny status to otwarte zadanie', () => {
+  expect(markForStatus('planned')).toBe('task');
+  expect(markForStatus('active')).toBe('task');
+  expect(markForStatus('suggested')).toBe('task');
+});
+
+test('reconcile nadaje znacznik zgodny ze statusem bloku', () => {
+  reset();
+  const got = reconcile([], [blk('b1', 32, A, 'confirmed')], A, 0, ids);
+  expect(got[0]!.type).toBe('done');
+});
+
+test('reconcile poprawia znacznik, gdy status bloku się zmienił', () => {
+  // Znacznik pozycji powiązanej jest odbiciem statusu, nie osobnym stanem.
+  const items = [item('i1', A, { block: 'b1', type: 'task' })];
+  expect(reconcile(items, [blk('b1', 32, A, 'confirmed')], A, 0, ids)[0]!.type).toBe('done');
+});
+
+test('reconcile cofa znacznik, gdy blok wraca do planu', () => {
+  const items = [item('i1', A, { block: 'b1', type: 'done' })];
+  expect(reconcile(items, [blk('b1', 32, A, 'planned')], A, 0, ids)[0]!.type).toBe('task');
+});
+
+test('reconcile nie rusza znaczników pozycji swobodnych', () => {
+  const items = [item('i1', A, { type: 'note' }), item('i2', A, { type: 'done' })];
+  expect(reconcile(items, [], A, 0, ids).map((i) => i.type)).toEqual(['note', 'done']);
+});
+
+test('reconcile nie rusza znaczników w innych dniach', () => {
+  const items = [item('i1', B, { block: 'b1', type: 'task' })];
+  expect(reconcile(items, [blk('b1', 32, B, 'confirmed')], A, 0, ids)[0]!.type).toBe('task');
+});
+
+test('reconcile ze zsynchronizowanym znacznikiem jest nadal idempotentny', () => {
+  reset();
+  const blocks = [blk('b1', 32, A, 'confirmed')];
+  const once = reconcile([], blocks, A, 0, ids);
+  expect(reconcile(once, blocks, A, 0, ids)).toEqual(once);
+});

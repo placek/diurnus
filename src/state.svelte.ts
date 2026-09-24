@@ -154,9 +154,23 @@ export function startClock(): () => void {
       if (app.viewDay === lastToday) app.viewDay = t;
       lastToday = t;
     }
-    if (autoConfirm()) save();
+    if (autoConfirm()) {
+      // Domknięcie bloku omija commit(), więc znacznik na liście trzeba
+      // uzgodnić tutaj — inaczej siatka pokazywałaby wykonanie, a lista nie.
+      app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
+      save();
+    }
   }, 1000);
   return () => clearInterval(id);
+}
+
+/** Jedno tyknięcie zegara — na potrzeby testów, bez czekania na interwał. */
+export function tickOnce(): void {
+  app.now = Date.now();
+  if (autoConfirm()) {
+    app.S.items = reconcile(app.S.items, app.S.blocks, app.viewDay, Date.now(), uid);
+    save();
+  }
 }
 
 // Druga karta tej samej przeglądarki zapisała stan — przejmij go.

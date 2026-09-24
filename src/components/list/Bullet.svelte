@@ -1,6 +1,12 @@
 <script lang="ts">
   import { MARK } from '../../lib/items';
-  import { migrateItem, migrateToTomorrow, moveItemTo, setItemType } from '../../actions.svelte';
+  import {
+    migrateItem,
+    migrateToTomorrow,
+    moveItemTo,
+    setItemType,
+    toggleBlockDone,
+  } from '../../actions.svelte';
   import { app, ui } from '../../state.svelte';
   import { shiftDay } from '../../lib/time';
   import type { Item, ItemType } from '../../lib/types';
@@ -24,13 +30,19 @@
     return () => removeEventListener('click', close);
   });
 
-  const TYPES: { type: ItemType; label: string }[] = [
+  const IN_PLACE: { type: ItemType; label: string }[] = [
     { type: 'task', label: 'Zadanie' },
     { type: 'done', label: 'Wykonane' },
     { type: 'note', label: 'Notatka' },
+  ];
+  const MOVES: { type: ItemType; label: string }[] = [
     { type: 'migrated', label: 'Na jutro' },
     { type: 'scheduled', label: 'Na dzień…' },
   ];
+
+  // Pozycja powiązana nie ma własnych znaczników „na miejscu" — jej znacznik
+  // jest statusem bloku. Zostają tylko przeniesienia, które nadal mają sens.
+  const TYPES = $derived(item.block ? MOVES : [...IN_PLACE, ...MOVES]);
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -96,7 +108,8 @@
       suppressClick = false;
       return;
     }
-    setItemType(item.id, item.type === 'done' ? 'task' : 'done');
+    if (item.block) toggleBlockDone(item.id);
+    else setItemType(item.id, item.type === 'done' ? 'task' : 'done');
   }
 
   function choose(type: ItemType) {
