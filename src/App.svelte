@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { app, savePrefs, startClock, startCrossTabSync } from './state.svelte';
+  import { app, savePrefs, startClock, startCrossTabSync, ui } from './state.svelte';
+  import { applySuggestions, closeMenu } from './actions.svelte';
   import { activeBlock } from './lib/occupancy';
   import { catOf } from './lib/categories';
   import { nextTheme, themeColor } from './lib/theme';
   import { pad, qTime } from './lib/time';
   import Grid from './components/Grid.svelte';
   import Header from './components/Header.svelte';
+  import RadialMenu from './components/RadialMenu.svelte';
 
   $effect(() => startClock());
   $effect(() => startCrossTabSync());
@@ -43,5 +45,11 @@
   }
 </script>
 
-<Header onTheme={cycleTheme} />
+<Header onTheme={cycleTheme} onSuggest={applySuggestions} />
 <Grid />
+
+{#if ui.menu}
+  <RadialMenu menu={ui.menu} />
+{/if}
+
+<svelte:window onresize={() => ui.menu && closeMenu()} />

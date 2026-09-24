@@ -24,9 +24,19 @@ export const app = $state({
 // Stan wyłącznie widokowy: nie trafia do localStorage i nie ma go w State.
 // Mieszka tu, bo dzieli go rodzeństwo komponentów, które nie ma wspólnego rodzica
 // bliżej niż App.
+export interface MenuState {
+  q: number;
+  fit: { q: number; len: number };
+  rel: 'past' | 'now' | 'future';
+  level: string | null;
+  x: number;
+  y: number;
+}
+
 export const ui = $state({
   hover: null as string | null,
   cursor: { q: 0, visible: false },
+  menu: null as MenuState | null,
 });
 
 export const save = () => writeJSON(localStorage, KEY, $state.snapshot(app.S));
@@ -58,11 +68,12 @@ export const canUndo = () => history.length > 0;
 
 // Migawki zamiast dziennika operacji odwrotnych: stan jest mały, a migawka
 // nie może rozjechać się z operacją, którą miała cofać.
+// Migawka powstaje przy KAŻDEJ mutacji, nie tylko przy tych z przyciskiem
+// cofania: `undoable` decyduje wyłącznie o tym, czy toast zaproponuje cofnięcie,
+// a skrót klawiszowy ma cofać wszystko.
 export function commit(fn: () => void, msg?: string, undoable = false): void {
-  if (undoable) {
-    history.push($state.snapshot(app.S) as State);
-    if (history.length > HISTORY_MAX) history.shift();
-  }
+  history.push($state.snapshot(app.S) as State);
+  if (history.length > HISTORY_MAX) history.shift();
   fn();
   if (!save()) {
     app.toast = { msg: 'Zapis nieudany — pobierz kopię zapasową', undoable: false };

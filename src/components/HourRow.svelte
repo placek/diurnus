@@ -5,6 +5,7 @@
   import { pad, qTime, rel } from '../lib/time';
   import type { Block as BlockT } from '../lib/types';
   import Block from './Block.svelte';
+  import { actAt } from '../actions.svelte';
 
   interface Props {
     hour: number;
@@ -36,6 +37,11 @@
   const nowLeft = $derived(nowCell ? (nowCell.c + nowCell.f!) / 4 : null);
 
   // segments() z oknem jednej godziny zwraca dokładnie fragmenty dla tego rzędu.
+  // Podgląd miejsca, które zajmie blok tworzony z otwartego menu.
+  const ghost = $derived(
+    ui.menu ? segments(ui.menu.fit.q, ui.menu.fit.len, hour, hour + 1) : [],
+  );
+
   const segs = $derived(
     blocks.flatMap((b) =>
       segments(b.q, b.len, hour, hour + 1).map((seg) => ({ block: b, seg })),
@@ -58,7 +64,21 @@
     <div
       class="cell q{cell.c} c-{cell.rr}"
       data-q={cell.q}
+      role="presentation"
       style="grid-column:{cell.c + 2}{cell.f !== null ? `;--f:${cell.f.toFixed(4)}` : ''}"
+      onclick={(e) => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        actAt(cell.q, r.left + r.width / 2, r.top + r.height / 2);
+      }}
+    ></div>
+  {/each}
+
+  {#each ghost as g (g.from)}
+    <div
+      class="blk ghost"
+      class:first={g.first}
+      class:last={g.last}
+      style="grid-column:{g.from - hour * 4 + 2}/span {g.to - g.from}"
     ></div>
   {/each}
 
