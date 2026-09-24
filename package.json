@@ -1,0 +1,32 @@
+{
+  "name": "gridday",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "test": "TZ=Europe/Warsaw vitest run",
+    "test:watch": "TZ=Europe/Warsaw vitest",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "fmt": "prettier --write ."
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.1.0",
+    "@fontsource/ibm-plex-sans-condensed": "^5.1.0",
+    "@fortawesome/free-solid-svg-icons": "^6.7.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tsconfig/svelte": "^5.0.4",
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.0",
+    "prettier-plugin-svelte": "^3.3.0",
+    "svelte": "^5.15.0",
+    "svelte-check": "^4.1.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^5.0.1"
+  }
+}
