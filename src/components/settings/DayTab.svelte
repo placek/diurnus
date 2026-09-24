@@ -170,7 +170,7 @@
   />
   Powiadamiaj o blokach — kwadrans przed i na starcie
 </label>
-<p class="hint">Powiadomienia padają tylko wtedy, gdy GridDay jest otwarty w karcie.</p>
+<p class="hint">Powiadomienia padają tylko wtedy, gdy Diurnus jest otwarty w karcie.</p>
 
 <button class="btn ce-add" onclick={addBand}><Icon name="plus" fallback="+" />Nowa pora dnia</button>
 <button class="linkbtn" onclick={() => setDay(structuredClone(DEFAULT_DAY) as DaySettings)}>

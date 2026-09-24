@@ -44,7 +44,7 @@ test('nie-JSON daje czytelny błąd', () => {
 });
 
 test('obcy JSON jest odrzucany po znaczniku', () => {
-  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa GridDay/);
+  expect(() => bundleParse('{"foo":1}')).toThrow(/kopia zapasowa Diurnus/);
 });
 
 test('kopia bez tablicy bloków jest odrzucana', () => {
@@ -62,7 +62,7 @@ test('pusty plik daje błąd o JSON-ie, a nie wyjątek', () => {
 });
 
 test('tablica JSON zamiast obiektu jest odrzucana', () => {
-  expect(() => bundleParse('[1,2,3]')).toThrow(/kopia zapasowa GridDay/);
+  expect(() => bundleParse('[1,2,3]')).toThrow(/kopia zapasowa Diurnus/);
 });
 
 test('eksport jest czytelny dla człowieka (wcięcia)', () => {

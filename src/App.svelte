@@ -95,7 +95,7 @@
   $effect(() => {
     const b = activeBlock(app.S.blocks);
     if (!b) {
-      document.title = 'GridDay';
+      document.title = 'Diurnus';
       return;
     }
     const left = Math.max(0, qTime(b.day, b.q + b.len) - app.now);

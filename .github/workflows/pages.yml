@@ -34,7 +34,7 @@ jobs:
 
       - run: npm run build
         env:
-          BASE_PATH: /gridday/
+          BASE_PATH: /diurnus/
 
       - uses: actions/upload-pages-artifact@v3
         with:

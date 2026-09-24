@@ -1,5 +1,5 @@
 {
-  description = "GridDay — kwantowanie doby na 15-minutowe tokeny";
+  description = "Diurnus — kwantowanie doby na 15-minutowe tokeny";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
 
@@ -13,7 +13,7 @@
         default = pkgs.mkShell {
           packages = [ pkgs.nodejs_22 pkgs.gnumake ];
           shellHook = ''
-            echo "GridDay · node $(node --version) · npm $(npm --version)"
+            echo "Diurnus · node $(node --version) · npm $(npm --version)"
             echo "make help — lista celów"
           '';
         };
