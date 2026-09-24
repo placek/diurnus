@@ -27,3 +27,21 @@ test('arkusz nie odwołuje się do usuniętych znaczników', () => {
     expect(css, dead).not.toContain(dead);
   }
 });
+
+test('blok wykonany jest przygaszony i przekreślony, jak pozycja na liście', () => {
+  expect(css).toContain('.st-confirmed .t{text-decoration:line-through}');
+  expect(css).toMatch(/\.st-confirmed\{[^}]*color:var\(--fg-faint\)/);
+});
+
+test('blok zaplanowany jest mocniej podbarwiony niż wykonany', () => {
+  // Zobowiązanie ma przyciągać wzrok, zapis — nie.
+  const pct = (sel: string) => {
+    const rule = new RegExp(`\\${sel}\\{[^}]*\\}`).exec(css)?.[0] ?? '';
+    return Number(/var\(--c\)\s*(\d+)%/.exec(rule)?.[1] ?? '0');
+  };
+  expect(pct('.st-planned')).toBeGreaterThan(pct('.st-confirmed'));
+});
+
+test('blok zaplanowany ma pełny kontrast tekstu, wykonany przygaszony', () => {
+  expect(css).toMatch(/\.st-planned\{[^}]*color:var\(--fg\)/);
+});

@@ -163,3 +163,34 @@ test('zegar domykający blok aktualizuje też znacznik na liście', async () => 
   expect(app.S.blocks[0]!.status).toBe('confirmed');
   expect(linkedBullet().textContent).toBe('×');
 });
+
+test('prawy przycisk na znaczniku pozycji powiązanej nie otwiera pustego menu', async () => {
+  // Menu dla pozycji powiązanej nie ma czego pokazać — lepiej go nie otwierać
+  // niż pokazać pustą ramkę.
+  const flush = await mountApp();
+  await createFutureBlock(flush);
+
+  const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+  linkedBullet().dispatchEvent(ev);
+  flush();
+
+  expect(document.querySelector('.bullet-menu')).toBeNull();
+  // Skoro nic nie pokazujemy, nie blokujemy też menu przeglądarki.
+  expect(ev.defaultPrevented).toBe(false);
+});
+
+test('prawy przycisk na znaczniku pozycji swobodnej nadal otwiera menu', async () => {
+  const flush = await mountApp();
+  const d = document.querySelector<HTMLInputElement>('#list .is-draft .item-text')!;
+  d.value = 'Notatka';
+  d.dispatchEvent(new Event('input', { bubbles: true }));
+  flush();
+
+  const bullet = document.querySelector<HTMLElement>('#list .item:not(.is-linked):not(.is-draft) .bullet')!;
+  const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+  bullet.dispatchEvent(ev);
+  flush();
+
+  expect(document.querySelector('.bullet-menu')).not.toBeNull();
+  expect(ev.defaultPrevented).toBe(true);
+});

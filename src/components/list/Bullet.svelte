@@ -48,6 +48,7 @@
 
   const TYPES = $derived(item.block ? [] : IN_PLACE);
 
+
   // Wzorce budowane z dzisiejszej daty — „co poniedziałek" znaczy ten dzień
   // tygodnia, „3. każdego miesiąca" ten dzień miesiąca. Bez osobnego formularza.
   const inBacklog = $derived(isBacklog(item, currentDay.value));
@@ -75,6 +76,10 @@
       undefined,
     ];
   });
+  // Pozycja powiązana nie ma czego pokazać w menu: jej znacznik jest statusem
+  // bloku, terminy i powtarzalność należą do backlogu. Pusta ramka byłaby
+  // gorsza niż brak reakcji, więc nie przechwytujemy prawego przycisku.
+  const hasMenu = $derived(TYPES.length + DATES.length + REPEATS.length > 0);
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -194,6 +199,7 @@
   onpointerup={onPointerUp}
   onpointercancel={onPointerUp}
   oncontextmenu={(e) => {
+    if (!hasMenu) return;
     e.preventDefault();
     menuX = e.clientX;
     menuY = e.clientY;
