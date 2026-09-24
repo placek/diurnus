@@ -2,11 +2,15 @@
   import { MARK } from '../../lib/items';
   import {
     completeBacklogItem,
+    setRepeat,
     moveItemTo,
     setItemType,
     toggleBlockDone,
   } from '../../actions.svelte';
   import { isBacklog } from '../../lib/backlog';
+  import { describeRepeat } from '../../lib/repeat';
+  import { splitDay } from '../../lib/time';
+  import type { Repeat } from '../../lib/types';
   import { app, currentDay, ui } from '../../state.svelte';
   import type { Item, ItemType } from '../../lib/types';
 
@@ -39,6 +43,22 @@
   ];
 
   const TYPES = $derived(item.block ? [] : IN_PLACE);
+
+  // Wzorce budowane z dzisiejszej daty — „co poniedziałek" znaczy ten dzień
+  // tygodnia, „3. każdego miesiąca" ten dzień miesiąca. Bez osobnego formularza.
+  const inBacklog = $derived(isBacklog(item, currentDay.value));
+  const REPEATS = $derived.by((): (Repeat | undefined)[] => {
+    if (!inBacklog) return [];
+    const [, month, dom] = splitDay(currentDay.value);
+    const weekday = new Date(app.now).getDay();
+    return [
+      { kind: 'daily' },
+      { kind: 'weekly', weekday },
+      { kind: 'monthly', dayOfMonth: dom },
+      { kind: 'yearly', month, dayOfMonth: dom },
+      undefined,
+    ];
+  });
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -139,6 +159,18 @@
     {#each TYPES as t (t.type)}
       <button role="menuitem" class:sel={t.type === item.type} onclick={() => choose(t.type)}>
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}
+      </button>
+    {/each}
+    {#each REPEATS as r, i (i)}
+      <button
+        role="menuitem"
+        class:sel={r === undefined ? !item.repeat : JSON.stringify(r) === JSON.stringify(item.repeat)}
+        onclick={() => {
+          menu = false;
+          setRepeat(item.id, r);
+        }}
+      >
+        <span class="bm-mark">{r ? '○' : '·'}</span>{r ? describeRepeat(r) : 'bez powtarzania'}
       </button>
     {/each}
   </div>

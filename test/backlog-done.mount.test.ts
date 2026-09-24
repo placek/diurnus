@@ -129,3 +129,60 @@ test('powtarzalną da się odhaczyć wielokrotnie, za każdym razem przesuwając
   expect(app.S.items.find((i) => i.id === 'r')!.nextOn).toBe(shiftDay(today(), 2));
   expect(app.S.items.filter((i) => i.type === 'done')).toHaveLength(2);
 });
+
+const openMenu = (flush: () => void) => {
+  backlogBullet().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
+  return [...document.querySelectorAll<HTMLElement>('.bullet-menu button')];
+};
+
+test('menu pozycji backlogu oferuje cztery wzorce i zdjęcie powtarzania', async () => {
+  seed([{ id: 'a', day: null, text: 'X', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const labels = openMenu(flush).map((b) => b.textContent?.trim());
+  expect(labels).toContain('○codziennie');
+  expect(labels).toContain('·bez powtarzania');
+  expect(labels.filter((l) => l?.startsWith('○'))).toHaveLength(4);
+});
+
+test('wybór wzorca nadaje powtarzalność i wylicza termin', async () => {
+  seed([{ id: 'a', day: null, text: 'X', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  const daily = openMenu(flush).find((b) => b.textContent?.includes('codziennie'))!;
+  daily.click();
+  flush();
+
+  const item = app.S.items.find((i) => i.id === 'a')!;
+  expect(item.repeat).toEqual({ kind: 'daily' });
+  expect(item.nextOn).toBe(shiftDay(today(), 1));
+  expect(document.querySelector('#backlog .bullet')!.classList.contains('is-repeat')).toBe(true);
+});
+
+test('bez powtarzania zdejmuje wzorzec i termin', async () => {
+  seed([{
+    id: 'a', day: null, text: 'X', type: 'task', created: 0,
+    repeat: { kind: 'daily' }, nextOn: today(),
+  }]);
+  const flush = await mountApp();
+  const { app } = await import('../src/state.svelte');
+
+  openMenu(flush).find((b) => b.textContent?.includes('bez powtarzania'))!.click();
+  flush();
+
+  const item = app.S.items.find((i) => i.id === 'a')!;
+  expect(item.repeat).toBeUndefined();
+  expect(item.nextOn).toBeUndefined();
+  expect(document.querySelector('#backlog .bullet')!.classList.contains('is-repeat')).toBe(false);
+});
+
+test('pozycja dzisiejsza nie dostaje wzorców w menu', async () => {
+  seed([{ id: 'a', day: today(), text: 'X', type: 'task', created: 0 }]);
+  const flush = await mountApp();
+  const bullet = document.querySelector<HTMLElement>('#list .item[data-id] .bullet')!;
+  bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  flush();
+  const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) => b.textContent?.trim());
+  expect(labels.some((l) => l?.startsWith('○'))).toBe(false);
+});

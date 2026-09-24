@@ -14,7 +14,7 @@ import {
   typeAfterEnter,
 } from './lib/items';
 import { fmtQ, rel, shiftDay } from './lib/time';
-import type { Block, Item, ItemType } from './lib/types';
+import type { Block, Item, ItemType, Repeat } from './lib/types';
 
 function stopOtherActive(exceptId: string): void {
   for (const b of app.S.blocks) {
@@ -242,5 +242,21 @@ export function completeBacklogItem(id: string): void {
   commit(() => {
     app.S.items = [...app.S.items, copy];
     item.nextOn = nextOccurrence(item.repeat!, item.nextOn ?? today);
+  });
+}
+
+/** Ustawienie albo zdjęcie wzorca powtarzania pozycji backlogu. */
+export function setRepeat(id: string, repeat: Repeat | undefined): void {
+  const item = app.S.items.find((i) => i.id === id);
+  if (!item) return;
+  commit(() => {
+    if (repeat) {
+      item.repeat = repeat;
+      // Termin liczony od dziś, żeby nowy wzorzec nie zaczynał w przeszłości.
+      item.nextOn = nextOccurrence(repeat, currentDay.value);
+    } else {
+      delete item.repeat;
+      delete item.nextOn;
+    }
   });
 }
