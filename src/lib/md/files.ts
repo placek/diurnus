@@ -3,7 +3,7 @@ import { nextOccurrence } from '../repeat';
 import { slotFits, violations } from '../machine';
 import type { DayHours, Item, ItemState } from '../machine';
 import type { State } from '../types';
-import { backlogList, freeToday, timedToday } from '../view';
+import { backlogList, todayList } from '../view';
 import { parseConfig, renderConfig } from './config';
 import { parseLine, renderLine } from './line';
 import type { Line } from './line';
@@ -79,10 +79,7 @@ export function renderFiles(s: State): Files {
   const line = (i: Item) => renderLine(lineOf(i, tags));
   const out: Files = {
     [CONFIG]: renderConfig({ cats: s.cats, day: s.day }),
-    [dayFile(s.today)]: file(
-      `# ${s.today}`,
-      [...timedToday(s.items), ...freeToday(s.items)].map(line),
-    ),
+    [dayFile(s.today)]: file(`# ${s.today}`, todayList(s.items).map(line)),
     [BACKLOG]: file('# Backlog', backlogList(s.items).map(line)),
   };
   // Archiwum: każdy miniony dzień, w którym coś zostało, w kolejności pozycji.

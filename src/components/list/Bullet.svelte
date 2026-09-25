@@ -12,7 +12,7 @@
     toggleDone,
   } from '../../actions.svelte';
   import { describeRepeat } from '../../lib/repeat';
-  import { isBacklog as inBacklogPane, kindOf, slotOf, whenOf } from '../../lib/view';
+  import { isBacklog as inBacklogPane, kindOf, openFree, slotOf, whenOf } from '../../lib/view';
   import { shiftDay, splitDay } from '../../lib/time';
   import type { Repeat } from '../../lib/types';
   import { app, currentDay, ui } from '../../state.svelte';
@@ -119,11 +119,14 @@
   let dragging = false;
   let suppressClick = false;
 
-  /** Miejsce wstawienia w liście dnia BEZ przeciąganej pozycji: liczba
-   *  pozostałych wierszy, których środek jest powyżej kursora. */
+  /** Miejsce wstawienia wśród przestawialnych pozycji dnia BEZ przeciąganej:
+   *  liczba pozostałych takich wierszy, których środek jest powyżej kursora.
+   *  Wykonane i zadania ze slotem stoją nad nimi, ale się nie liczą — indeks
+   *  dotyczy tej samej listy co `moveFree` i kreska wstawienia. */
   function insertionIndex(y: number, skipId: string): number {
+    const movable = new Set(openFree(app.S.items).map((i) => i.id));
     const rows = [...document.querySelectorAll<HTMLElement>('#list .item[data-id]')].filter(
-      (r) => r.dataset.id !== skipId,
+      (r) => r.dataset.id !== skipId && movable.has(r.dataset.id!),
     );
     let idx = 0;
     for (const row of rows) {

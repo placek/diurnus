@@ -152,6 +152,10 @@ Graf nie przesądzał kilku szczegółów. Przyjęte rozstrzygnięcia, do zmiany
 5. **Kopie wzorca** dostają identyfikator `wzorzec@data`, więc świt jest deterministyczny
    bez generatora identyfikatorów. Kopia odhaczona z backlogu bierze identyfikator ze
    zdarzenia. Każda kopia pamięta wzorzec, z którego pochodzi.
+6. **Kolejność odhaczania.** Odhaczenie stawia pozycję na końcu tablicy pozycji; kopia wzorca
+   i tak na nim ląduje. Wykonane stoją więc w tablicy w kolejności odhaczenia i w tej
+   kolejności lista dnia pokazuje je na górze. Czasu wykonania się nie zapisuje. Cofnięcie
+   odhaczenia zostawia pozycję tam, gdzie stoi.
 
 ## 6. Jedna otwarta kopia wzorca
 

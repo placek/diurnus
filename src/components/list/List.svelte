@@ -1,12 +1,14 @@
 <script lang="ts">
   import { app, ui } from '../../state.svelte';
   import { createItemWithText } from '../../actions.svelte';
-  import { freeToday, timedToday } from '../../lib/view';
+  import { doneToday, openFree, openTimed } from '../../lib/view';
   import ListItem from './ListItem.svelte';
 
-  // Dwie grupy: najpierw zadania ze slotem według godzin, potem reszta w kolejności własnej.
-  const linked = $derived(timedToday(app.S.items));
-  const items = $derived(freeToday(app.S.items));
+  // Trzy grupy: najpierw wykonane w kolejności odhaczenia, potem nieodhaczone zadania
+  // ze slotem według godzin, potem reszta w kolejności własnej.
+  const done = $derived(doneToday(app.S.items));
+  const linked = $derived(openTimed(app.S.items));
+  const items = $derived(openFree(app.S.items));
 
   // Pole początkowe NIE jest pozycją w stanie. Gdyby nią było, samo obejrzenie
   // dnia zapisywałoby pustą pozycję — a po tygodniu przeglądania kalendarza
@@ -14,7 +16,7 @@
   let draft = $state('');
 
   // Kreska wstawienia dotyczy tylko przestawiania, a przestawiają się
-  // wyłącznie pozycje swobodne.
+  // wyłącznie nieodhaczone pozycje swobodne.
   const dragFree = $derived(ui.drag ? items.some((i) => i.id === ui.drag!.id) : false);
   const others = $derived(dragFree && ui.drag ? items.filter((i) => i.id !== ui.drag!.id) : []);
   const dropBefore = (id: string) => others.findIndex((i) => i.id === id) === ui.drag!.toIndex;
@@ -29,6 +31,10 @@
 </script>
 
 <section id="list">
+  {#each done as item (item.id)}
+    <ListItem {item} />
+  {/each}
+
   {#each linked as item (item.id)}
     <ListItem {item} />
   {/each}
@@ -51,7 +57,7 @@
       maxlength="200"
       autocomplete="off"
       aria-label="Nowa pozycja"
-      placeholder={items.length === 0 && linked.length === 0 ? 'Zacznij pisać…' : ''}
+      placeholder={items.length + linked.length + done.length === 0 ? 'Zacznij pisać…' : ''}
       oninput={onDraftInput}
     />
   </div>

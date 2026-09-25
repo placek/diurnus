@@ -146,6 +146,16 @@ const put = (m: Machine, id: string, state: ItemState): Machine => ({
   items: m.items.map((i) => (i.id === id ? { ...i, state } : i)),
 });
 
+/**
+ * Jak `put`, ale pozycja idzie na koniec tablicy. Tak zapisuje się kolejność
+ * odhaczania: wykonane stoją w tablicy w kolejności, w jakiej je odhaczono,
+ * bez żadnego czasu wykonania.
+ */
+const putLast = (m: Machine, id: string, state: ItemState): Machine => {
+  const item = m.items.find((i) => i.id === id)!;
+  return { ...m, items: [...m.items.filter((i) => i.id !== id), { ...item, state }] };
+};
+
 export function step(m: Machine, e: Event, day: DayHours): Result {
   if (e.type === 'create') return create(m, e);
   if (e.type === 'advance') return advance(m, e.to, day);
@@ -201,15 +211,15 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
   const s = item.state;
   switch (s.tag) {
     case 'today-task':
-      return s.done ? no('not-allowed') : ok(put(m, item.id, { ...s, done: true }));
+      return s.done ? no('not-allowed') : ok(putLast(m, item.id, { ...s, done: true }));
     case 'backlog-task': {
       const w = s.when;
       // Odhaczone w backlogu ląduje w dziś jako wykonane.
       if (w === null || w.type === 'date')
-        return ok(put(m, item.id, { tag: 'today-task', done: true, slot: null }));
+        return ok(putLast(m, item.id, { tag: 'today-task', done: true, slot: null }));
       if (w.type === 'dateSlot') {
         const r = claim(m.items, w.slot, day, item.id);
-        return r ? no(r) : ok(put(m, item.id, { tag: 'today-task', done: true, slot: w.slot }));
+        return r ? no(r) : ok(putLast(m, item.id, { tag: 'today-task', done: true, slot: w.slot }));
       }
       // Powtarzalna: wykonana kopia idzie do dziś, wzorzec zostaje i przesuwa
       // się za odhaczone wystąpienie. Zaległe (next ≤ dziś) przeskakuje za dziś.

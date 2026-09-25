@@ -127,8 +127,9 @@ test('ruch poniżej progu nie przeciąga, tylko przełącza znacznik', async () 
   b.click();
   flush();
 
+  // Wykonane stoją w osobnej grupie na górze, więc wiersz jest nowy — pytamy o znacznik od nowa.
   expect(texts()).toEqual(['A', 'B']);
-  expect(b.textContent).toBe('×'); // klik zadziałał
+  expect(bulletOf(0).textContent).toBe('×'); // klik zadziałał
 });
 
 test('po przeciągnięciu klik NIE przełącza znacznika', async () => {

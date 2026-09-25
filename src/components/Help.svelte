@@ -102,9 +102,14 @@
     <dd>zadanie ↔ wykonane</dd>
     <dt>Prawy przycisk na znaczniku</dt>
     <dd>typ pozycji i kategoria</dd>
+    <dt>Kolejność</dt>
+    <dd>
+      na górze wykonane, w kolejności odhaczania — odhaczone dołącza na koniec wykonanych. Pod
+      nimi otwarte zadania z godziną według godzin, a potem reszta
+    </dd>
     <dt>Przeciągnięcie znacznika</dt>
     <dd>
-      w obrębie listy przestawia pozycje bez godziny. Upuszczone na backlogu odkłada: zadanie
+      w obrębie listy przestawia otwarte pozycje bez godziny. Upuszczone na backlogu odkłada: zadanie
       z godziną idzie z dzisiejszą datą i tą godziną. Wykonane zostaje w swoim dniu
     </dd>
     <dt>Pozycje z godziną</dt>

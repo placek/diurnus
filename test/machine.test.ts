@@ -194,6 +194,22 @@ test('odhaczenie wzorca w backlogu: wykonana kopia w dziś, wzorzec zostaje i id
   expect(stateOf(m, 'a')).toEqual(bRec(S9, '2026-09-27'));
 });
 
+test('odhaczenie stawia pozycję na końcu tablicy: kolejność wykonanych to kolejność odhaczenia', () => {
+  let m = machine(['a', tTask()], ['b', tTask(S9)], ['c', tTask()], ['d', bDateSlot(TODAY, S10)]);
+  m = run(m, { type: 'markDone', id: 'c', copyId: 'x1' });
+  expect(m.items.map((i) => i.id)).toEqual(['a', 'b', 'd', 'c']);
+  m = run(m, { type: 'markDone', id: 'b', copyId: 'x2' });
+  expect(m.items.map((i) => i.id)).toEqual(['a', 'd', 'c', 'b']);
+  // Z backlogu też na koniec — tak samo jak kopia wzorca.
+  m = run(m, { type: 'markDone', id: 'd', copyId: 'x3' });
+  expect(m.items.map((i) => i.id)).toEqual(['a', 'c', 'b', 'd']);
+  expect(stateOf(m, 'd')).toEqual(tDone(S10));
+  // Cofnięcie odhaczenia zostawia pozycję tam, gdzie stoi; stan niczego więcej nie niesie.
+  m = run(m, { type: 'markOpen', id: 'c' });
+  expect(m.items.map((i) => i.id)).toEqual(['a', 'c', 'b', 'd']);
+  expect(m.items.find((i) => i.id === 'c')).toEqual({ id: 'c', text: 'C', state: tTask() });
+});
+
 test('odhaczenie zaległego wzorca przesuwa go za dziś, nie za zaległy dzień', () => {
   const m = run(machine(['a', bRec(null, '2026-09-20')]), {
     type: 'markDone',

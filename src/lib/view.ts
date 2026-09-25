@@ -40,10 +40,25 @@ export const timedToday = (items: readonly Item[]): Item[] =>
 export const freeToday = (items: readonly Item[]): Item[] =>
   items.filter((i) => isToday(i) && slotOf(i) === null);
 
-/** Lista dnia w kolejności wyświetlania: najpierw plan według godzin, potem reszta. */
+/** Dzisiejsze wykonane w kolejności odhaczenia — to kolejność tablicy (patrz `markDone`). */
+export const doneToday = (items: readonly Item[]): Item[] => items.filter(isDone);
+
+/** Dzisiejsze nieodhaczone zadania ze slotem, według godzin. */
+export const openTimed = (items: readonly Item[]): Item[] =>
+  timedToday(items).filter((i) => !isDone(i));
+
+/** Dzisiejsze nieodhaczone pozycje bez slotu, w kolejności tablicy. Tylko one się przestawiają. */
+export const openFree = (items: readonly Item[]): Item[] =>
+  freeToday(items).filter((i) => !isDone(i));
+
+/**
+ * Lista dnia w kolejności wyświetlania: najpierw wykonane w kolejności odhaczenia,
+ * potem plan według godzin, potem reszta w kolejności własnej.
+ */
 export const todayList = (items: readonly Item[]): Item[] => [
-  ...timedToday(items),
-  ...freeToday(items),
+  ...doneToday(items),
+  ...openTimed(items),
+  ...openFree(items),
 ];
 
 /** Mapa kwant → zadanie ze slotem. Slot zajmuje zawsze SLOT_LEN kwantów. */
