@@ -28,9 +28,11 @@ make dev             # http://localhost:5173/
 
 **Wyłącznie w `localStorage` tej przeglądarki** (`diurnus.v1`, `diurnus.prefs`). Nie ma
 serwera ani synchronizacji między urządzeniami. Wyczyszczenie danych witryny kasuje wszystko
-bezpowrotnie — **kopia zapasowa JSON z zakładki „Dane" w ustawieniach jest jedynym
-zabezpieczeniem**. Ten sam plik będzie formatem wejściowym importera, gdy aplikacja dostanie
-bazę danych.
+bezpowrotnie — **dziennik pobrany z zakładki „Dane" w ustawieniach jest jedynym
+zabezpieczeniem**. To archiwum ZIP z plikami markdown: `RRRR-MM-DD.md` na dziś i każdy miniony
+dzień, `BACKLOG.md` oraz ustawienia `.diurnus.toml`. Format opisuje
+[specyfikacja](docs/superpowers/specs/2026-09-25-diurnus-markdown-files-design.md); wczytać
+można to archiwum, te pliki zaznaczone razem albo starszą kopię JSON.
 
 ## Struktura
 

@@ -1,7 +1,7 @@
 # Diurnus — stan w plikach markdown: projekt
 
-**Status:** decyzje zaakceptowane, format zaimplementowany jako osobny moduł, aplikacja jeszcze
-z niego nie korzysta · **Data:** 2026-09-25 · **Kod:** [`src/lib/md/`](../../../src/lib/md/) ·
+**Status:** decyzje zaakceptowane, format zaimplementowany i używany przez eksport i import
+w ustawieniach · **Data:** 2026-09-25 · **Kod:** [`src/lib/md/`](../../../src/lib/md/) ·
 **Zastępuje:** [format markdown dziennika](2026-09-24-gridday-markdown-format-design.md) ·
 **Maszyna stanów:** [projekt](2026-09-25-diurnus-state-machine-design.md)
 
@@ -165,9 +165,28 @@ parent = "praca"
 - Po odczycie działa `violations()` z maszyny stanów: nakładające się sloty, slot poza dniem,
   archiwum z otwartym zadaniem — wszystko to błędy.
 
-## 6. Poza zakresem
+## 6. Eksport i import w aplikacji
 
-- **Podłączenie do aplikacji i do systemu plików.** Moduł jest czysty: tekst na wejściu,
-  dane na wyjściu. Skąd biorą się pliki, rozstrzygnie następny krok.
+Zakładka „Dane" w ustawieniach zastępuje dawną kopię JSON:
+
+- **Pobierz dziennik** zapisuje archiwum `diurnus-RRRR-MM-DD.zip` z wszystkimi plikami z §5.
+  Jedno archiwum, bo przeglądarka nie pobierze wygodnie kilku plików naraz, a `.diurnus.toml`
+  pobrany osobno straciłby kropkę. Wpisy mają stałą datę, więc ten sam stan daje te same bajty.
+- **Wczytaj dziennik** przyjmuje to archiwum albo te same pliki zaznaczone razem. Katalogi
+  w archiwum i śmieci systemowe (`__MACOSX`, `._*`, `.DS_Store`) są pomijane, znacznik BOM
+  zdejmowany, a `diurnus.toml` bez kropki uznawany za plik ustawień. Ta sama nazwa dwa razy to
+  błąd.
+- **Błędy** pokazują się w zakładce jako lista `plik:linia: powód`; nic się wtedy nie wczytuje.
+- **Wczytanie** pyta o potwierdzenie, zastępuje cały stan i czyści historię cofania. Wczytany
+  dzień dogania kalendarz tak samo jak stan zapisany dawniej. Preferencje (motyw, pomoc,
+  powiadomienia) nie są częścią dziennika i zostają bez zmian.
+- **Starsza kopia JSON** nadal się wczytuje, jeśli wskazać ją samą; nowej się już nie tworzy.
+
+Kod: `src/lib/md/archive.ts` i `src/components/settings/DataTab.svelte`.
+
+## 7. Poza zakresem
+
+- **Dziennik jako miejsce przechowywania.** Aplikacja nadal trzyma stan w `localStorage`;
+  pliki służą do eksportu i importu, nie do bieżącej pracy.
 - **Pole `tag` w ustawieniach aplikacji.** Do tego czasu tag wylicza się z nazwy.
 - **Tekst wielowierszowy.** Aplikacja go nie tworzy; zapis takiego stanu jest błędem.

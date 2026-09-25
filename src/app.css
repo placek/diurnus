@@ -387,6 +387,13 @@ kbd{
 .ce-add{width:100%;justify-content:center;margin:2px 0 14px;background:transparent;color:var(--fg-dim);border:1.5px dashed var(--line-2)}
 .ce-add:hover{color:var(--fg)}
 .ce-add:disabled{opacity:.4;cursor:default}
+.import-errors{
+  margin:0 0 12px;padding:10px 12px;border-radius:9px;
+  background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--fg);
+  font:400 13px/1.45 var(--sans);
+}
+.import-errors ul{margin:6px 0 0;padding-left:18px;font-family:var(--mono);font-size:12px}
+.import-errors p{margin:4px 0 0}
 
 /* Ustawienia: zakładki + dzień */
 .tabs{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--bg)}
