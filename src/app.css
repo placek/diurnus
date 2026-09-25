@@ -484,18 +484,19 @@ kbd{
 .bullet-menu button:hover{background:var(--line)}
 .bullet-menu button.sel{color:var(--fg);background:var(--line)}
 .bm-mark{width:14px;text-align:center;color:var(--fg-dim)}
-/* Wiersz listy ma ten sam kształt co blok: promień, akcent i podbarwienie.
-   Notatka bez kategorii zostaje samym tekstem — środkowy panel jest
-   powierzchnią do pisania i obramowanie każdej linii walczyłoby z tym. */
+/* Wiersz listy i backlogu z kategorią ma akcent po lewej. Podbarwienie bloku
+   dostaje tylko pozycja z godziną — ta, która jest (albo będzie) blokiem na
+   siatce; reszta ma sam pasek. Pozycja bez kategorii zostaje samym tekstem —
+   panele są powierzchnią do pisania i obramowanie każdej linii walczyłoby z tym. */
 .item{
   display:flex;align-items:center;gap:7px;position:relative;
   margin:2px 0;padding:2px 6px 2px 0;border-radius:var(--shape-r);
 }
 .item.has-cat{
-  background:color-mix(in srgb, var(--c) var(--tint), transparent);
   box-shadow:inset var(--accent-w) 0 0 var(--c);
   padding-left:calc(var(--accent-w) + 4px);
 }
+.item.has-cat.is-linked{background:color-mix(in srgb, var(--c) var(--tint), transparent)}
 /* Wykonane przygasza akcent, zamiast go gubić: kategoria nadal jest widoczna,
    ale pasek przestaje krzyczeć „to na ciebie czeka". Wcięcie zostaje, żeby
    tekst nie przeskakiwał w bok w momencie odhaczenia. */

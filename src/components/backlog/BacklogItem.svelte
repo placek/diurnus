@@ -25,10 +25,16 @@
     }
   });
 
-  // Pozycja backlogu nie ma slotu dziś, więc ton wynika z samego typu.
+  // Ten sam schemat barw co lista dnia. Pozycja backlogu nie ma slotu dziś, więc
+  // ton wynika z samego typu; godzina (data z porą albo wzorzec z porą) daje tło
+  // bloku, tak jak slot na liście dnia.
   const tone = $derived(itemTone(item, currentDay.value, app.now));
   const cat = $derived(categoryOf(item, app.S.cats));
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
+  const timed = $derived.by(() => {
+    const w = whenOf(item);
+    return !!w && w.type !== 'date' && w.slot !== null;
+  });
 
   const siblings = $derived(backlogList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
@@ -90,7 +96,14 @@
   }
 </script>
 
-<div class="item backlog-item t-{kindOf(item)}" class:is-dragging={ui.drag?.id === item.id} data-id={item.id}>
+<div
+  class="item backlog-item t-{kindOf(item)} tone-{tone}"
+  class:is-linked={timed}
+  class:has-cat={!!color}
+  class:is-dragging={ui.drag?.id === item.id}
+  data-id={item.id}
+  style={color ? `--c:var(--${color})` : undefined}
+>
   <Bullet {item} />
   <input
     bind:this={el}
