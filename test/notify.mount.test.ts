@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { test, expect, beforeEach, vi } from 'vitest';
+import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { today } from '../src/lib/time';
 
 let sent: { title: string; body?: string }[] = [];
@@ -28,6 +28,10 @@ beforeEach(() => {
   Object.defineProperty(globalThis, 'Notification', { configurable: true, value: FakeNotification });
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 function seed(notify: boolean, blocks: unknown[]) {
   localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true, notify }));
   localStorage.setItem('diurnus.v1', JSON.stringify({
@@ -41,13 +45,19 @@ const planned = (q: number) =>
   ({ id: 'b1', day: today(), q, len: 2, cat: 'learn', title: 'Czytanie', status: 'planned', created: 0 });
 
 async function mountAt(hour: number, minute: number) {
+  // Zegar ustawiony PRZED montażem: aplikacja startuje z Date.now(), więc
+  // montaż na prawdziwym zegarze o 08:45 wysyłał prawdziwe uprzedzenie o bloku
+  // 09:00, zanim test przestawił czas — i test zależał od godziny uruchomienia.
+  // Podmieniamy tylko Date; timery zostają prawdziwe, bo potrzebuje ich Svelte.
+  const [y, m, d] = today().split('-').map(Number);
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(y!, m! - 1, d!, hour, minute));
   const { mount, flushSync } = await import('svelte');
   const { app } = await import('../src/state.svelte');
   const App = (await import('../src/App.svelte')).default;
   mount(App, { target: document.body });
   flushSync();
-  const [y, m, d] = today().split('-').map(Number);
-  app.now = new Date(y!, m! - 1, d!, hour, minute).getTime();
+  app.now = Date.now();
   flushSync();
   return { app, flushSync };
 }
