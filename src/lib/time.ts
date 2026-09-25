@@ -51,3 +51,16 @@ export function fmtDur(min: number): string {
   const m = min % 60;
   return m ? `${h} h ${m} min` : `${h} h`;
 }
+
+/** Minuty, które da się wybrać: siatka dzieli godzinę na cztery kwadranse. */
+export const QUARTERS = [0, 15, 30, 45] as const;
+
+/** Godziny aktywnej części doby `[startH, endH)` — tylko tam siatka ma pola. */
+export const activeHours = (startH: number, endH: number): number[] =>
+  Array.from({ length: Math.max(0, endH - startH) }, (_, i) => startH + i);
+
+/** Kwant z wybranej godziny i minuty; pusta godzina znaczy „bez pory". */
+export function pickedQuantum(hour: string, minute: string): number | undefined {
+  if (hour === '') return undefined;
+  return Number(hour) * 4 + Math.floor(Number(minute) / 15);
+}
