@@ -47,6 +47,14 @@ test('moveFree przestawia tylko wśród swobodnych dzisiejszych pozycji', () => 
   expect(ids(moveFree(all, 't', 0))).toEqual(ids(all)); // ze slotem — miejsce to godzina
 });
 
+test('moveFree nie rusza wykonanych: stoją w kolejności odhaczenia i nie liczą się do indeksu', () => {
+  const d = it('d', { tag: 'today-task', done: true, slot: null });
+  const all = [it('A'), d, it('B'), it('C')];
+  expect(ids(moveFree(all, 'A', 1))).toEqual(['d', 'B', 'A', 'C']);
+  expect(ids(moveFree(all, 'C', 0))).toEqual(['C', 'A', 'd', 'B']);
+  expect(ids(moveFree(all, 'd', 2))).toEqual(ids(all));
+});
+
 test('cycleType i typeAfterEnter', () => {
   expect(cycleType('task')).toBe('done');
   expect(cycleType('done')).toBe('note');

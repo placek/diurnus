@@ -34,8 +34,8 @@
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
   const tone = $derived(itemTone(item, currentDay.value, app.now));
 
-  // Nawigacja klawiszami idzie przez OBIE grupy w kolejności wyświetlania:
-  // ze slotem według godzin, potem swobodne.
+  // Nawigacja klawiszami idzie przez WSZYSTKIE grupy w kolejności wyświetlania:
+  // wykonane w kolejności odhaczenia, ze slotem według godzin, potem swobodne.
   const siblings = $derived(todayList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
@@ -57,6 +57,10 @@
     if (e.key === 'Tab') {
       e.preventDefault();
       cycleItemType(item.id, e.shiftKey ? -1 : 1);
+      // Wykonane stoją w osobnej grupie, więc zmiana znacznika potrafi przenieść
+      // wiersz do innego bloku listy — a nowy wiersz to nowe pole. Fokus idzie
+      // za pozycją, nie za elementem.
+      ui.focusItem = item.id;
       return;
     }
     if (e.key === 'Backspace' && at === 0 && collapsed && input.value === '') {

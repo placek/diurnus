@@ -4,6 +4,7 @@ import {
   activeNow,
   backlogList,
   canClaim,
+  doneToday,
   categoryOf,
   freeToday,
   isBacklog,
@@ -11,6 +12,8 @@ import {
   itemTone,
   kindOf,
   occ,
+  openFree,
+  openTimed,
   soonOf,
   timedToday,
   todayList,
@@ -146,4 +149,29 @@ test('soonOf: data ze slotem i wzorzec liczą się od swojej daty', () => {
 test('soonOf: przejście na czas zimowy nie zmienia liczby dni', () => {
   const on = it('b', { tag: 'backlog-task', when: { type: 'date', date: '2026-10-27' } });
   expect(soonOf(on, '2026-10-24')?.days).toBe(3);
+});
+
+test('todayList: wykonane w kolejności tablicy, potem otwarte ze slotem według godzin, potem reszta', () => {
+  const items = [
+    tt('free1'),
+    tt('late', 60),
+    tt('d-free', null, true),
+    it('n', { tag: 'today-note' }),
+    tt('early', 36),
+    tt('d-slot', 40, true),
+    it('b', { tag: 'backlog-task', when: null }),
+    tt('free2'),
+  ];
+  expect(doneToday(items).map((i) => i.id)).toEqual(['d-free', 'd-slot']);
+  expect(openTimed(items).map((i) => i.id)).toEqual(['early', 'late']);
+  expect(openFree(items).map((i) => i.id)).toEqual(['free1', 'n', 'free2']);
+  expect(todayList(items).map((i) => i.id)).toEqual([
+    'd-free',
+    'd-slot',
+    'early',
+    'late',
+    'free1',
+    'n',
+    'free2',
+  ]);
 });

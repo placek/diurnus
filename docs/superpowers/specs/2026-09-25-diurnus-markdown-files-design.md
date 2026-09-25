@@ -29,7 +29,7 @@ postać kanoniczną, a jej odczyt daje ten sam stan.
 |---|---|
 | Tożsamość | Identyfikatorów i czasu utworzenia nie ma w plikach; odczyt nadaje nowe, deterministyczne. Wyjątek: wzorzec i jego kopie niosą `^id`, bo od tego powiązania zależy reguła „jedna otwarta kopia" |
 | Nieznane linie | **Ścisły odczyt**: linia, która nie jest nagłówkiem, pustą linią ani pozycją, to błąd całego pliku |
-| Kolejność | Zapis kanoniczny: dziś — zadania ze slotem według godzin, potem reszta w kolejności; backlog — według daty i godziny, potem bez terminu w kolejności. Ręcznie zmieniona kolejność jest normalizowana |
+| Kolejność | Zapis kanoniczny: dziś — wykonane w kolejności odhaczenia, potem otwarte zadania ze slotem według godzin, potem reszta w kolejności; backlog — według daty i godziny, potem bez terminu w kolejności. Ręcznie zmieniona kolejność jest normalizowana |
 | Tekst | Jedna linia; tekst wyglądający na człon formatu dostaje odwrotny ukośnik |
 | Dni minione | Plik dnia zostaje po północy jako archiwum: tylko wykonane i notatki. Stan żywy to dziś i backlog |
 | Kategorie | `#tag`, gdzie tag to slug kategorii; nieznany tag to błąd |
@@ -90,17 +90,19 @@ cicho zamienić zadania ze slotem w zadanie bez niego.
 ```markdown
 # 2026-09-25
 
-* [ ] 09:00 #nauka Czytanie
 * [x] 10:30 #praca Raport
+* [x] Zadzwonić do mamy
+* [ ] 09:00 #nauka Czytanie
 * [ ] 14:00 #dom Podlać kwiaty ^p1
 * [ ] Kupić chleb
-* [x] Zadzwonić do mamy
 * Notatka z rozmowy
 ```
 
 - Nagłówek `# RRRR-MM-DD` musi zgadzać się z nazwą pliku.
 - Dozwolone: `[ ]` i `[x]` z czasem albo bez, notatki. Notatka nie ma czasu. Data i wzorzec są
   błędem.
+- Wykonane stoją na górze w kolejności odhaczenia. Czasu wykonania plik nie zapisuje —
+  kolejność linii jest jedynym zapisem tej kolejności.
 - **Dziś** to plik dnia o najpóźniejszej dacie. Pozostałe pliki dni to archiwum: w nich
   dozwolone są tylko `[x]` i notatki, bo otwarte zadania przeszły o północy dalej.
 

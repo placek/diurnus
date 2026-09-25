@@ -12,7 +12,7 @@ import { normalize } from '../src/lib/model';
 import { nextOccurrence } from '../src/lib/repeat';
 import type { Repeat } from '../src/lib/repeat';
 import type { State } from '../src/lib/types';
-import { backlogList, freeToday, timedToday } from '../src/lib/view';
+import { backlogList, todayList } from '../src/lib/view';
 
 const TODAY = '2026-09-25';
 
@@ -235,11 +235,11 @@ describe('.diurnus.toml', () => {
 
 const TODAY_FILE = `# 2026-09-25
 
-* [ ] 09:00 #nauka Czytanie
 * [x] 10:30 #praca Raport
+* [x] Zadzwonić do mamy
+* [ ] 09:00 #nauka Czytanie
 * [ ] 14:00 #dom Podlać kwiaty ^p1
 * [ ] Kupić chleb
-* [x] Zadzwonić do mamy
 * Notatka z rozmowy
 `;
 
@@ -328,7 +328,7 @@ describe('pliki', () => {
 
   test('identyfikatory nadane przy odczycie to plik:linia', () => {
     const s = parsed(specFiles());
-    expect(s.items.find((i) => i.text === 'Czytanie')!.id).toBe('2026-09-25.md:3');
+    expect(s.items.find((i) => i.text === 'Czytanie')!.id).toBe('2026-09-25.md:5');
     expect(s.items.find((i) => i.text === 'Dentysta')!.id).toBe('BACKLOG.md:5');
   });
 
@@ -336,13 +336,18 @@ describe('pliki', () => {
     const shuffled = `# 2026-09-25
 
 * [ ] Kupić chleb
+* [x] Drugie odhaczone
 * [ ] 14:00 #dom Podlać kwiaty ^p1
 
+* [x] 11:00 Pierwsze odhaczone
 * [ ] 09:00 #nauka Czytanie
 `;
     const out = renderFiles(parsed({ ...specFiles(), [dayFile(TODAY)]: shuffled }));
+    // Wykonane na górze w kolejności z pliku — to kolejność odhaczenia.
     expect(out[dayFile(TODAY)]).toBe(`# 2026-09-25
 
+* [x] Drugie odhaczone
+* [x] 11:00 Pierwsze odhaczone
 * [ ] 09:00 #nauka Czytanie
 * [ ] 14:00 #dom Podlać kwiaty ^p1
 * [ ] Kupić chleb
@@ -563,7 +568,7 @@ function project(s: State) {
   return {
     today: s.today,
     past: days.flatMap((d) => past.filter((i) => (i.state as { day: string }).day === d)).map(one),
-    today_: [...timedToday(s.items), ...freeToday(s.items)].map(one),
+    today_: todayList(s.items).map(one),
     backlog: backlogList(s.items).map(one),
   };
 }

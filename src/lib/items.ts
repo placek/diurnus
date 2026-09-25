@@ -1,6 +1,6 @@
 import type { Event, Item } from './machine';
 import type { ItemType } from './types';
-import { freeToday, kindOf } from './view';
+import { kindOf, openFree } from './view';
 
 /** Notacja bullet journal. Jeden znak na typ, bez powtórzeń. */
 export const MARK: Record<ItemType, string> = {
@@ -27,9 +27,12 @@ export function placeAfter(items: readonly Item[], id: string, afterId: string |
   return out;
 }
 
-/** Przestawienie pozycji swobodnej dziś; `toIndex` liczy się w liście BEZ niej. */
+/**
+ * Przestawienie nieodhaczonej pozycji swobodnej dziś; `toIndex` liczy się w liście
+ * takich pozycji BEZ niej. Wykonanych się nie przestawia — stoją w kolejności odhaczenia.
+ */
 export function moveFree(items: readonly Item[], id: string, toIndex: number): Item[] {
-  const free = freeToday(items);
+  const free = openFree(items);
   const from = free.findIndex((i) => i.id === id);
   if (from < 0) return [...items];
 
