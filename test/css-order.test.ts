@@ -96,3 +96,9 @@ test('pozycja z kategorią, ale bez godziny, ma sam pasek, bez podbarwienia', ()
   expect(css).toMatch(/\.item\.has-cat\{[^}]*box-shadow:inset/);
   expect(css).not.toMatch(/\.item\.has-cat\{[^}]*background/);
 });
+
+test('termin na obu listach ma jeden krój: .item-meta, bez osobnej reguły godziny', () => {
+  expect(css).toMatch(/\.item-meta\{[^}]*font:500 12px[^}]*color:var\(--fg-faint\)/);
+  expect(css).not.toContain('.item-hour');
+  expect(css).not.toContain('.backlog-meta');
+});

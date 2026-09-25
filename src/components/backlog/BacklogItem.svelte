@@ -124,5 +124,5 @@
     onkeydown={onKeydown}
   />
   {#if soon}<b class="backlog-soon soon-{Math.max(soon.days, 1)}">{soon.label}</b>{/if}
-  {#if meta}<span class="backlog-meta">{meta}</span>{/if}
+  {#if meta}<span class="item-meta backlog-meta">{meta}</span>{/if}
 </div>
