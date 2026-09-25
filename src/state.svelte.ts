@@ -165,6 +165,18 @@ export function undo(): void {
   app.toast = { msg: 'Cofnięto', undoable: false };
 }
 
+/**
+ * Cały stan z zewnątrz — wczytany dziennik. Historia cofania dotyczyła stanu,
+ * którego już nie ma, więc znika; a wczytany dzień dogania kalendarz tak samo,
+ * jak stan zapisany tydzień temu.
+ */
+export function replaceState(next: State): void {
+  app.S = next;
+  history.length = 0;
+  save();
+  advanceTo(today());
+}
+
 /* ───────────── Maszyna stanów ───────────── */
 
 /** Odmowy maszyny po ludzku. Wołający może podać własny tekst. */

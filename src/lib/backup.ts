@@ -1,4 +1,10 @@
 import { normalize } from './model';
+
+/*
+ * Kopia zapasowa JSON sprzed dziennika w plikach markdown. Już się jej nie
+ * tworzy; ten moduł zostaje tylko po to, żeby pobrane wcześniej kopie dało się
+ * wczytać.
+ */
 import type { Prefs, State } from './types';
 
 const MAGIC = 'diurnus.backup';
@@ -8,16 +14,6 @@ const ACCEPTED = new Set([MAGIC, 'gridday.backup']);
 // Przywrócenie kopii to nie pierwsze uruchomienie, więc ekran powitalny
 // domyślnie się nie pokazuje.
 const PREFS_DEFAULT: Prefs = { theme: 'auto', seenHelp: true, notify: false };
-
-// Zegar jest parametrem, a nie Date.now() w środku, żeby wynik dał się
-// porównać w teście.
-export function bundleExport(state: State, prefs: Prefs, nowMs: number): string {
-  return JSON.stringify(
-    { magic: MAGIC, exported: new Date(nowMs).toISOString(), state, prefs },
-    null,
-    2,
-  );
-}
 
 // Trzy tryby awarii mają osobne komunikaty: plik nie jest JSON-em (serwer
 // oddał stronę logowania), jest JSON-em, ale nie kopią Diurnus, albo jest

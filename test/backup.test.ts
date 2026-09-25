@@ -1,5 +1,14 @@
 import { test, expect } from 'vitest';
-import { bundleExport, bundleParse } from '../src/lib/backup';
+import { bundleParse } from '../src/lib/backup';
+import type { Prefs, State } from '../src/lib/types';
+
+/** Kopia w postaci, w jakiej aplikacja zapisywała ją przed plikami markdown. */
+const legacy = (state: State, prefs: Prefs) =>
+  JSON.stringify(
+    { magic: 'diurnus.backup', exported: '2026-09-24T10:00:00.000Z', state, prefs },
+    null,
+    2,
+  );
 import { normalize } from '../src/lib/model';
 
 const T = '2026-09-24';
@@ -26,26 +35,13 @@ const sample = () =>
   );
 
 test('pełny obieg zachowuje pozycje, kategorie, dzień i preferencje', () => {
-  const back = bundleParse(
-    bundleExport(sample(), { theme: 'dark', seenHelp: true, notify: false }, 0),
-  );
+  const back = bundleParse(legacy(sample(), { theme: 'dark', seenHelp: true, notify: false }));
   expect(back.state.items).toEqual(sample().items);
   expect(back.state.items).toHaveLength(1);
   expect(back.state.today).toBe(T);
   expect(back.state.cats).toEqual(sample().cats);
   expect(back.state.day.start).toBe(6);
   expect(back.prefs.theme).toBe('dark');
-});
-
-test('eksport zapisuje datę z podanego zegara, nie z systemowego', () => {
-  const o = JSON.parse(
-    bundleExport(
-      sample(),
-      { theme: 'auto', seenHelp: true, notify: false },
-      Date.UTC(2026, 8, 24, 10),
-    ),
-  );
-  expect(o.exported).toBe('2026-09-24T10:00:00.000Z');
 });
 
 test('import przepuszcza starszą wersję schematu przez normalize', () => {
@@ -102,12 +98,6 @@ test('tablica JSON zamiast obiektu jest odrzucana', () => {
   expect(() => bundleParse('[1,2,3]')).toThrow(/kopia zapasowa Diurnus/);
 });
 
-test('eksport jest czytelny dla człowieka (wcięcia)', () => {
-  expect(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0)).toContain(
-    '\n  "magic"',
-  );
-});
-
 test('kopia zapisana pod starą nazwą projektu nadal się wczytuje', () => {
   // Zmiana nazwy nie może unieważnić plików, które ktoś już pobrał.
   const old = JSON.stringify({
@@ -115,9 +105,4 @@ test('kopia zapisana pod starą nazwą projektu nadal się wczytuje', () => {
     state: { v: 5, cats: [], blocks: [], items: [], day: { start: 6, end: 22, bands: [] } },
   });
   expect(() => bundleParse(old)).not.toThrow();
-});
-
-test('nowa kopia nosi nową nazwę', () => {
-  const o = JSON.parse(bundleExport(sample(), { theme: 'auto', seenHelp: true, notify: false }, 0));
-  expect(o.magic).toBe('diurnus.backup');
 });
