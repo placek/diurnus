@@ -49,11 +49,12 @@ test('backlog nie ma już nagłówka „Backlog"; nazwa zostaje dla czytnika ekr
   expect(css).not.toContain('.pane-title');
 });
 
-test('sekcja dziś: 1em od góry strony, tło strony, gruba jaśniejsza rama, dół do końca strony', () => {
+test('sekcja dziś: 1em od góry strony, tło strony, cienka rama z cieniem, dół do końca strony', () => {
   const rule = /#panes:not\(\.narrow\) #list\{([^}]*)\}/.exec(css)?.[1] ?? '';
   expect(rule).toContain('margin-top:calc(1em - var(--hdr) - 1px)');
   expect(rule).toContain('background:var(--bg)');
-  expect(rule).toMatch(/border:var\(--frame\) solid var\(--raise\)/);
+  expect(rule).toMatch(/border:var\(--frame\) solid var\(--frame-c\)/);
+  expect(rule).toContain('box-shadow:var(--shadow)');
   expect(rule).toContain('border-bottom:0');
   expect(rule).toMatch(/--frame:\s*\d+px/);
   expect(rule).toMatch(/z-index:\s*1/);
@@ -64,4 +65,13 @@ test('nagłówek dnia nie ma linii oddzielającej go od listy; linia paska zosta
   expect(head).not.toMatch(/(^|;)\s*border(-(top|bottom|left|right))?:/);
   const top = /#top\{([^}]*)\}/.exec(css)?.[1] ?? '';
   expect(top).toMatch(/border-bottom:1px solid var\(--line-2\)/);
+});
+
+test('rama sekcji dziś: 3px, w jasnym motywie szara (nie biała jak --raise), w ciemnym jaśniejsza', () => {
+  expect(css).toMatch(/#panes:not\(\.narrow\) #list\{[^}]*--frame:3px/);
+  const light = /:root\{[^}]*--raise:(#[0-9a-f]+)[^}]*--frame-c:(#[0-9a-f]+)/.exec(css)!;
+  expect(light[2]).not.toBe(light[1]);
+  expect(light[2]).toBe('#bdae93');
+  // Oba warianty ciemnego motywu mają ten sam kolor ramy.
+  expect(css.match(/--frame-c:#3c3836/g)).toHaveLength(2);
 });
