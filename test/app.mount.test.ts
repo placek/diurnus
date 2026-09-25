@@ -70,11 +70,11 @@ test('wybór kategorii bez podkategorii tworzy blok i utrwala go', async () => {
   document.querySelector<HTMLElement>('#grid .cell[data-q="32"]')!.click();
   flushSync();
 
-  // "Nauka" nie ma podkategorii, więc jedno kliknięcie zapisuje blok.
-  // "Praca" ma — tamta otwiera drugi pierścień (osobny test niżej).
-  const nauka = document.querySelector<HTMLElement>('#radial .rb[aria-label="Nauka"]');
-  expect(nauka).not.toBeNull();
-  nauka!.click();
+  // "Ruch" nie ma podkategorii, więc jedno kliknięcie zapisuje blok.
+  // "Zadania" ma — tamta otwiera drugi pierścień (osobny test niżej).
+  const ruch = document.querySelector<HTMLElement>('#radial .rb[aria-label="Ruch"]');
+  expect(ruch).not.toBeNull();
+  ruch!.click();
   flushSync();
 
   // Celowo bez .ghost: podgląd miejsca też nosi klasę .blk i przepuściłby
@@ -87,7 +87,7 @@ test('wybór kategorii bez podkategorii tworzy blok i utrwala go', async () => {
   expect(saved.v).toBe(6);
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].state).toEqual({ tag: 'today-task', done: false, slot: 32 });
-  expect(saved.items[0].cat).toBe('learn');
+  expect(saved.items[0].cat).toBe('move');
 });
 
 test('kategoria z podkategoriami otwiera drugi pierścień zamiast zapisywać', async () => {
@@ -97,16 +97,16 @@ test('kategoria z podkategoriami otwiera drugi pierścień zamiast zapisywać', 
 
   document.querySelector<HTMLElement>('#grid .cell[data-q="32"]')!.click();
   flushSync();
-  document.querySelector<HTMLElement>('#radial .rb[aria-label="Praca"]')!.click();
+  document.querySelector<HTMLElement>('#radial .rb[aria-label="Zadania"]')!.click();
   flushSync();
 
   expect(document.querySelectorAll('#grid .blk:not(.ghost)')).toHaveLength(0);
   // Środek drugiego pierścienia wybiera kategorię nadrzędną "ogólnie".
   expect(document.querySelector('#radial .rc.pick')).not.toBeNull();
-  expect(document.querySelector('#radial .rb[aria-label="Projekt A"]')).not.toBeNull();
+  expect(document.querySelector('#radial .rb[aria-label="Programowanie"]')).not.toBeNull();
   // Podkategorie mają podpisy z nazwami — ich ikony bywają takie same jak rodzica.
   const names = [...document.querySelectorAll('#radial .rb .rn')].map((n) => n.textContent);
-  expect(names).toContain('Projekt A');
+  expect(names).toEqual(['Daily', 'Spotkanie', 'Programowanie', 'Research']);
   expect(names).toHaveLength(document.querySelectorAll('#radial .rb').length);
 });
 

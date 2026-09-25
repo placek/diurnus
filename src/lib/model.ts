@@ -50,16 +50,20 @@ export const MAX_TOP = 9;
 export const MAX_KIDS = 9; // cyfry 1–9 jako skróty
 
 const DEFAULT_CATS: readonly Category[] = [
-  { id: 'work', name: 'Praca', icon: 'laptop-code', color: 'yellow', parent: null },
-  { id: 'work-a', name: 'Projekt A', icon: null, parent: 'work' },
-  { id: 'pray', name: 'Modlitwa', icon: 'hands-praying', color: 'purple', parent: null },
-  { id: 'pray-j', name: 'Jutrznia', icon: 'sun', parent: 'pray' },
-  { id: 'pray-t', name: 'Tercja', icon: null, parent: 'pray' },
-  { id: 'learn', name: 'Nauka', icon: 'book-open', color: 'blue', parent: null },
-  { id: 'move', name: 'Ruch', icon: 'dumbbell', color: 'green', parent: null },
-  { id: 'home', name: 'Dom', icon: 'house', color: 'orange', parent: null },
-  { id: 'home-g', name: 'Ogród', icon: 'seedling', parent: 'home' },
-  { id: 'rest', name: 'Odpoczynek', icon: 'mug-hot', color: 'aqua', parent: null },
+  { id: 'tasks', name: 'Zadania', icon: 'list-check', color: 'red', parent: null },
+  { id: 'tasks-daily', name: 'Daily', icon: 'circle', parent: 'tasks' },
+  { id: 'tasks-meet', name: 'Spotkanie', icon: 'users', parent: 'tasks' },
+  { id: 'tasks-code', name: 'Programowanie', icon: 'code', parent: 'tasks' },
+  { id: 'tasks-research', name: 'Research', icon: 'graduation-cap', parent: 'tasks' },
+  { id: 'pray', name: 'Modlitwa', icon: 'cross', color: 'green', parent: null },
+  { id: 'move', name: 'Ruch', icon: 'person-running', color: 'aqua', parent: null },
+  { id: 'home', name: 'Dom', icon: 'house', color: 'blue', parent: null },
+  { id: 'home-garden', name: 'Ogród', icon: 'seedling', parent: 'home' },
+  { id: 'home-car', name: 'Samochód', icon: 'car', parent: 'home' },
+  { id: 'home-shop', name: 'Zakupy', icon: 'cart-shopping', parent: 'home' },
+  { id: 'home-kids', name: 'Dzieci', icon: 'child', parent: 'home' },
+  { id: 'home-fix', name: 'Naprawy', icon: 'hammer', parent: 'home' },
+  { id: 'phone', name: 'Telefon', icon: 'phone', color: 'purple', parent: null },
 ];
 
 export const DEFAULT_DAY: Readonly<DaySettings> = {
