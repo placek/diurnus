@@ -98,7 +98,6 @@
   style={color ? `--c:var(--${color})` : undefined}
 >
   <Bullet {item} />
-  {#if slot !== null}<span class="item-hour">{fmtQ(currentDay.value, slot)}</span>{/if}
   <input
     bind:this={el}
     class="item-text"
@@ -121,4 +120,5 @@
     onblur={() => (dirty = false)}
     onkeydown={onKeydown}
   />
+  {#if slot !== null}<span class="item-meta item-hour">{fmtQ(currentDay.value, slot)}</span>{/if}
 </div>

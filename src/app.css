@@ -515,10 +515,6 @@ kbd{
   height:0;border-top:2px solid var(--blue);border-radius:2px;
   margin:1px 0 1px 33px;                   /* wyrównanie do tekstu, nie do znacznika */
 }
-.item.is-linked .item-hour{
-  flex:none;font:600 14px var(--sans);color:var(--c,var(--fg-dim));
-  min-width:42px;font-variant-numeric:tabular-nums;
-}
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
 .item.is-linked .item-text{color:var(--fg)}
 
@@ -543,7 +539,9 @@ kbd{
 .item.tone-note .item-text,
 .item.tone-note .item-text::placeholder{color:var(--fg-dim)}
 .backlog-item{position:relative}
-.backlog-meta{
+/* Termin pozycji stoi z prawej i wygląda tak samo na obu listach: godzina
+   dzisiejszego bloku jak data, godzina i wzorzec w backlogu. */
+.item-meta{
   flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }

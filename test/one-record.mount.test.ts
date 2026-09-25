@@ -33,6 +33,18 @@ test('blok utworzony na siatce jest pozycją listy z godziną i nazwą kategorii
   expect(r.querySelector<HTMLInputElement>('.item-text')!.placeholder).toBe('Nauka');
 });
 
+test('godzina stoi z prawej, za tekstem, w tym samym kroju co termin w backlogu', async () => {
+  seed([task('a', 36), backlog('b', { type: 'dateSlot', date: shiftDay(TODAY, 2), slot: 40 })]);
+  await mountApp();
+  const hour = row('a').querySelector<HTMLElement>('.item-hour')!;
+  expect(hour.textContent).toBe('09:00');
+  expect(hour.classList.contains('item-meta')).toBe(true);
+  expect(hour.previousElementSibling).toBe(input('a'));
+  expect(row('a').lastElementChild).toBe(hour);
+  const meta = document.querySelector<HTMLElement>('#backlog .item[data-id="b"] .backlog-meta')!;
+  expect(meta.classList.contains('item-meta')).toBe(true);
+});
+
 test('zadania ze slotem stoją nad swobodnymi, posortowane po godzinie', async () => {
   seed([task('free'), task('late', 60), note('n'), task('early', 36)]);
   await mountApp();
