@@ -1,6 +1,9 @@
 <script lang="ts">
   import { app, closeAll, commit, ui } from '../../state.svelte';
   import { buildCats, duplicateBandStart } from '../../lib/settings';
+  import { slotFits } from '../../lib/machine';
+  import { fmtQ } from '../../lib/time';
+  import { slotOf, timedToday } from '../../lib/view';
   import type { DraftCategory } from '../../lib/settings';
   import type { DaySettings } from '../../lib/types';
   import Icon from '../Icon.svelte';
@@ -22,7 +25,8 @@
   const originalIds = new Set(app.S.cats.map((c) => c.id));
 
   function save() {
-    const cats = buildCats(draft, originalIds, app.S.blocks, app.S.cats);
+    const used = new Set(app.S.items.flatMap((i) => (i.cat ? [i.cat] : [])));
+    const cats = buildCats(draft, originalIds, used, app.S.cats);
     if (!cats) {
       app.toast = { msg: 'Zostaw co najmniej jedną kategorię', undoable: false };
       ui.settings = 'cats';
@@ -30,6 +34,17 @@
     }
     if (duplicateBandStart(day.bands)) {
       app.toast = { msg: 'Dwie pory dnia zaczynają się o tej samej godzinie', undoable: false };
+      ui.settings = 'day';
+      return;
+    }
+    // Zwężenie dnia nie może ukryć dzisiejszych zadań ze slotem: slot musi
+    // mieścić się w dniu, więc zmiana, która by go wyrzuciła, jest odmawiana.
+    const outside = timedToday(app.S.items).filter(
+      (i) => !slotFits(slotOf(i)!, { q0: day.start * 4, q1: day.end * 4 }),
+    );
+    if (outside.length) {
+      const at = outside.map((i) => fmtQ(app.S.today, slotOf(i)!)).join(', ');
+      app.toast = { msg: `Dziś są zadania poza nowym zakresem: ${at}`, undoable: false };
       ui.settings = 'day';
       return;
     }

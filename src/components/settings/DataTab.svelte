@@ -6,8 +6,19 @@
 
   let fileInput = $state<HTMLInputElement | null>(null);
 
-  const blocks = $derived(app.S.blocks.filter((b) => b.status !== 'discarded').length);
-  const days = $derived(new Set(app.S.blocks.map((b) => b.day)).size);
+  const count = $derived(app.S.items.length);
+  // Dni z zapisem: minione, w których coś zostało, i dziś, jeśli coś w nim jest.
+  const days = $derived(
+    new Set(
+      app.S.items.flatMap((i) =>
+        i.state.tag === 'past-done' || i.state.tag === 'past-note'
+          ? [i.state.day]
+          : i.state.tag === 'today-task' || i.state.tag === 'today-note'
+            ? [app.S.today]
+            : [],
+      ),
+    ).size,
+  );
 
   const pl = (n: number, one: string, few: string, many: string) =>
     n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
@@ -36,7 +47,7 @@
       // Wczytanie kasuje też historię cofania, więc toast z "Cofnij" byłby
       // kłamstwem — stąd pytanie wprost.
       const ok = confirm(
-        `Zastąpić bieżący stan kopią z ${got.state.blocks.length} blokami? Tej operacji nie można cofnąć.`,
+        `Zastąpić bieżący stan kopią z ${got.state.items.length} pozycjami? Tej operacji nie można cofnąć.`,
       );
       if (!ok) return;
       app.S = got.state;
@@ -53,8 +64,8 @@
 
 <div class="ce-list">
   <p class="hint">
-    W pamięci przeglądarki: <b>{blocks}</b>
-    {pl(blocks, 'blok', 'bloki', 'bloków')} z <b>{days}</b> {pl(days, 'dnia', 'dni', 'dni')}.
+    W pamięci przeglądarki: <b>{count}</b>
+    {pl(count, 'pozycja', 'pozycje', 'pozycji')} z <b>{days}</b> {pl(days, 'dnia', 'dni', 'dni')}.
   </p>
   <p class="hint">
     Dane żyją wyłącznie w tej przeglądarce. Wyczyszczenie danych witryny kasuje je bezpowrotnie —

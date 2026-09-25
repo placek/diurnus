@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { activeLayer, app, closeAll, currentDay, save, savePrefs, startClock, startCrossTabSync, ui, uid, undo, win } from './state.svelte';
-  import { reconcile } from './lib/link';
-  import { carryOver, lastDayWithItems } from './lib/backlog';
+  import { activeLayer, app, closeAll, currentDay, savePrefs, startClock, startCrossTabSync, ui, undo, win } from './state.svelte';
   import { dueNotifications, notifyKey } from './lib/notify';
   import {
     actAt,
@@ -11,15 +9,14 @@
     closeMenu,
     moveBlock,
     openEdit,
-    removeBlock,
+    removeItem,
   } from './actions.svelte';
   import { kids, topCats } from './lib/categories';
   import { clampCursor, keyAction } from './lib/keys';
-  import { activeBlock } from './lib/occupancy';
-  import { catOf } from './lib/categories';
+  import { SLOT_LEN } from './lib/machine';
   import { nextTheme, themeColor } from './lib/theme';
-  import { occ } from './lib/occupancy';
   import { nowQ, pad, qTime } from './lib/time';
+  import { activeNow, categoryOf, occ, slotOf } from './lib/view';
   import Panes from './components/Panes.svelte';
   import Header from './components/Header.svelte';
   import RadialMenu from './components/RadialMenu.svelte';
@@ -29,31 +26,9 @@
   import Settings from './components/settings/Settings.svelte';
   import DatePrompt from './components/backlog/DatePrompt.svelte';
 
-  // Przeniesienie niedokończonych: przy starcie i przy każdej zmianie doby.
-  // Skanowanie wstecz, a nie „tylko wczoraj" — weekend poza domem nie może
-  // zgubić piątkowych resztek.
-  let carriedFor = $state<string | null>(null);
-  $effect(() => {
-    const day = currentDay.value;
-    if (carriedFor === day) return;
-    carriedFor = day;
-    const source = lastDayWithItems(app.S.items, day);
-    const next = carryOver(app.S.items, day, source);
-    if (next === app.S.items) return; // nic się nie przeniosło
-    app.S.items = next;
-    save();
-  });
-
-  // Wejście na dzień, którego bloki powstały wcześniej (albo przed migracją),
-  // musi dorobić ich pozycje — to nie jest mutacja, więc commit() tu nie sięga.
-  $effect(() => {
-    const day = currentDay.value;
-    const next = reconcile(app.S.items, app.S.blocks, day, Date.now(), uid);
-    if (next.length !== app.S.items.length) {
-      app.S.items = next;
-      save();
-    }
-  });
+  // Północ i świt nie są tu efektami: przesuwa je zegar zdarzeniem maszyny
+  // (state.svelte.ts), więc przeniesienie niedokończonych i przyjścia
+  // z backlogu to zwykłe przejścia, sprawdzone i powtarzalne.
 
   // Powiadomienia jadą na istniejącym tyknięciu zegara — bez drugiego timera.
   // Padają wyłącznie przy otwartej karcie: przeglądarka nie umie zaplanować
@@ -63,7 +38,7 @@
     if (!app.prefs.notify) return;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
-    for (const n of dueNotifications(app.S.blocks, app.now, fired)) {
+    for (const n of dueNotifications(app.S.items, currentDay.value, app.now, fired)) {
       fired.add(notifyKey(n.blockId, n.kind));
       try {
         new Notification(n.title, { body: n.body, tag: notifyKey(n.blockId, n.kind) });
@@ -91,18 +66,18 @@
     }
   });
 
-  // Tytuł karty pokazuje odliczanie aktywnego bloku — timer widoczny bez
-  // przełączania się na zakładkę.
+  // Tytuł karty pokazuje odliczanie zadania, którego slot właśnie trwa —
+  // timer widoczny bez przełączania się na zakładkę.
   $effect(() => {
-    const b = activeBlock(app.S.blocks);
-    if (!b) {
+    const i = activeNow(app.S.items, currentDay.value, app.now);
+    if (!i) {
       document.title = 'Diurnus';
       return;
     }
-    const left = Math.max(0, qTime(b.day, b.q + b.len) - app.now);
+    const left = Math.max(0, qTime(currentDay.value, slotOf(i)! + SLOT_LEN) - app.now);
     document.title =
       `${Math.floor(left / 60000)}:${pad(Math.floor(left / 1000) % 60)}  ` +
-      `${b.title || catOf(app.S.cats, b.cat).name}`;
+      `${i.text || categoryOf(i, app.S.cats)?.name || 'Blok czasu'}`;
   });
 
   // Ekran powitalny tylko przy pierwszym uruchomieniu.
@@ -134,7 +109,7 @@
     if (!action) return;
 
     const cursorQ = ui.cursor.visible ? ui.cursor.q : nowQ(currentDay.value, app.now);
-    const blockAtCursor = cursorQ === null ? null : occ(app.S.blocks, currentDay.value)[cursorQ];
+    const blockAtCursor = cursorQ === null ? null : occ(app.S.items)[cursorQ];
 
     switch (action.type) {
       case 'undo':
@@ -165,7 +140,7 @@
         }
         // Kursor jedzie razem z blokiem, więc kolejne wciśnięcie przesuwa
         // ten sam blok dalej. Odmowa (zajęte, koniec dnia) zostawia oba.
-        if (moveBlock(blockAtCursor.id, blockAtCursor.q + action.delta)) {
+        if (moveBlock(blockAtCursor.id, slotOf(blockAtCursor)! + action.delta)) {
           ui.cursor.q += action.delta;
         }
         break;
@@ -188,7 +163,7 @@
         if (blockAtCursor) openEdit(blockAtCursor.id);
         break;
       case 'delete':
-        if (blockAtCursor) removeBlock(blockAtCursor.id);
+        if (blockAtCursor) removeItem(blockAtCursor.id);
         break;
       case 'settings':
         ui.settings = action.tab;

@@ -1,4 +1,5 @@
 import { test, expect, beforeAll } from 'vitest';
+import { today } from '../src/lib/time';
 
 // state.svelte.ts czyta localStorage przy imporcie — w Node trzeba go podstawić.
 function fakeStorage(seed: Record<string, unknown> = {}): Storage {
@@ -18,15 +19,19 @@ function fakeStorage(seed: Record<string, unknown> = {}): Storage {
 let html = '';
 
 beforeAll(async () => {
+  // Dziś według zegara: stan ładowany z pamięci jest doganiany do bieżącego
+  // dnia, więc zadania z innej daty przeszłyby o północy dalej bez slotu.
+  const [y, m, d] = today().split('-').map(Number);
   const state = {
-    v: 2,
+    v: 6,
     cats: [{ id: 'work', name: 'Praca', icon: 'laptop-code', color: 'yellow', parent: null }],
     day: { start: 6, end: 22, bands: [{ id: 'b', name: 'Rano', from: 6, color: 'aqua' }] },
-    blocks: [
+    today: today(),
+    items: [
       // 08:00–08:30 — jeden segment
-      { id: 'a', day: '2026-09-24', q: 32, len: 2, cat: 'work', title: 'Zwykły', status: 'planned', created: 0 },
+      { id: 'a', text: 'Zwykły', cat: 'work', state: { tag: 'today-task', done: false, slot: 32 } },
       // 09:45–10:15 — przełamanie przez granicę godziny
-      { id: 'b', day: '2026-09-24', q: 39, len: 2, cat: 'work', title: 'Przełam', status: 'planned', created: 0 },
+      { id: 'b', text: 'Przełam', cat: 'work', state: { tag: 'today-task', done: false, slot: 39 } },
     ],
   };
   Object.defineProperty(globalThis, 'localStorage', {
@@ -35,7 +40,7 @@ beforeAll(async () => {
   });
 
   const { app } = await import('../src/state.svelte');
-  app.now = new Date(2026, 8, 24, 10, 7).getTime();
+  app.now = new Date(y!, m! - 1, d!, 10, 7).getTime();
 
   const { render } = await import('svelte/server');
   const Grid = (await import('../src/components/Grid.svelte')).default;
@@ -67,7 +72,7 @@ test('blok 09:45–10:15 renderuje się jako dwa segmenty', () => {
 });
 
 test('pierwszy segment przełamanego bloku ma klasę first, drugi last', () => {
-  const segs = [...html.matchAll(/<div class="blk st-planned([^"]*)"[^>]*data-id="b"/g)].map((m) => m[1]);
+  const segs = [...html.matchAll(/<div class="blk st-\w+([^"]*)"[^>]*data-id="b"/g)].map((m) => m[1]);
   expect(segs).toHaveLength(2);
   expect(segs[0]).toContain('first');
   expect(segs[0]).not.toContain('last');

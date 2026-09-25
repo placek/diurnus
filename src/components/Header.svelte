@@ -40,7 +40,7 @@
   } as const;
   const nextPane = () => PANE_ORDER[(PANE_ORDER.indexOf(ui.pane) + 1) % PANE_ORDER.length]!;
 
-  const stats = $derived(tokenStats(app.S.blocks, currentDay.value, app.S.cats, win.q0, win.q1));
+  const stats = $derived(tokenStats(app.S.items, app.S.cats, win.q0, win.q1));
 
 </script>
 

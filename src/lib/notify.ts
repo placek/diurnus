@@ -1,5 +1,6 @@
+import type { Item } from './machine';
 import { fmtQ, qTime } from './time';
-import type { Block } from './types';
+import { isDone, slotOf, timedToday } from './view';
 
 export type NotifyKind = 'soon' | 'start';
 
@@ -10,7 +11,7 @@ export interface DueNotification {
   body: string;
 }
 
-/** Ile przed początkiem bloku pada uprzedzenie. */
+/** Ile przed początkiem slotu pada uprzedzenie. */
 export const LEAD_MS = 15 * 60 * 1000;
 
 /**
@@ -28,29 +29,29 @@ export const notifyKey = (blockId: string, kind: NotifyKind) => `${blockId}:${ki
  * powiadomień, a zbiór `fired` wystarczy trzymać w pamięci.
  */
 export function dueNotifications(
-  blocks: readonly Block[],
+  items: readonly Item[],
+  day: string,
   now: number,
   fired: ReadonlySet<string>,
 ): DueNotification[] {
   const out: DueNotification[] = [];
 
-  for (const b of blocks) {
-    // Tylko zaplanowane: potwierdzony już był, aktywny właśnie trwa,
-    // a sugestia nie jest jeszcze zobowiązaniem.
-    if (b.status !== 'planned') continue;
-
-    const start = qTime(b.day, b.q);
-    const label = b.title.trim() || 'Blok czasu';
-    const hhmm = fmtQ(b.day, b.q);
+  for (const i of timedToday(items)) {
+    // Tylko otwarte: wykonane nie potrzebuje przypomnienia.
+    if (isDone(i)) continue;
+    const slot = slotOf(i)!;
+    const start = qTime(day, slot);
+    const label = i.text.trim() || 'Blok czasu';
+    const hhmm = fmtQ(day, slot);
 
     for (const [kind, trigger] of [
       ['soon', start - LEAD_MS],
       ['start', start],
     ] as const) {
       if (now < trigger || now >= trigger + WINDOW_MS) continue;
-      if (fired.has(notifyKey(b.id, kind))) continue;
+      if (fired.has(notifyKey(i.id, kind))) continue;
       out.push({
-        blockId: b.id,
+        blockId: i.id,
         kind,
         title: kind === 'soon' ? `Za 15 minut: ${label}` : label,
         body: kind === 'soon' ? `Początek o ${hhmm}` : `Zaczyna się teraz — ${hhmm}`,

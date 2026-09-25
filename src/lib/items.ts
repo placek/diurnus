@@ -1,4 +1,6 @@
-import type { Item, ItemType } from './types';
+import type { Event, Item } from './machine';
+import type { ItemType } from './types';
+import { freeToday, kindOf } from './view';
 
 /** Notacja bullet journal. Jeden znak na typ, bez powtórzeń. */
 export const MARK: Record<ItemType, string> = {
@@ -7,75 +9,72 @@ export const MARK: Record<ItemType, string> = {
   note: '–',
 };
 
-/** Lista jednego dnia. `filter` zachowuje kolejność tablicy, więc pozycja
- *  w tablicy JEST kolejnością — nie ma osobnego pola `order`. */
-export const dayItems = (items: readonly Item[], day: string): Item[] =>
-  items.filter((i) => i.day === day);
-
-export const newItem = (
-  day: string | null,
-  type: ItemType,
-  created: number,
-  makeId: () => string,
-): Item => ({ id: makeId(), day, text: '', type, created });
-
-// Indeks liczony w PEŁNEJ tablicy, nie w przefiltrowanej: dni mogą się
-// przeplatać, a wstawka ma trafić tuż za swoją pozycją, nie za pozycją
-// o tym samym numerze w innym dniu.
-export function insertAfter(
-  items: readonly Item[],
-  afterId: string | null,
-  item: Item,
-): Item[] {
-  const out = [...items];
-  if (afterId === null) {
-    const last = out.map((x) => x.day).lastIndexOf(item.day);
-    out.splice(last < 0 ? out.length : last + 1, 0, item);
-    return out;
-  }
-  const i = out.findIndex((x) => x.id === afterId);
-  out.splice(i < 0 ? out.length : i + 1, 0, item);
-  return out;
-}
-
 export const removeById = (items: readonly Item[], id: string): Item[] =>
   items.filter((i) => i.id !== id);
 
-// Trzy znaczniki opisujące stan pozycji tutaj. Przenoszenie między dniami
-// odbywa się przeciągnięciem do backlogu, nie zmianą znacznika.
+/**
+ * Kolejność pozycji swobodnych to kolejność tablicy — nie ma osobnego pola.
+ * Stawia pozycję `id` tuż za `afterId`; `null` zostawia ją tam, gdzie jest
+ * (maszyna dokłada nowe na koniec, a koniec listy to właściwe miejsce).
+ */
+export function placeAfter(items: readonly Item[], id: string, afterId: string | null): Item[] {
+  if (afterId === null || afterId === id) return [...items];
+  const src = items.find((i) => i.id === id);
+  if (!src) return [...items];
+  const out = items.filter((i) => i.id !== id);
+  const at = out.findIndex((i) => i.id === afterId);
+  out.splice(at < 0 ? out.length : at + 1, 0, src);
+  return out;
+}
+
+/** Przestawienie pozycji swobodnej dziś; `toIndex` liczy się w liście BEZ niej. */
+export function moveFree(items: readonly Item[], id: string, toIndex: number): Item[] {
+  const free = freeToday(items);
+  const from = free.findIndex((i) => i.id === id);
+  if (from < 0) return [...items];
+
+  const rest = free.filter((i) => i.id !== id);
+  const to = Math.min(Math.max(toIndex, 0), rest.length);
+  if (to === from) return [...items];
+
+  const src = free[from]!;
+  const out = items.filter((i) => i.id !== id);
+  const anchor = rest[to];
+  const at = anchor ? out.findIndex((i) => i.id === anchor.id) : -1;
+  if (at >= 0) out.splice(at, 0, src);
+  else {
+    // Na koniec listy swobodnych: tuż za ostatnią z nich.
+    const last = rest.at(-1);
+    const after = last ? out.findIndex((i) => i.id === last.id) : -1;
+    out.splice(after < 0 ? out.length : after + 1, 0, src);
+  }
+  return out;
+}
+
+// Trzy znaczniki opisujące pozycję. Przenoszenie między polami odbywa się
+// przeciągnięciem, nie zmianą znacznika.
 export const CYCLE = ['task', 'done', 'note'] as const;
 
 export function cycleType(type: ItemType, dir: 1 | -1 = 1): ItemType {
-  const i = CYCLE.indexOf(type as (typeof CYCLE)[number]);
-  if (i < 0) return 'task'; // wyjście ze stanu przeniesionego
+  const i = CYCLE.indexOf(type);
   return CYCLE[(i + dir + CYCLE.length) % CYCLE.length]!;
 }
 
 /** Nowa pozycja dziedziczy typ, ale nigdy nie rodzi się w stanie końcowym. */
-export const typeAfterEnter = (type: ItemType): ItemType =>
-  type === 'note' ? 'note' : 'task';
+export const typeAfterEnter = (type: ItemType): ItemType => (type === 'note' ? 'note' : 'task');
 
-export function moveItem(
-  items: readonly Item[],
-  id: string,
-  toIndex: number,
-  day: string,
-): Item[] {
-  const src = items.find((i) => i.id === id);
-  if (!src || src.day !== day) return [...items];
-
-  const inDay = dayItems(items, day);
-  const from = inDay.findIndex((i) => i.id === id);
-  const to = Math.min(Math.max(toIndex, 0), inDay.length - 1);
-  if (from === to) return [...items];
-
-  const rest = items.filter((i) => i.id !== id);
-  // Sąsiad, przed którym pozycja ma wylądować — liczony na liście dnia BEZ niej.
-  const withoutSrc = inDay.filter((i) => i.id !== id);
-  const anchor = withoutSrc[to];
-
-  const out = [...rest];
-  const at = anchor ? out.findIndex((i) => i.id === anchor.id) : -1;
-  out.splice(at < 0 ? out.length : at, 0, src);
-  return out;
+/**
+ * Zdarzenia zamieniające typ pozycji. Graf nie ma bezpośredniego przejścia
+ * wykonane ↔ notatka, więc ta zamiana idzie przez otwarte zadanie — dwa
+ * zwykłe przejścia, które maszyna sprawdza każde z osobna.
+ */
+export function retype(item: Item, target: ItemType, copyId: string): Event[] {
+  const id = item.id;
+  const from = kindOf(item);
+  if (from === target) return [];
+  const toTask: Event[] =
+    from === 'done' ? [{ type: 'markOpen', id }] : from === 'note' ? [{ type: 'toTask', id }] : [];
+  if (target === 'task') return toTask;
+  if (target === 'done') return [...toTask, { type: 'markDone', id, copyId }];
+  return [...toTask, { type: 'toNote', id }];
 }

@@ -110,7 +110,8 @@ test('Enter w backlogu tworzy kolejną pozycję TAM, nie w dzisiejszych notatkac
 
   expect(rows()).toHaveLength(2);
   expect(app.S.items).toHaveLength(2);
-  expect(app.S.items.every((i) => i.day === d)).toBe(true);
+  // Nowa pozycja backlogu rodzi się bez terminu — termin nadaje się osobno.
+  expect(app.S.items.every((i) => i.state.tag === 'backlog-task')).toBe(true);
 });
 
 test('Enter po pozycji bez daty też tworzy pozycję bez daty', async () => {
@@ -123,7 +124,7 @@ test('Enter po pozycji bez daty też tworzy pozycję bez daty', async () => {
   flush();
 
   expect(rows()).toHaveLength(2);
-  expect(app.S.items.every((i) => i.day === null)).toBe(true);
+  expect(app.S.items.every((i) => i.state.tag === 'backlog-task')).toBe(true);
 });
 
 const draft = () => document.querySelector<HTMLInputElement>('#backlog .is-draft .item-text')!;
@@ -147,7 +148,7 @@ test('pisanie w polu początkowym tworzy pozycję BEZ daty', async () => {
   expect(rows()).toHaveLength(1);
   expect(texts()).toEqual(['Kiedyś to zrobię']);
   const item = app.S.items[0]!;
-  expect(item.day).toBeNull();
+  expect(item.state).toEqual({ tag: 'backlog-task', when: null });
   // Nie może wylądować w dzisiejszych notatkach.
   expect(document.querySelectorAll('#list .item[data-id]')).toHaveLength(0);
 });

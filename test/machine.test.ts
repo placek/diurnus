@@ -1,6 +1,6 @@
 import { test, expect, describe } from 'vitest';
 import { step, violations, gridOf, SLOT_LEN } from '../src/lib/machine';
-import type { DayHours, Event, Machine, State, WhenInput } from '../src/lib/machine';
+import type { DayHours, Event, ItemState as State, Machine, WhenInput } from '../src/lib/machine';
 import { nextOccurrence } from '../src/lib/repeat';
 import type { Repeat } from '../src/lib/repeat';
 
@@ -643,4 +643,24 @@ test('typy nie dopuszczają wykonanego zadania w backlogu ani czasu przy notatce
   // @ts-expect-error — notatka w backlogu nie ma wiązania czasowego
   const c: State = { tag: 'backlog-note', when: null };
   expect([a, b, c]).toHaveLength(3);
+});
+
+test('kategoria jest daną pozycji: utworzenie ją nadaje, kopie wzorca ją dziedziczą', () => {
+  let m = run(machine(), {
+    type: 'create',
+    id: 'a',
+    text: 'A',
+    place: 'backlog',
+    cat: 'learn',
+    created: 7,
+  });
+  expect(m.items[0]).toMatchObject({ cat: 'learn', created: 7 });
+  m = run(
+    m,
+    { type: 'setWhen', id: 'a', when: { type: 'recurring', rule: DAILY, slot: null } },
+    { type: 'markDone', id: 'a', copyId: 'done' },
+    { type: 'advance', to: '2026-09-27' },
+  );
+  expect(m.items.find((i) => i.id === 'done')!.cat).toBe('learn');
+  expect(m.items.find((i) => i.id === 'a@2026-09-27')!.cat).toBe('learn');
 });

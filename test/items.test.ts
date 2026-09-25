@@ -1,154 +1,77 @@
 import { test, expect } from 'vitest';
-import { MARK } from '../src/lib/items';
+import {
+  MARK,
+  cycleType,
+  moveFree,
+  placeAfter,
+  removeById,
+  retype,
+  typeAfterEnter,
+} from '../src/lib/items';
+import { step } from '../src/lib/machine';
+import type { Item, ItemState, Machine } from '../src/lib/machine';
 import type { ItemType } from '../src/lib/types';
 
-test('każdy typ ma dokładnie jeden znak', () => {
+const it = (
+  id: string,
+  state: ItemState = { tag: 'today-task', done: false, slot: null },
+): Item => ({ id, text: id, state });
+const ids = (xs: Item[]) => xs.map((x) => x.id);
+
+test('każdy typ ma dokładnie jeden znak, zgodny z bullet journal, bez powtórzeń', () => {
   const types: ItemType[] = ['task', 'done', 'note'];
-  for (const t of types) {
-    expect(MARK[t], t).toBeTruthy();
-    expect([...MARK[t]], t).toHaveLength(1);
-  }
+  for (const t of types) expect([...MARK[t]], t).toHaveLength(1);
+  expect([MARK.task, MARK.done, MARK.note]).toEqual(['·', '×', '–']);
 });
 
-test('znaki są zgodne z notacją bullet journal', () => {
-  expect(MARK.task).toBe('·');
-  expect(MARK.done).toBe('×');
-  expect(MARK.note).toBe('–');
+test('removeById usuwa wskazaną pozycję i nic więcej', () => {
+  expect(ids(removeById([it('1'), it('2')], '1'))).toEqual(['2']);
+  expect(ids(removeById([it('1')], 'nie-ma'))).toEqual(['1']);
 });
 
-test('żadne dwa typy nie dzielą znaku', () => {
-  const marks = Object.values(MARK);
-  expect(new Set(marks).size).toBe(marks.length);
+test('placeAfter stawia pozycję tuż za wskazaną, nie mutując wejścia', () => {
+  const all = [it('1'), it('2'), it('x')];
+  expect(ids(placeAfter(all, 'x', '1'))).toEqual(['1', 'x', '2']);
+  expect(ids(all)).toEqual(['1', '2', 'x']);
+  expect(ids(placeAfter(all, 'x', null))).toEqual(['1', '2', 'x']);
+  expect(ids(placeAfter(all, 'x', 'nie-ma'))).toEqual(['1', '2', 'x']);
 });
 
-import { dayItems, insertAfter, removeById, newItem } from '../src/lib/items';
-import type { Item } from '../src/lib/types';
-
-const it = (id: string, day: string, text = '', type: ItemType = 'task'): Item =>
-  ({ id, day, text, type, created: 0 });
-
-const A = '2026-09-24';
-const B = '2026-09-25';
-
-test('dayItems zwraca tylko pozycje danego dnia, w kolejności tablicy', () => {
-  const all = [it('1', A), it('2', B), it('3', A)];
-  expect(dayItems(all, A).map((x) => x.id)).toEqual(['1', '3']);
+test('moveFree przestawia tylko wśród swobodnych dzisiejszych pozycji', () => {
+  const back = it('b', { tag: 'backlog-task', when: null });
+  const timed = it('t', { tag: 'today-task', done: false, slot: 36 });
+  const all = [it('A'), back, timed, it('B'), it('C')];
+  expect(ids(moveFree(all, 'A', 2))).toEqual(['b', 't', 'B', 'C', 'A']);
+  expect(ids(moveFree(all, 'C', 0))).toEqual(['C', 'A', 'b', 't', 'B']);
+  expect(ids(moveFree(all, 'A', 0))).toEqual(ids(all));
+  expect(ids(moveFree(all, 't', 0))).toEqual(ids(all)); // ze slotem — miejsce to godzina
 });
 
-test('dayItems na pustej tablicy daje pustą listę', () => {
-  expect(dayItems([], A)).toEqual([]);
-});
-
-test('insertAfter wstawia zaraz za wskazaną pozycją', () => {
-  const all = [it('1', A), it('2', A)];
-  expect(insertAfter(all, '1', it('x', A)).map((x) => x.id)).toEqual(['1', 'x', '2']);
-});
-
-test('insertAfter z null wstawia na koniec listy DNIA, nie tablicy', () => {
-  const all = [it('1', A), it('2', B)];
-  expect(dayItems(insertAfter(all, null, it('x', A)), A).map((x) => x.id)).toEqual(['1', 'x']);
-});
-
-test('insertAfter przy przeplecionych dniach nie gubi kolejności dnia', () => {
-  const all = [it('1', A), it('2', B), it('3', A)];
-  const got = insertAfter(all, '1', it('x', A));
-  expect(got.map((x) => x.id)).toEqual(['1', 'x', '2', '3']);
-  expect(dayItems(got, A).map((x) => x.id)).toEqual(['1', 'x', '3']);
-});
-
-test('insertAfter z nieznanym id dokłada na koniec zamiast gubić pozycję', () => {
-  expect(insertAfter([it('1', A)], 'nie-ma', it('x', A)).map((x) => x.id)).toEqual(['1', 'x']);
-});
-
-test('insertAfter nie mutuje wejścia', () => {
-  const all = [it('1', A)];
-  insertAfter(all, '1', it('x', A));
-  expect(all).toHaveLength(1);
-});
-
-test('removeById usuwa wskazaną pozycję i zostawia resztę', () => {
-  expect(removeById([it('1', A), it('2', A)], '1').map((x) => x.id)).toEqual(['2']);
-});
-
-test('removeById z nieznanym id nie zmienia niczego', () => {
-  expect(removeById([it('1', A)], 'nie-ma').map((x) => x.id)).toEqual(['1']);
-});
-
-test('newItem tworzy pozycję z pustym tekstem i podanym typem', () => {
-  expect(newItem(A, 'note', 99, () => 'id-1')).toEqual({
-    id: 'id-1', day: A, text: '', type: 'note', created: 99,
-  });
-});
-
-import { CYCLE, cycleType, typeAfterEnter } from '../src/lib/items';
-
-test('Tab cykluje wyłącznie znaczniki opisujące stan pozycji tutaj', () => {
-  expect(CYCLE).toEqual(['task', 'done', 'note']);
+test('cycleType i typeAfterEnter', () => {
   expect(cycleType('task')).toBe('done');
   expect(cycleType('done')).toBe('note');
   expect(cycleType('note')).toBe('task');
-});
-
-test('Shift+Tab cykluje w drugą stronę', () => {
   expect(cycleType('task', -1)).toBe('note');
-  expect(cycleType('note', -1)).toBe('done');
-});
-
-test('Enter dziedziczy typ zadania i notatki', () => {
-  expect(typeAfterEnter('task')).toBe('task');
+  expect(typeAfterEnter('done')).toBe('task');
   expect(typeAfterEnter('note')).toBe('note');
 });
 
-test('Enter po wykonanym zadaniu daje zwykłe zadanie', () => {
-  // Nikt nie chce pozycji urodzonej jako wykonana.
-  expect(typeAfterEnter('done')).toBe('task');
-});
-
-import { moveItem } from '../src/lib/items';
-
-test('moveItem przesuwa pozycję w dół listy dnia', () => {
-  const all = [it('1', A), it('2', A), it('3', A)];
-  expect(moveItem(all, '1', 2, A).map((x) => x.id)).toEqual(['2', '3', '1']);
-});
-
-test('moveItem przesuwa pozycję w górę listy dnia', () => {
-  const all = [it('1', A), it('2', A), it('3', A)];
-  expect(moveItem(all, '3', 0, A).map((x) => x.id)).toEqual(['3', '1', '2']);
-});
-
-test('moveItem na to samo miejsce nie zmienia kolejności', () => {
-  const all = [it('1', A), it('2', A)];
-  expect(moveItem(all, '1', 0, A).map((x) => x.id)).toEqual(['1', '2']);
-});
-
-test('moveItem nie rusza pozycji innych dni', () => {
-  // Indeks docelowy liczy się w liście DNIA, a przestawienie musi zadziałać
-  // na pełnej tablicy, w której dni się przeplatają.
-  const all = [it('1', A), it('x', B), it('2', A), it('y', B), it('3', A)];
-  const got = moveItem(all, '3', 0, A);
-  expect(dayItems(got, A).map((i) => i.id)).toEqual(['3', '1', '2']);
-  expect(dayItems(got, B).map((i) => i.id)).toEqual(['x', 'y']);
-  expect(got).toHaveLength(5);
-});
-
-test('moveItem z indeksem poza zakresem przycina do krańców', () => {
-  const all = [it('1', A), it('2', A)];
-  expect(moveItem(all, '1', 99, A).map((x) => x.id)).toEqual(['2', '1']);
-  expect(moveItem(all, '2', -5, A).map((x) => x.id)).toEqual(['2', '1']);
-});
-
-test('moveItem z nieznanym id nie zmienia niczego', () => {
-  const all = [it('1', A)];
-  expect(moveItem(all, 'nie-ma', 0, A)).toEqual(all);
-});
-
-test('moveItem pozycją z innego dnia niż podany nie zmienia niczego', () => {
-  const all = [it('1', A), it('x', B)];
-  expect(moveItem(all, 'x', 0, A)).toEqual(all);
-});
-
-test('moveItem nie mutuje wejścia', () => {
-  const all = [it('1', A), it('2', A)];
-  moveItem(all, '1', 1, A);
-  expect(all.map((x) => x.id)).toEqual(['1', '2']);
+test('retype: każda zamiana typu to ciąg dozwolonych przejść maszyny', () => {
+  const HOURS = { q0: 24, q1: 88 };
+  const states: Record<ItemType, ItemState> = {
+    task: { tag: 'today-task', done: false, slot: null },
+    done: { tag: 'today-task', done: true, slot: null },
+    note: { tag: 'today-note' },
+  };
+  for (const from of ['task', 'done', 'note'] as ItemType[]) {
+    for (const to of ['task', 'done', 'note'] as ItemType[]) {
+      let m: Machine = { today: '2026-09-25', items: [it('a', states[from])] };
+      for (const e of retype(m.items[0]!, to, 'c')) {
+        const r = step(m, e, HOURS);
+        if (!r.ok) throw new Error(`${from} → ${to}: ${e.type} odmówione`);
+        m = r.machine;
+      }
+      expect(m.items[0]!.state, `${from} → ${to}`).toEqual(states[to]);
+    }
+  }
 });

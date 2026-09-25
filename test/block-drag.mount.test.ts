@@ -36,30 +36,34 @@ beforeEach(() => {
   };
 });
 
-type Seed = { id: string; q: number; len?: number; status?: string; title?: string };
+type Seed = { id: string; q: number; done?: boolean; title?: string };
 
+/** Dzisiejsze zadania ze slotem — to one są blokami na siatce. */
 function seed(blocks: Seed[]) {
   localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   localStorage.setItem(
     'diurnus.v1',
     JSON.stringify({
-      v: 5,
+      v: 6,
       cats: [{ id: 'work', name: 'Praca', icon: 'laptop-code', color: 'yellow', parent: null }],
       day: { start: 6, end: 22, bands: [] },
-      blocks: blocks.map((b) => ({
+      today: today(),
+      items: blocks.map((b) => ({
         id: b.id,
-        day: today(),
-        q: b.q,
-        len: b.len ?? 2,
-        cat: 'work',
-        title: b.title ?? '',
-        status: b.status ?? 'planned',
+        text: b.title ?? '',
         created: 0,
+        cat: 'work',
+        state: { tag: 'today-task', done: b.done ?? false, slot: b.q },
       })),
-      items: [],
     }),
   );
 }
+
+type App = Awaited<ReturnType<typeof mountApp>>['app'];
+const stateOf = (app: App, id: string) =>
+  app.S.items.find((i) => i.id === id)!.state as { slot: number | null; done: boolean };
+const slot = (app: App, id: string) => stateOf(app, id).slot;
+const isDone = (app: App, id: string) => stateOf(app, id).done;
 
 async function mountApp() {
   const { mount, flushSync } = await import('svelte');
@@ -100,9 +104,7 @@ test('przeciągnięcie bloku na wolne miejsce zmienia jego godzinę', async () =
 
   drag(blockEl('a'), 32, 40, flush);
 
-  const a = app.S.blocks.find((b) => b.id === 'a')!;
-  expect(a.q).toBe(40);
-  expect(a.len).toBe(2);
+  expect(slot(app, 'a')).toBe(40);
   expect(document.querySelector('#grid .blk[data-id="a"]')!.getAttribute('style')).toMatch(
     /grid-column:\s*2\/span 2/,
   );
@@ -115,7 +117,7 @@ test('blok idzie za kursorem: chwyt za drugi kwant zachowuje przesunięcie', asy
 
   drag(blockEl('a'), 33, 41, flush);
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(40);
+  expect(slot(app, 'a')).toBe(40);
 });
 
 test('upuszczenie na zajęte miejsce nic nie zmienia i mówi dlaczego', async () => {
@@ -127,8 +129,8 @@ test('upuszczenie na zajęte miejsce nic nie zmienia i mówi dlaczego', async ()
 
   drag(blockEl('a'), 32, 40, flush);
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
-  expect(app.S.blocks.find((b) => b.id === 'b')!.q).toBe(40);
+  expect(slot(app, 'a')).toBe(32);
+  expect(slot(app, 'b')).toBe(40);
   expect(app.toast?.msg).toMatch(/zajęte/);
 });
 
@@ -140,10 +142,10 @@ test('częściowe nałożenie na sąsiada też jest zajęte', async () => {
   const { flush, app } = await mountApp();
 
   drag(blockEl('a'), 32, 39, flush); // [39, 41) zahacza o b
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
 
   drag(blockEl('a'), 32, 38, flush); // [38, 40) przylega do b
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(38);
+  expect(slot(app, 'a')).toBe(38);
 });
 
 test('blok musi zmieścić się w oknie dnia w całości', async () => {
@@ -151,11 +153,11 @@ test('blok musi zmieścić się w oknie dnia w całości', async () => {
   const { flush, app } = await mountApp();
 
   drag(blockEl('a'), 32, 87, flush); // 21:45–22:15 wystaje poza 22:00
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
   expect(app.toast?.msg).toMatch(/Poza zakresem dnia 06:00–22:00/);
 
   drag(blockEl('a'), 32, 86, flush); // 21:30–22:00 mieści się
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(86);
+  expect(slot(app, 'a')).toBe(86);
 });
 
 test('w trakcie przeciągania widać ducha celu; nad zajętym jest oznaczony jako zły', async () => {
@@ -199,7 +201,7 @@ test('duch znika, gdy kursor wyjdzie poza siatkę, a upuszczenie tam nic nie zmi
 
   pointer(el, 'pointerup', 500);
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
 });
 
 test('przerwanie przez system porzuca przeciąganie bez przenoszenia', async () => {
@@ -217,11 +219,11 @@ test('przerwanie przez system porzuca przeciąganie bez przenoszenia', async () 
 
   expect(document.querySelector('#grid .blk.ghost.drop')).toBeNull();
   expect(el.classList.contains('is-dragging')).toBe(false);
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
 });
 
-test('ruch poniżej progu nie przeciąga, a klik awansuje blok', async () => {
-  seed([{ id: 'a', q: 32, status: 'suggested' }]);
+test('ruch poniżej progu nie przeciąga, a klik oznacza wykonanie', async () => {
+  seed([{ id: 'a', q: 32 }]);
   const { flush, app } = await mountApp();
   const el = blockEl('a');
 
@@ -232,13 +234,12 @@ test('ruch poniżej progu nie przeciąga, a klik awansuje blok', async () => {
   el.click();
   flush();
 
-  const a = app.S.blocks.find((b) => b.id === 'a')!;
-  expect(a.q).toBe(32);
-  expect(a.status).not.toBe('suggested'); // klik zadziałał
+  expect(slot(app, 'a')).toBe(32);
+  expect(isDone(app, 'a')).toBe(true); // klik zadziałał
 });
 
-test('po przeciągnięciu klik NIE awansuje bloku', async () => {
-  seed([{ id: 'a', q: 32, status: 'suggested' }]);
+test('po przeciągnięciu klik NIE oznacza wykonania', async () => {
+  seed([{ id: 'a', q: 32 }]);
   const { flush, app } = await mountApp();
   const el = blockEl('a');
 
@@ -248,35 +249,34 @@ test('po przeciągnięciu klik NIE awansuje bloku', async () => {
   blockEl('a').click();
   flush();
 
-  const a = app.S.blocks.find((b) => b.id === 'a')!;
-  expect(a.q).toBe(40);
-  expect(a.status).toBe('suggested');
+  expect(slot(app, 'a')).toBe(40);
+  expect(isDone(app, 'a')).toBe(false);
 });
 
-test('echo przeciągnięcia nie otwiera menu ani nie awansuje bloku przez komórkę pod nim', async () => {
-  seed([{ id: 'a', q: 32, status: 'suggested' }]);
+test('echo przeciągnięcia nie otwiera menu ani nie przełącza bloku przez komórkę pod nim', async () => {
+  seed([{ id: 'a', q: 32 }]);
   const { flush, app } = await mountApp();
 
   drag(blockEl('a'), 32, 40, flush);
   document.querySelector<HTMLElement>('#grid .cell[data-q="40"]')!.click();
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.status).toBe('suggested');
+  expect(isDone(app, 'a')).toBe(false);
   expect(document.querySelector('#radial')).toBeNull();
 });
 
 test('zwykłe kliknięcie po zakończonym przeciągnięciu znów działa', async () => {
-  seed([{ id: 'a', q: 32, status: 'suggested' }]);
+  seed([{ id: 'a', q: 32 }]);
   const { flush, app } = await mountApp();
 
   drag(blockEl('a'), 32, 40, flush);
   blockEl('a').click(); // echo — połknięte
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.status).toBe('suggested');
+  expect(isDone(app, 'a')).toBe(false);
 
   blockEl('a').click(); // prawdziwe kliknięcie
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.status).not.toBe('suggested');
+  expect(isDone(app, 'a')).toBe(true);
 });
 
 test('prawy przycisk nie rozpoczyna przeciągania', async () => {
@@ -291,7 +291,7 @@ test('prawy przycisk nie rozpoczyna przeciągania', async () => {
   pointer(el, 'pointerup', 40, 2);
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
 });
 
 test('nowa godzina utrwala się w localStorage', async () => {
@@ -301,7 +301,7 @@ test('nowa godzina utrwala się w localStorage', async () => {
   drag(blockEl('a'), 32, 40, flush);
 
   const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
-  expect(saved.blocks.find((b: { id: string }) => b.id === 'a').q).toBe(40);
+  expect(saved.items.find((i: { id: string }) => i.id === 'a').state.slot).toBe(40);
 });
 
 test('cofnięcie przywraca poprzednią godzinę', async () => {
@@ -310,11 +310,11 @@ test('cofnięcie przywraca poprzednią godzinę', async () => {
   const { undo } = await import('../src/state.svelte');
 
   drag(blockEl('a'), 32, 40, flush);
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(40);
+  expect(slot(app, 'a')).toBe(40);
 
   undo();
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
 });
 
 test('pozycja powiązana na liście pokazuje nową godzinę bloku', async () => {
@@ -327,18 +327,31 @@ test('pozycja powiązana na liście pokazuje nową godzinę bloku', async () => 
   expect(document.querySelector('#list .item-hour')!.textContent).toBe('10:00');
 });
 
-test('blok w toku przeniesiony w przyszłość przestaje trwać', async () => {
-  seed([{ id: 'a', q: 40, status: 'active' }]);
+test('wykonane zadanie nie zmienia godziny: cel jest czerwony, a upuszczenie odmawia', async () => {
+  seed([{ id: 'a', q: 40, done: true }]);
   const { flush, app } = await mountApp();
-  const d = new Date();
-  app.now = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 10, 7).getTime();
+  const el = blockEl('a');
+
+  pointer(el, 'pointerdown', 40);
+  pointer(el, 'pointermove', 60);
+  flush();
+  expect(document.querySelector('#grid .blk.ghost.drop.bad')).not.toBeNull();
+  pointer(el, 'pointerup', 60);
   flush();
 
-  drag(blockEl('a'), 40, 60, flush);
+  expect(slot(app, 'a')).toBe(40);
+  expect(app.toast?.msg).toMatch(/Wykonane/);
+});
 
-  const a = app.S.blocks.find((b) => b.id === 'a')!;
-  expect(a.q).toBe(60);
-  expect(a.status).toBe('planned');
+test('upływ czasu nie oznacza wykonania: slot, który minął, zostaje otwarty', async () => {
+  seed([{ id: 'a', q: 32 }]);
+  const { flush, app } = await mountApp();
+  const d = new Date();
+  app.now = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0).getTime();
+  flush();
+
+  expect(isDone(app, 'a')).toBe(false);
+  expect(blockEl('a').classList.contains('stale')).toBe(true);
 });
 
 /* ── Klawiatura ── */
@@ -364,7 +377,7 @@ test('Shift+→ przenosi blok spod kursora o kwant, a kursor jedzie z nim', asyn
   key('ArrowRight');
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(33);
+  expect(slot(app, 'a')).toBe(33);
   expect(ui.cursor.q).toBe(34);
   expect(app.toast?.msg).toMatch(/08:15/);
 });
@@ -373,7 +386,7 @@ test('Shift+↓ i Shift+J przenoszą blok o godzinę, Shift+K i Shift+H wracają
   seed([{ id: 'a', q: 32 }]);
   const { flush, app } = await mountApp();
   const ui = await cursorAt(32);
-  const q = () => app.S.blocks.find((b) => b.id === 'a')!.q;
+  const q = () => slot(app, 'a');
 
   key('ArrowDown');
   flush();
@@ -401,8 +414,8 @@ test('Shift+strzałka na zajęte miejsce nic nie rusza — ani bloku, ani kursor
   key('ArrowRight');
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
-  expect(app.S.blocks.find((b) => b.id === 'b')!.q).toBe(34);
+  expect(slot(app, 'a')).toBe(32);
+  expect(slot(app, 'b')).toBe(34);
   expect(ui.cursor.q).toBe(32);
   expect(app.toast?.msg).toMatch(/zajęte/);
 });
@@ -415,7 +428,7 @@ test('Shift+strzałka nie wypycha bloku poza zakres dnia', async () => {
   key('ArrowUp');
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(24);
+  expect(slot(app, 'a')).toBe(24);
   expect(ui.cursor.q).toBe(24);
   expect(app.toast?.msg).toMatch(/Poza zakresem dnia/);
 });
@@ -428,7 +441,7 @@ test('Shift+strzałka na pustym polu mówi, że nie ma czego przenosić', async 
   key('ArrowRight');
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
   expect(ui.cursor.q).toBe(50);
   expect(app.toast?.msg).toMatch(/nie ma bloku/);
 });
@@ -441,7 +454,7 @@ test('strzałka bez Shifta nadal rusza tylko kursorem', async () => {
   key('ArrowRight', false);
   flush();
 
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(32);
+  expect(slot(app, 'a')).toBe(32);
   expect(ui.cursor.q).toBe(33);
 });
 
@@ -453,11 +466,11 @@ test('przeniesienie klawiaturą cofa się jednym Ctrl+Z na krok', async () => {
   key('ArrowRight');
   key('ArrowRight');
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(34);
+  expect(slot(app, 'a')).toBe(34);
 
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
   flush();
-  expect(app.S.blocks.find((b) => b.id === 'a')!.q).toBe(33);
+  expect(slot(app, 'a')).toBe(33);
 });
 
 test('pomoc wymienia przenoszenie blokiem myszą i klawiaturą', async () => {

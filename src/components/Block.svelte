@@ -1,69 +1,88 @@
 <script lang="ts">
-  import { app, ui } from '../state.svelte';
-  import { catOf, colorOf, iconOf, pathOf } from '../lib/categories';
-  import { STATUS_LABEL } from '../lib/model';
-  import { fmtQ, pad, qTime, rel } from '../lib/time';
+  import { app, currentDay, ui } from '../state.svelte';
+  import { colorOf, iconOf, pathOf } from '../lib/categories';
+  import { SLOT_LEN } from '../lib/machine';
+  import type { Item } from '../lib/machine';
+  import { NO_CAT_COLOR } from '../lib/stats';
+  import { fmtQ, pad, qTime } from '../lib/time';
   import type { Segment } from '../lib/segments';
-  import type { Block } from '../lib/types';
+  import { categoryOf, isDone, itemTone, slotOf } from '../lib/view';
+  import type { Tone } from '../lib/view';
   import Icon from './Icon.svelte';
   import {
-    advance,
     canMoveTo,
     moveBlock,
     openEdit,
     qAtPoint,
     swallowNextClick,
+    toggleDone,
   } from '../actions.svelte';
 
   interface Props {
-    block: Block;
+    /** dzisiejsze zadanie ze slotem — siatka jest ich rzutem */
+    item: Item;
     seg: Segment;
     hour: number;
   }
 
-  const { block, seg, hour }: Props = $props();
+  const { item, seg, hour }: Props = $props();
 
-  const cat = $derived(catOf(app.S.cats, block.cat));
-  const endQ = $derived(block.q + block.len);
+  const day = $derived(currentDay.value);
+  const slot = $derived(slotOf(item)!);
+  const endQ = $derived(slot + SLOT_LEN);
+  const cat = $derived(categoryOf(item, app.S.cats));
+  const color = $derived(cat ? colorOf(app.S.cats, cat) : NO_CAT_COLOR);
 
-  // Plan, któremu minął czas: widoczny, ale wyblakły — nie zniknął, tylko się nie wydarzył.
-  const stale = $derived(
-    block.status === 'planned' && rel(block.day, block.q, endQ, app.now) === 'past',
-  );
+  // Czas zmienia wygląd, nigdy stan: wykonanie oznacza tylko użytkownik.
+  const tone = $derived(itemTone(item, day, app.now));
+  const STATUS_CLASS: Record<Tone, string> = {
+    done: 'st-confirmed',
+    active: 'st-active',
+    missed: 'st-planned',
+    incoming: 'st-planned',
+    note: 'st-planned',
+  };
+  const TONE_LABEL: Record<Tone, string> = {
+    done: 'wykonane',
+    active: 'teraz',
+    missed: 'minęło',
+    incoming: 'plan',
+    note: 'notatka',
+  };
 
-  // Postęp liczony w obrębie SEGMENTU, nie całego bloku: pasek wypełnia się
-  // osobno w każdym rzędzie, przez który blok przechodzi.
+  // Postęp liczony w obrębie SEGMENTU, nie całego slotu: pasek wypełnia się
+  // osobno w każdym rzędzie, przez który slot przechodzi.
   const progress = $derived(
-    block.status === 'active'
+    tone === 'active'
       ? Math.min(
           1,
           Math.max(
             0,
-            (app.now - qTime(block.day, seg.from)) /
-              (qTime(block.day, seg.to) - qTime(block.day, seg.from)),
+            (app.now - qTime(day, seg.from)) / (qTime(day, seg.to) - qTime(day, seg.from)),
           ),
         )
       : 0,
   );
 
   const countdown = $derived.by(() => {
-    const left = Math.max(0, qTime(block.day, endQ) - app.now);
+    const left = Math.max(0, qTime(day, endQ) - app.now);
     return `${Math.floor(left / 60000)}:${pad(Math.floor(left / 1000) % 60)}`;
   });
 
+  const label = $derived(item.text || cat?.name || 'Bez kategorii');
   const tip = $derived(
-    `${fmtQ(block.day, block.q)}–${fmtQ(block.day, endQ)}  ${pathOf(app.S.cats, cat)}` +
-      `${block.title ? ': ' + block.title : ''} (${STATUS_LABEL[block.status]})`,
+    `${fmtQ(day, slot)}–${fmtQ(day, endQ)}  ${cat ? pathOf(app.S.cats, cat) : 'Bez kategorii'}` +
+      `${item.text ? ': ' + item.text : ''} (${TONE_LABEL[tone]})`,
   );
 
-  const iconName = $derived(iconOf(app.S.cats, cat));
-  const letter = $derived(cat.name[0] ?? '?');
+  const iconName = $derived(cat ? iconOf(app.S.cats, cat) : '');
+  const letter = $derived(cat?.name[0] ?? '·');
 
   /* ── Przeciąganie ──
-     Blok reaguje na klik (awans), dwuklik i przytrzymanie (edycja) oraz
-     przeciągnięcie (zmiana godziny). Tak jak przy znaczniku na liście
-     rozróżnia je próg ruchu: dopiero po nim naciśnięcie staje się
-     przeciąganiem, więc klik, który drgnął o piksel, nadal awansuje blok. */
+     Blok reaguje na klik (wykonane ↔ otwarte), dwuklik i przytrzymanie
+     (edycja) oraz przeciągnięcie (zmiana godziny). Tak jak przy znaczniku na
+     liście rozróżnia je próg ruchu: dopiero po nim naciśnięcie staje się
+     przeciąganiem, więc klik, który drgnął o piksel, nadal przełącza. */
   const THRESHOLD = 4;
 
   let startX = 0;
@@ -78,7 +97,7 @@
     startY = e.clientY;
     dragging = false;
     const under = qAtPoint(e.clientX, e.clientY);
-    grab = under === null ? 0 : Math.max(0, Math.min(block.len - 1, under - block.q));
+    grab = under === null ? 0 : Math.max(0, Math.min(SLOT_LEN - 1, under - slot));
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
 
@@ -93,7 +112,9 @@
     }
     const under = qAtPoint(e.clientX, e.clientY);
     const q = under === null ? null : under - grab;
-    ui.blockDrag = { id: block.id, len: block.len, q, ok: q !== null && canMoveTo(block.id, q) };
+    // Wykonane zadanie nie zmienia godziny — cel świeci na czerwono.
+    const ok = q !== null && !isDone(item) && canMoveTo(item.id, q);
+    ui.blockDrag = { id: item.id, len: SLOT_LEN, q, ok };
   }
 
   function onPointerUp(e: PointerEvent) {
@@ -107,8 +128,8 @@
     ui.blockDrag = null;
     // Upuszczenie poza siatką albo na zajęte miejsce nic nie zmienia — cel
     // był widoczny jako duch, więc brak ruchu jest odpowiedzią.
-    if (!drag || drag.q === null || drag.q === block.q) return;
-    moveBlock(block.id, drag.q);
+    if (!drag || drag.q === null || drag.q === slot) return;
+    moveBlock(item.id, drag.q);
   }
 
   /** Przerwane przez system (np. gest przeglądarki): nic nie przenosimy. */
@@ -123,36 +144,35 @@
 </script>
 
 <div
-  class="blk st-{block.status}"
+  class="blk {STATUS_CLASS[tone]}"
   class:first={seg.first}
   class:last={seg.last}
-  class:stale
-  class:hl={ui.hover === block.id}
-  class:is-dragging={ui.blockDrag?.id === block.id}
-  data-id={block.id}
+  class:stale={tone === 'missed'}
+  class:no-cat={!cat}
+  class:hl={ui.hover === item.id}
+  class:is-dragging={ui.blockDrag?.id === item.id}
+  data-id={item.id}
   title={tip}
   role="presentation"
-  style="grid-column:{seg.from - hour * 4 + 2}/span {seg.to - seg.from};--c:var(--{colorOf(
-    app.S.cats,
-    cat,
-  )});--p:{progress.toFixed(4)}"
-  onmouseenter={() => (ui.hover = block.id)}
+  style="grid-column:{seg.from - hour * 4 + 2}/span {seg.to -
+    seg.from};--c:var(--{color});--p:{progress.toFixed(4)}"
+  onmouseenter={() => (ui.hover = item.id)}
   onmouseleave={() => (ui.hover = null)}
-  onclick={() => advance(block)}
+  onclick={() => toggleDone(item.id)}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}
   onpointercancel={onPointerCancel}
-  ondblclick={() => openEdit(block.id)}
+  ondblclick={() => openEdit(item.id)}
   oncontextmenu={(e) => {
     e.preventDefault();
-    openEdit(block.id);
+    openEdit(item.id);
   }}
 >
   {#if seg.first}
     <Icon name={iconName} fallback={letter} />
-    <span class="t">{block.title || cat.name}</span>
-    {#if block.status === 'active'}<span class="cd">{countdown}</span>{/if}
+    <span class="t">{label}</span>
+    {#if tone === 'active'}<span class="cd">{countdown}</span>{/if}
   {:else}
     <span class="cont"><Icon name={iconName} fallback={letter} /></span>
   {/if}

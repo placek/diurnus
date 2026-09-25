@@ -1,5 +1,11 @@
 import { catOf, catOrder, colorOf, rootOf } from './categories';
-import type { Block, Category } from './types';
+import { SLOT_LEN } from './machine';
+import type { Item } from './machine';
+import type { Category } from './types';
+import { isDone, slotOf, timedToday } from './view';
+
+/** Kolor zadania bez kategorii — przygaszony, żeby nie udawał kategorii. */
+export const NO_CAT_COLOR = 'fg-faint';
 
 export interface CatSummary {
   name: string;
@@ -20,36 +26,35 @@ export interface TokenStats {
 // Pasek tokenów liczy wyłącznie kwanty w widocznym oknie doby: zwężenie dnia
 // zwęża też mianownik, więc proporcja pozostaje uczciwa.
 export function tokenStats(
-  blocks: readonly Block[],
-  day: string,
+  items: readonly Item[],
   cats: readonly Category[],
   q0: number,
   q1: number,
 ): TokenStats {
   const order = catOrder(cats);
-  const sorted = blocks
-    .filter((b) => b.day === day && b.status !== 'discarded')
-    .slice()
-    .sort((a, b) => (order.get(a.cat) ?? 999) - (order.get(b.cat) ?? 999) || a.q - b.q);
+  const sorted = timedToday(items).sort(
+    (a, b) =>
+      (order.get(a.cat ?? '') ?? 999) - (order.get(b.cat ?? '') ?? 999) || slotOf(a)! - slotOf(b)!,
+  );
 
   const done: string[] = [];
   const plan: string[] = [];
   const perCat = new Map<string, { quanta: number; kids: Map<string, number> }>();
 
-  for (const b of sorted) {
-    const c = catOf(cats, b.cat);
-    const col = colorOf(cats, c);
-    // Blok w toku liczy się jako wykonany: ten czas już jest wydawany, a pokazanie
-    // go jako planu cofałoby pasek w momencie zakończenia bloku.
-    const isDone = b.status === 'confirmed' || b.status === 'active';
+  for (const i of sorted) {
+    const c = i.cat ? catOf(cats, i.cat) : null;
+    const col = c ? colorOf(cats, c) : NO_CAT_COLOR;
+    // Tylko wykonanie liczy się jako wykonane: upływ czasu nie zmienia stanu.
+    const finished = isDone(i);
+    const slot = slotOf(i)!;
 
     let visible = 0;
-    for (let i = b.q; i < b.q + b.len; i++) {
-      if (i < q0 || i >= q1) continue;
-      (isDone ? done : plan).push(col);
+    for (let q = slot; q < slot + SLOT_LEN; q++) {
+      if (q < q0 || q >= q1) continue;
+      (finished ? done : plan).push(col);
       visible++;
     }
-    if (!isDone || !visible) continue;
+    if (!finished || !visible || !c) continue;
 
     const root = rootOf(cats, c);
     const entry = perCat.get(root.name) ?? { quanta: 0, kids: new Map<string, number>() };

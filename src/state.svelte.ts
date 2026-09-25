@@ -1,8 +1,9 @@
 import { normalize, uid } from './lib/model';
-import { reconcile } from './lib/link';
+import { step } from './lib/machine';
+import type { DayHours, Event, Item, Machine, Refusal } from './lib/machine';
 import { readJSON, writeJSON } from './lib/persist';
-import { dayKey, qTime, today } from './lib/time';
-import type { Block, Prefs, State } from './lib/types';
+import { dayKey, today } from './lib/time';
+import type { Prefs, State } from './lib/types';
 
 const KEY = 'diurnus.v1';
 const PREF = 'diurnus.prefs';
@@ -46,7 +47,8 @@ export const app = $state({
 // bliżej niż App.
 export interface MenuState {
   q: number;
-  fit: { q: number; len: number };
+  /** miejsce nowego zadania; `null` — menu wybiera tylko kategorię */
+  fit: { q: number; len: number } | null;
   rel: 'past' | 'now' | 'future';
   level: string | null;
   x: number;
@@ -70,8 +72,6 @@ export const ui = $state({
   blockDrag: null as { id: string; len: number; q: number | null; ok: boolean } | null,
   /** okienko wyboru daty otwarte dla tej pozycji */
   datePrompt: null as { itemId: string; x: number; y: number } | null,
-  /** pozycja czekająca na wybór kategorii po przeciągnięciu z backlogu */
-  pullTo: null as string | null,
   /** pozycja czekająca na wybór kategorii z menu znacznika */
   catFor: null as string | null,
   edit: null as { id: string; cat: string } | null,
@@ -96,12 +96,12 @@ export function closeAll(): void {
 }
 
 /**
- * Aplikacja pokazuje wyłącznie dziś. Data wynika z zegara, nie z nawigacji —
- * nie ma czego przewijać, więc nie ma czego trzymać w stanie.
+ * Aplikacja pokazuje wyłącznie dziś. „Dziś" to dzień maszyny stanów; zegar
+ * przesuwa go zdarzeniem `advance`, nie ma innej drogi.
  */
 export const currentDay = {
   get value() {
-    return dayKey(new Date(app.now));
+    return app.S.today;
   },
 };
 
@@ -125,6 +125,10 @@ export const win = {
   get q1() {
     return app.S.day.end * 4;
   },
+  /** aktywna część doby w kwantach, tak jak widzi ją maszyna */
+  get dayHours(): DayHours {
+    return { q0: app.S.day.start * 4, q1: app.S.day.end * 4 };
+  },
 };
 
 const history: State[] = [];
@@ -139,9 +143,6 @@ export function commit(fn: () => void, msg?: string, undoable = false): void {
   history.push($state.snapshot(app.S) as State);
   if (history.length > HISTORY_MAX) history.shift();
   fn();
-  // Niezmiennik utrzymywany w jednym miejscu: żaden z mutatorów bloków nie
-  // musi pamiętać o liście, bo każdy i tak przechodzi tędy.
-  app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
   if (!save()) {
     app.toast = { msg: 'Zapis nieudany — pobierz kopię zapasową', undoable: false };
     return;
@@ -164,43 +165,91 @@ export function undo(): void {
   app.toast = { msg: 'Cofnięto', undoable: false };
 }
 
-const blockEnd = (b: Block) => qTime(b.day, b.q + b.len);
+/* ───────────── Maszyna stanów ───────────── */
 
-// Blok w toku domyka się sam, gdy minie jego czas.
-function autoConfirm(): boolean {
-  let changed = false;
-  for (const b of app.S.blocks) {
-    if (b.status === 'active' && blockEnd(b) <= app.now) {
-      b.status = 'confirmed';
-      changed = true;
-    }
-  }
-  return changed;
+/** Odmowy maszyny po ludzku. Wołający może podać własny tekst. */
+export const REFUSAL_MSG: Record<Refusal, string> = {
+  'unknown-item': 'Tej pozycji już nie ma',
+  'duplicate-id': 'Taka pozycja już istnieje',
+  'not-allowed': 'Tego nie można zrobić z tą pozycją',
+  'slot-taken': 'Ta godzina jest już zajęta',
+  'slot-outside-day': 'Ta godzina nie mieści się w dniu',
+  'bad-date': 'Nieprawidłowa data',
+};
+
+export interface DispatchOptions {
+  /** komunikat po udanej zmianie */
+  msg?: string;
+  undoable?: boolean;
+  /** własny komunikat odmowy; `null` — odmowa bez komunikatu */
+  refusal?: (r: Refusal) => string | null;
+  /** zmiana danych, nie stanu (kolejność, kategoria) w tej samej migawce */
+  after?: (items: Item[]) => Item[];
 }
 
-// Raz na sekundę: wskaźnik TERAZ i odliczanie wyprowadzają się z `now`.
-// Gdy zmieni się doba, widok przechodzi na nowy dzień tylko wtedy, gdy
-// użytkownik patrzył na poprzednie „dzisiaj" — ręcznie wybrany dzień zostaje.
-export function startClock(): () => void {
-  const id = setInterval(() => {
-    app.now = Date.now();
-    if (autoConfirm()) {
-      // Domknięcie bloku omija commit(), więc znacznik na liście trzeba
-      // uzgodnić tutaj — inaczej siatka pokazywałaby wykonanie, a lista nie.
-      app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
-      save();
+const machineOf = (): Machine => ({
+  today: app.S.today,
+  items: $state.snapshot(app.S.items) as Item[],
+});
+
+/**
+ * Jedyna droga zmiany stanu pozycji: zdarzenia idą przez maszynę po kolei.
+ * Wszystkie muszą przejść — pierwsza odmowa zostawia stan nietknięty i jest
+ * zwracana. Udane trafiają do jednej migawki, więc jedno cofnięcie cofa całość.
+ */
+export function dispatch(events: readonly Event[], opts: DispatchOptions = {}): Refusal | null {
+  let m = machineOf();
+  for (const e of events) {
+    const r = step(m, e, win.dayHours);
+    if (!r.ok) {
+      const msg = opts.refusal ? opts.refusal(r.reason) : REFUSAL_MSG[r.reason];
+      if (msg) app.toast = { msg, undoable: false };
+      return r.reason;
     }
-  }, 1000);
+    m = r.machine;
+  }
+  const items = opts.after ? opts.after([...m.items]) : [...m.items];
+  commit(
+    () => {
+      app.S.items = items;
+      app.S.today = m.today;
+    },
+    opts.msg,
+    opts.undoable,
+  );
+  return null;
+}
+
+/**
+ * Zegar przesuwa dzień maszyny. Poza historią cofania: cofnięcie przez północ
+ * przywróciłoby wczorajszy stan, który zegar i tak zaraz przesunie — więc
+ * historia sprzed północy przestaje mieć sens i jest czyszczona.
+ */
+export function advanceTo(day: string): boolean {
+  if (day <= app.S.today) return false;
+  const r = step(machineOf(), { type: 'advance', to: day }, win.dayHours);
+  if (!r.ok) return false;
+  app.S.items = [...r.machine.items];
+  app.S.today = r.machine.today;
+  history.length = 0;
+  save();
+  return true;
+}
+
+// Stan z pamięci mógł zostać zapisany wczoraj albo tydzień temu.
+advanceTo(today());
+
+// Raz na sekundę: wskaźnik TERAZ i odliczanie wyprowadzają się z `now`,
+// a zmiana doby przesuwa dzień maszyny.
+export function startClock(): () => void {
+  const id = setInterval(tickOnce, 1000);
   return () => clearInterval(id);
 }
 
 /** Jedno tyknięcie zegara — na potrzeby testów, bez czekania na interwał. */
 export function tickOnce(): void {
   app.now = Date.now();
-  if (autoConfirm()) {
-    app.S.items = reconcile(app.S.items, app.S.blocks, currentDay.value, Date.now(), uid);
-    save();
-  }
+  advanceTo(dayKey(new Date(app.now)));
 }
 
 // Druga karta tej samej przeglądarki zapisała stan — przejmij go.

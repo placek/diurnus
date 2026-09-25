@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { app, closeAll, commit, ui } from '../state.svelte';
-  import { removeBlock } from '../actions.svelte';
-  import { acceptTarget } from '../lib/actions';
+  import { app, closeAll, commit, currentDay, dispatch, ui, uid } from '../state.svelte';
+  import { removeItem } from '../actions.svelte';
   import { catOf, colorOf, iconOf, kids, rootOf, topCats } from '../lib/categories';
-  import { STATUS_LABEL } from '../lib/model';
+  import { SLOT_LEN } from '../lib/machine';
+  import type { Event, Item } from '../lib/machine';
+  import { NO_CAT_COLOR } from '../lib/stats';
   import { fmtQ } from '../lib/time';
-  import type { Status } from '../lib/types';
+  import { isDone, itemTone, slotOf } from '../lib/view';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -14,71 +15,67 @@
 
   const { edit }: Props = $props();
 
-  const block = $derived(app.S.blocks.find((b) => b.id === edit.id));
-  const cur = $derived(catOf(app.S.cats, edit.cat));
-  const root = $derived(rootOf(app.S.cats, cur));
-  const subs = $derived(root.archived ? [] : kids(app.S.cats, root.id));
+  const item = $derived(app.S.items.find((i) => i.id === edit.id));
+  const hasCat = $derived(!!edit.cat && app.S.cats.some((c) => c.id === edit.cat));
+  const cur = $derived(hasCat ? catOf(app.S.cats, edit.cat) : null);
+  const root = $derived(cur ? rootOf(app.S.cats, cur) : null);
+  const subs = $derived(root && !root.archived ? kids(app.S.cats, root.id) : []);
+  const slot = $derived(item ? slotOf(item) : null);
 
   let title = $state('');
   $effect(() => {
-    title = block?.title ?? '';
+    title = item?.text ?? '';
   });
 
-  const TOGGLE_LABEL: Record<Status, string> = {
-    confirmed: 'Wykonane',
-    active: 'Start',
-    planned: 'Akceptuj',
-    suggested: '',
-    discarded: '',
-  };
+  const CHIP = { done: 'wykonane', active: 'teraz', missed: 'minęło', incoming: 'plan', note: 'notatka' };
+  const chip = $derived(item ? CHIP[itemTone(item, currentDay.value, app.now)] : '');
 
-  // Przycisk zmiany statusu zależy od tego, gdzie blok leży względem TERAZ.
-  const toggle = $derived.by(() => {
-    if (!block) return null;
-    if (block.status === 'confirmed') return { status: 'planned' as Status, label: 'Do planu', icon: 'rotate-left' };
-    if (block.status === 'active') return { status: 'confirmed' as Status, label: 'Zakończ', icon: 'check' };
-    const t = acceptTarget(block, app.now);
-    return t === block.status ? null : { status: t, label: TOGGLE_LABEL[t], icon: 'check' };
-  });
+  // Jedyna zmiana stanu w arkuszu: wykonane ↔ otwarte. Tekst i kategoria to
+  // dane pozycji, zapisywane w tej samej migawce.
+  const toggle = $derived(
+    item && isDone(item)
+      ? { done: false, label: 'Cofnij wykonanie', icon: 'rotate-left' }
+      : { done: true, label: 'Wykonane', icon: 'check' },
+  );
 
-  function apply(patch: { status?: Status } = {}) {
-    const b = block;
-    if (!b) return;
+  function apply(patch: { done?: boolean } = {}) {
+    const i = item;
+    if (!i) return;
     const nextTitle = title.trim();
-    const changed =
-      edit.cat !== b.cat || nextTitle !== b.title || (patch.status && patch.status !== b.status);
-    if (changed) {
-      commit(() => {
-        b.cat = edit.cat;
-        b.title = nextTitle;
-        // Druga strona lustra: tytuł bloku jest tekstem jego pozycji.
-        const linked = app.S.items.find((i) => i.block === b.id);
-        if (linked) linked.text = nextTitle;
-        if (patch.status) b.status = patch.status;
-      });
-    }
+    const catChanged = (i.cat ?? '') !== edit.cat;
+    const events: Event[] = [];
+    if (patch.done === true) events.push({ type: 'markDone', id: i.id, copyId: uid() });
+    if (patch.done === false) events.push({ type: 'markOpen', id: i.id });
+    const withData = (items: Item[]) =>
+      items.map((x) =>
+        x.id === i.id ? { ...x, text: nextTitle, ...(edit.cat ? { cat: edit.cat } : {}) } : x,
+      );
+    if (events.length) dispatch(events, { after: withData });
+    else if (catChanged || nextTitle !== i.text) commit(() => (app.S.items = withData(app.S.items)));
     closeAll();
   }
 </script>
 
 <div id="scrim" class="strong" onclick={closeAll} role="presentation"></div>
 
-{#if block}
-  <div id="sheet" class="card" style="--c:var(--{colorOf(app.S.cats, cur)})">
+{#if item}
+  <div id="sheet" class="card" style="--c:var(--{cur ? colorOf(app.S.cats, cur) : NO_CAT_COLOR})">
     <div class="sh-head">
-      <span class="sh-time">{fmtQ(block.day, block.q)}–{fmtQ(block.day, block.q + block.len)}</span>
-      <span class="chip">{STATUS_LABEL[block.status]}</span>
+      {#if slot !== null}
+        <span class="sh-time">{fmtQ(currentDay.value, slot)}–{fmtQ(currentDay.value, slot + SLOT_LEN)}</span>
+      {/if}
+      <span class="chip">{chip}</span>
       <button class="ib" onclick={closeAll} aria-label="Zamknij"><Icon name="xmark" fallback="×" /></button>
     </div>
 
-    <input id="ttl" maxlength="60" autocomplete="off" placeholder={cur.name} bind:value={title} />
+    <input id="ttl" maxlength="60" autocomplete="off" placeholder={cur?.name ?? 'Bez kategorii'} bind:value={title} />
 
     <div id="sheetcats">
       <div class="cats">
         {#each topCats(app.S.cats) as c, i (c.id)}
           <button
             class="cb"
-            class:sel={c.id === root.id}
+            class:sel={c.id === root?.id}
             title="{c.name}  {i + 1}"
             aria-label={c.name}
             style="--c:var(--{colorOf(app.S.cats, c)})"
@@ -89,12 +86,12 @@
         {/each}
       </div>
 
-      {#if subs.length}
+      {#if root && subs.length}
         <div class="subs">
           {#each [root, ...subs] as c (c.id)}
             <button
               class="sc"
-              class:sel={c.id === cur.id}
+              class:sel={c.id === cur?.id}
               style="--c:var(--{colorOf(app.S.cats, c)})"
               onclick={() => (edit.cat = c.id)}
             >
@@ -107,15 +104,13 @@
     </div>
 
     <div class="sh-actions">
-      <button class="btn danger" onclick={() => { const id = edit.id; closeAll(); removeBlock(id); }}>
+      <button class="btn danger" onclick={() => { const id = edit.id; closeAll(); removeItem(id); }}>
         <Icon name="trash-can" />Usuń
       </button>
       <span class="sp"></span>
-      {#if toggle}
-        <button class="btn" onclick={() => apply({ status: toggle.status })}>
-          <Icon name={toggle.icon} />{toggle.label}
-        </button>
-      {/if}
+      <button class="btn" onclick={() => apply({ done: toggle.done })}>
+        <Icon name={toggle.icon} />{toggle.label}
+      </button>
       <button class="btn primary" onclick={() => apply()}>Zapisz</button>
     </div>
   </div>

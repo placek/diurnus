@@ -21,7 +21,7 @@ export function bundleExport(state: State, prefs: Prefs, nowMs: number): string 
 
 // Trzy tryby awarii mają osobne komunikaty: plik nie jest JSON-em (serwer
 // oddał stronę logowania), jest JSON-em, ale nie kopią Diurnus, albo jest
-// kopią bez bloków. Jeden ogólny komunikat zostawiałby użytkownika ze
+// kopią bez danych. Jeden ogólny komunikat zostawiałby użytkownika ze
 // zgadywaniem, który plik wybrał.
 export function bundleParse(text: string): { state: State; prefs: Prefs } {
   let parsed: unknown;
@@ -31,12 +31,17 @@ export function bundleParse(text: string): { state: State; prefs: Prefs } {
     throw new Error('Plik nie jest poprawnym JSON-em');
   }
 
-  const b = parsed as { magic?: string; state?: { blocks?: unknown }; prefs?: Partial<Prefs> };
+  const b = parsed as {
+    magic?: string;
+    state?: { blocks?: unknown; items?: unknown };
+    prefs?: Partial<Prefs>;
+  };
   if (!b || typeof b !== 'object' || Array.isArray(b) || !ACCEPTED.has(b.magic ?? '')) {
     throw new Error('To nie jest kopia zapasowa Diurnus');
   }
-  if (!b.state || !Array.isArray(b.state.blocks)) {
-    throw new Error('Kopia nie zawiera bloków');
+  // v6 ma same pozycje; kopie sprzed v6 mają bloki.
+  if (!b.state || !(Array.isArray(b.state.items) || Array.isArray(b.state.blocks))) {
+    throw new Error('Kopia nie zawiera danych');
   }
 
   return {

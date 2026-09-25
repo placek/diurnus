@@ -1,75 +1,89 @@
-import { app, commit, currentDay, ui, uid, win } from './state.svelte';
-import { acceptTarget, movedStatus, newBlock, statusFor } from './lib/actions';
+import { app, commit, currentDay, dispatch, ui, uid, win } from './state.svelte';
 import { kids, topCats } from './lib/categories';
-import { fit, occ } from './lib/occupancy';
-import { canPlace, reconcile, slotFree } from './lib/link';
-import { isBacklog } from './lib/backlog';
-import { nextOccurrence } from './lib/repeat';
-import {
-  cycleType,
-  insertAfter,
-  moveItem,
-  newItem,
-  removeById,
-  typeAfterEnter,
-} from './lib/items';
-import { fmtQ, pad, rel, shiftDay } from './lib/time';
-import type { Block, Item, ItemType, Repeat } from './lib/types';
+import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
+import type { Event, Item, Refusal, WhenInput } from './lib/machine';
+import type { Repeat } from './lib/repeat';
+import { fmtQ, pad, rel } from './lib/time';
+import type { ItemType } from './lib/types';
+import { canClaim, isBacklog, isDone, kindOf, occ, slotOf, whenOf } from './lib/view';
 
-function stopOtherActive(exceptId: string): void {
-  for (const b of app.S.blocks) {
-    if (b.status === 'active' && b.id !== exceptId) b.status = 'confirmed';
-  }
-}
+/*
+ * Każda zmiana stanu pozycji to zdarzenie maszyny wysłane przez `dispatch`.
+ * Bezpośrednio zmieniane są tylko dane, które stanem nie są: tekst, kategoria
+ * i kolejność pozycji swobodnych.
+ */
 
+const find = (id: string): Item | undefined => app.S.items.find((i) => i.id === id);
+
+/** Pola danych, które aplikacja zmienia wprost. Maszyna trzyma je jako
+ *  tylko do odczytu, bo sama ich nie zmienia; stan nadal idzie przez zdarzenia. */
+type ItemData = { text: string; cat?: string };
+const data = (i: Item) => i as unknown as ItemData;
+
+/** Komunikat odmowy przy zajmowaniu slotu, z godziną i zakresem dnia. */
+const slotRefusal =
+  (q: number) =>
+  (r: Refusal): string | null => {
+    if (r === 'slot-taken') return `O ${fmtQ(currentDay.value, q)} jest już zajęte`;
+    if (r === 'slot-outside-day')
+      return `Poza zakresem dnia ${pad(win.startH)}:00–${pad(win.endH)}:00`;
+    return null;
+  };
+
+/* ───────────── Siatka ───────────── */
+
+/** Nowe zadanie dziś, od razu ze slotem i kategorią — jedna migawka. */
 export function createAt(q: number, catId: string): void {
-  const f = fit(occ(app.S.blocks, currentDay.value), q);
-  if (!f) return;
-  const status = statusFor(currentDay.value, f.q, f.len, app.now);
-  const b = newBlock(currentDay.value, f.q, f.len, catId, status, Date.now(), uid);
-  commit(
-    () => {
-      if (status === 'active') stopOtherActive(b.id);
-      app.S.blocks.push(b);
-    },
-    status === 'active' ? `Start: do ${fmtQ(currentDay.value, f.q + f.len)}` : undefined,
+  const id = uid();
+  dispatch(
+    [
+      { type: 'create', id, text: '', place: 'today', cat: catId, created: Date.now() },
+      { type: 'setSlot', id, slot: q },
+    ],
+    { refusal: slotRefusal(q) },
   );
 }
 
-/** Kliknięcie w istniejący blok: sugestia/plan awansuje, reszta nie robi nic. */
-export function advance(b: Block): void {
-  if (b.status !== 'suggested' && b.status !== 'planned') return;
-  const next = acceptTarget(b, app.now);
-  if (next === b.status) return;
-  commit(() => {
-    if (next === 'active') stopOtherActive(b.id);
-    b.status = next;
-  });
+/** Wykonane ↔ otwarte. Tylko użytkownik oznacza wykonanie. */
+export function toggleDone(id: string): void {
+  const item = find(id);
+  if (!item || kindOf(item) === 'note') return;
+  dispatch([isDone(item) ? { type: 'markOpen', id } : { type: 'markDone', id, copyId: uid() }]);
 }
 
-export function removeBlock(id: string): void {
-  const b = app.S.blocks.find((x) => x.id === id);
-  if (!b) return;
-  // Odrzucona sugestia zostaje jako `discarded`: pamięta, że użytkownik
-  // powiedział nie, więc kolejna runda sugestii jej nie wskrzesi.
-  commit(
-    () => {
-      if (b.status === 'suggested') b.status = 'discarded';
-      else app.S.blocks = app.S.blocks.filter((x) => x.id !== id);
-    },
-    b.status === 'suggested' ? 'Sugestia odrzucona' : 'Blok usunięty',
-    true,
-  );
+export function removeItem(id: string, msg = 'Usunięto'): void {
+  if (!find(id)) return;
+  dispatch([{ type: 'remove', id }], { msg, undoable: true });
 }
 
+/** Menu kategorii na pustym polu siatki; nowe zadanie zawsze ma 30 minut. */
 export function openMenu(q: number, x: number, y: number): void {
   if (!topCats(app.S.cats).length) return;
-  const f = fit(occ(app.S.blocks, currentDay.value), q);
-  if (!f) return;
-  ui.menu = { q, fit: f, rel: rel(currentDay.value, q, q + 1, app.now), level: null, x, y };
+  if (!canClaim(app.S.items, q, win.dayHours)) {
+    if (!occ(app.S.items)[q]) app.toast = { msg: 'Tu nie zmieści się 30 minut', undoable: false };
+    return;
+  }
+  ui.menu = {
+    q,
+    fit: { q, len: 2 },
+    rel: rel(currentDay.value, q, q + 1, app.now),
+    level: null,
+    x,
+    y,
+  };
 }
 
-export const closeMenu = (): void => void (ui.menu = null);
+/** Samo menu kategorii — bez miejsca na siatce, dla pozycji z listy. */
+export function openCategoryMenu(itemId: string, x: number, y: number): void {
+  if (!topCats(app.S.cats).length) return;
+  ui.catFor = itemId;
+  ui.menu = { q: 0, fit: null, rel: 'future', level: null, x, y };
+}
+
+export const closeMenu = (): void => {
+  ui.menu = null;
+  ui.catFor = null;
+};
 
 /** Kategoria z dziećmi otwiera drugi pierścień; bez dzieci zapisuje od razu. */
 export function chooseCat(id: string): void {
@@ -80,66 +94,43 @@ export function chooseCat(id: string): void {
     return;
   }
   const q = menu.q;
-  const pulling = ui.pullTo;
   const categorising = ui.catFor;
   ui.menu = null;
-  ui.pullTo = null;
   ui.catFor = null;
-  // Menu obsługuje trzy źródła: klik w pustą komórkę, pozycję ciągniętą
-  // z backlogu i nadanie kategorii pozycji z menu znacznika.
   if (categorising) setItemCategory(categorising, id);
-  else if (pulling) finishPull(pulling, id);
   else createAt(q, id);
 }
 
-/** Kliknięcie w komórkę: blok awansuje, puste miejsce otwiera menu. */
+/** Kliknięcie w komórkę: zadanie przełącza wykonanie, puste miejsce otwiera menu. */
 export function actAt(q: number, x: number, y: number): void {
-  const b = occ(app.S.blocks, currentDay.value)[q];
-  if (b) advance(b);
+  const item = occ(app.S.items)[q];
+  if (item) toggleDone(item.id);
   else openMenu(q, x, y);
 }
 
-/** Czy blok da się przenieść tak, by zaczynał się w `q` — w oknie dnia i na wolne miejsce. */
-export function canMoveTo(id: string, q: number): boolean {
-  const b = app.S.blocks.find((x) => x.id === id);
-  if (!b) return false;
-  return canPlace(app.S.blocks, b.day, b.id, q, b.len, win.q0, win.q1);
-}
-
-/** Przeniesienie bloku w czasie: nowy kwant początkowy, ta sama długość i kategoria.
- *  Zwraca, czy blok się przeniósł — klawiatura przesuwa kursor tylko wtedy. */
-export function moveBlock(id: string, q: number): boolean {
-  const b = app.S.blocks.find((x) => x.id === id);
-  if (!b || q === b.q) return false;
-  // Odmowa mówi dlaczego: duch pokazywał, że nie wolno, ale nie tłumaczył.
-  if (q < win.q0 || q + b.len > win.q1) {
-    app.toast = {
-      msg: `Poza zakresem dnia ${pad(win.startH)}:00–${pad(win.endH)}:00`,
-      undoable: false,
-    };
-    return false;
-  }
-  if (!slotFree(app.S.blocks, b.day, q, b.len, b.id)) {
-    app.toast = { msg: `O ${fmtQ(b.day, q)} jest już zajęte`, undoable: false };
-    return false;
-  }
-  const status = movedStatus(b, q, app.now);
-  commit(
-    () => {
-      b.q = q;
-      b.status = status;
-    },
-    `Przeniesiono na ${fmtQ(b.day, q)}`,
-    true,
-  );
-  return true;
-}
-
 export function openEdit(id: string): void {
-  const b = app.S.blocks.find((x) => x.id === id);
-  if (!b) return;
+  const item = find(id);
+  if (!item) return;
   ui.menu = null;
-  ui.edit = { id, cat: b.cat };
+  ui.edit = { id, cat: item.cat ?? '' };
+}
+
+/** Czy zadanie da się przenieść tak, by jego slot zaczynał się w `q`. */
+export const canMoveTo = (id: string, q: number): boolean =>
+  canClaim(app.S.items, q, win.dayHours, id);
+
+/** Nowa godzina zadania. Zwraca, czy się przeniosło — klawiatura przesuwa wtedy kursor. */
+export function moveBlock(id: string, q: number): boolean {
+  const item = find(id);
+  if (!item || slotOf(item) === q) return false;
+  return (
+    dispatch([{ type: 'setSlot', id, slot: q }], {
+      msg: `Przeniesiono na ${fmtQ(currentDay.value, q)}`,
+      undoable: true,
+      refusal: (r) =>
+        r === 'not-allowed' ? 'Wykonane zadanie zostaje o swojej godzinie' : slotRefusal(q)(r),
+    }) === null
+  );
 }
 
 /** Środek komórki kwantu — potrzebny, żeby menu otworzyło się tam, gdzie pole. */
@@ -180,7 +171,7 @@ export function qAtPoint(x: number, y: number): number | null {
   return null;
 }
 
-// Cyfra przypisuje kategorię: istniejącemu blokowi zmienia kategorię, puste pole
+// Cyfra przypisuje kategorię: zadaniu pod kursorem ją zmienia, puste pole
 // wypełnia, a kategoria z dziećmi otwiera drugi pierścień zamiast zgadywać.
 export function assignDigit(n: number, cursorQ: number | null): void {
   const cat = topCats(app.S.cats)[n - 1];
@@ -190,9 +181,9 @@ export function assignDigit(n: number, cursorQ: number | null): void {
     return;
   }
 
-  const b = occ(app.S.blocks, currentDay.value)[cursorQ];
-  if (b) {
-    if (b.cat !== cat.id) commit(() => void (b.cat = cat.id));
+  const item = occ(app.S.items)[cursorQ];
+  if (item) {
+    if (item.cat !== cat.id) setItemCategory(item.id, cat.id);
     return;
   }
 
@@ -206,214 +197,130 @@ export function assignDigit(n: number, cursorQ: number | null): void {
   createAt(cursorQ, cat.id);
 }
 
-/* ───────────── Lista notatek ───────────── */
+/* ───────────── Dane pozycji: tekst, kategoria, kolejność ───────────── */
 
-export function setItemType(id: string, type: ItemType): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item || item.type === type) return;
+/** Kategoria to dana, nie stan — zmienia się poza maszyną, ale z migawką. */
+export function setItemCategory(id: string, catId: string | null): void {
+  const item = find(id);
+  if (!item || (item.cat ?? null) === catId) return;
   commit(() => {
-    item.type = type;
+    if (catId) data(item).cat = catId;
+    else delete data(item).cat;
   });
-}
-
-/** Pozycja powiązana: znacznik JEST statusem bloku, więc przełączamy status. */
-export function toggleBlockDone(id: string): void {
-  const item = app.S.items.find((i) => i.id === id);
-  const block = item?.block ? app.S.blocks.find((b) => b.id === item.block) : undefined;
-  if (!block) return;
-  commit(() => {
-    block.status = block.status === 'confirmed' ? 'planned' : 'confirmed';
-  });
-}
-
-export const cycleItemType = (id: string, dir: 1 | -1 = 1): void => {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item) return;
-  // Znacznik pozycji powiązanej nie ma własnego cyklu — odbija status bloku.
-  if (item.block) return toggleBlockDone(id);
-  setItemType(id, cycleType(item.type, dir));
-};
-
-/** Nowa pozycja pod wskazaną (albo na końcu listy dnia, gdy `afterId` jest null). */
-export function addItemAfter(afterId: string | null): void {
-  const prev = afterId ? app.S.items.find((i) => i.id === afterId) : undefined;
-  const type = prev ? typeAfterEnter(prev.type) : 'task';
-  // Nowa pozycja dziedziczy dzień poprzedniej, nie „dziś": Enter w backlogu ma
-  // tworzyć pozycję tam, gdzie się pisze, a nie przerzucać ją do notatek.
-  const day = prev ? prev.day : currentDay.value;
-  const item = newItem(day, type, Date.now(), uid);
-  commit(() => (app.S.items = insertAfter(app.S.items, afterId, item)));
-  ui.focusItem = item.id;
-}
-
-export function deleteItem(id: string, focusAfter: string | null): void {
-  const item = app.S.items.find((i) => i.id === id);
-  // Lustro: pozycja JEST blokiem, więc usunięcie jednej strony usuwa drugą.
-  // Blok znika w tej samej migawce, więc jedno Ctrl+Z przywraca oba.
-  const blockId = item?.block;
-  commit(() => {
-    app.S.items = removeById(app.S.items, id);
-    if (blockId) app.S.blocks = app.S.blocks.filter((b) => b.id !== blockId);
-  });
-  ui.focusItem = focusAfter;
 }
 
 /** Tekst zmienia się bez migawki — tę robi `pushHistory()` przy pierwszym
  *  znaku w danej pozycji, a `save()` utrwala każdą zmianę. */
 export function setItemText(id: string, text: string): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item) return;
-  item.text = text;
-  // Tekst piszą obie ścieżki edycji, nie reconcile — inaczej trzeba by zgadywać,
-  // która strona zmieniła się jako ostatnia.
-  if (item.block) {
-    const block = app.S.blocks.find((b) => b.id === item.block);
-    if (block) block.title = text;
-  }
+  const item = find(id);
+  if (item) data(item).text = text;
 }
 
-/** Tworzy pozycję z podanym tekstem na końcu listy dnia i ustawia na nią fokus.
- *  Używane przez pole początkowe, które samo NIE jest pozycją w stanie. */
-export function createItemWithText(text: string, day: string | null = currentDay.value): void {
-  const item = { ...newItem(day, 'task', Date.now(), uid), text };
-  commit(() => (app.S.items = insertAfter(app.S.items, null, item)));
-  ui.focusItem = item.id;
-}
-
-/** Przestawienie pozycji na liście dnia; `toIndex` to miejsce w liście BEZ niej. */
+/** Przestawienie pozycji swobodnej dziś; `toIndex` to miejsce w liście BEZ niej. */
 export function moveItemTo(id: string, toIndex: number): void {
   const before = app.S.items;
-  const after = moveItem(before, id, toIndex, currentDay.value);
-  if (after.every((x, i) => x === before[i])) return; // nic się nie przesunęło
+  const after = moveFree($state.snapshot(before) as Item[], id, toIndex);
+  if (after.every((x, i) => x.id === before[i]?.id)) return; // nic się nie przesunęło
   commit(() => (app.S.items = after), undefined, true);
 }
 
+/* ───────────── Listy ───────────── */
+
+/** Zmiana znacznika: ciąg przejść maszyny, bez skrótów poza grafem. */
+export function setItemType(id: string, type: ItemType): void {
+  const item = find(id);
+  if (!item) return;
+  const events = retype(item, type, uid());
+  if (events.length) dispatch(events);
+}
+
 /**
- * Odhaczenie w backlogu: rzecz zrobiona należy do dzisiejszego dziennika,
- * nie do dnia, na który była zaplanowana.
+ * Tab przechodzi przez znaczniki po kolei. Zadanie z czasem nie może być
+ * notatką, więc dla niego cykl pomija notatkę zamiast stawać.
  */
+export function cycleItemType(id: string, dir: 1 | -1 = 1): void {
+  const item = find(id);
+  if (!item) return;
+  let target = cycleType(kindOf(item), dir);
+  for (let n = 0; n < 2; n++) {
+    const events = retype(item, target, uid());
+    if (dispatch(events, { refusal: () => null }) === null) return;
+    target = cycleType(target, dir);
+  }
+}
+
+/** Nowa pozycja pod wskazaną (albo na końcu listy dziś, gdy `afterId` jest null). */
+export function addItemAfter(afterId: string | null): void {
+  const prev = afterId ? find(afterId) : undefined;
+  // Enter w backlogu tworzy pozycję w backlogu, na liście dnia — w dziś.
+  const place = prev && isBacklog(prev) ? 'backlog' : 'today';
+  const id = uid();
+  const events: Event[] = [{ type: 'create', id, text: '', place, created: Date.now() }];
+  if (prev && typeAfterEnter(kindOf(prev)) === 'note') events.push({ type: 'toNote', id });
+  if (dispatch(events, { after: (items) => placeAfter(items, id, afterId) }) === null)
+    ui.focusItem = id;
+}
+
+export function deleteItem(id: string, focusAfter: string | null): void {
+  if (!find(id)) return;
+  dispatch([{ type: 'remove', id }]);
+  ui.focusItem = focusAfter;
+}
+
+/** Pozycja z tekstem na końcu listy; pole początkowe samo nie jest pozycją. */
+export function createItemWithText(text: string, place: 'today' | 'backlog' = 'today'): void {
+  const id = uid();
+  if (dispatch([{ type: 'create', id, text, place, created: Date.now() }]) === null)
+    ui.focusItem = id;
+}
+
+/* ───────────── Ruch między polami ───────────── */
+
+export function moveToBacklog(id: string): void {
+  dispatch([{ type: 'move', id, to: 'backlog' }], {
+    refusal: (r) => (r === 'not-allowed' ? 'Wykonane zostaje w swoim dniu' : null),
+  });
+}
+
+export function moveToToday(id: string): void {
+  const w = find(id) ? whenOf(find(id)!) : null;
+  dispatch([{ type: 'move', id, to: 'today' }], {
+    refusal: (r) => {
+      if (r === 'not-allowed' && w?.type === 'recurring')
+        return 'Wzorzec przychodzi sam, w swoim dniu';
+      if (w?.type === 'dateSlot') return slotRefusal(w.slot)(r);
+      return null;
+    },
+  });
+}
+
+/** Odhaczenie w backlogu: rzecz zrobiona ląduje w dziś; wzorzec zostaje. */
 export function completeBacklogItem(id: string): void {
-  const item = app.S.items.find((i) => i.id === id);
+  const w = find(id) ? whenOf(find(id)!) : null;
+  const slot = w && w.type !== 'date' ? w.slot : null;
+  dispatch([{ type: 'markDone', id, copyId: uid() }], {
+    refusal: slot !== null ? slotRefusal(slot) : undefined,
+  });
+}
+
+/** Termin pozycji backlogu: dzień z opcjonalną godziną albo brak terminu. */
+export function scheduleItem(id: string, date: string | null, slot?: number): void {
+  const when: WhenInput | null =
+    date === null
+      ? null
+      : slot === undefined
+        ? { type: 'date', date }
+        : { type: 'dateSlot', date, slot };
+  dispatch([{ type: 'setWhen', id, when }]);
+}
+
+/** Wzorzec powtarzania albo jego zdjęcie. Godzina, którą pozycja miała, zostaje. */
+export function setRepeat(id: string, rule: Repeat | undefined): void {
+  const item = find(id);
   if (!item) return;
-  const today = currentDay.value;
-
-  if (!item.repeat) {
-    commit(() => {
-      item.day = today;
-      item.type = 'done';
-      // Pora opisywała plan; dziś rzecz jest po prostu zrobiona.
-      delete item.at;
-    });
-    return;
-  }
-
-  // Powtarzalna: szablon zostaje w backlogu, kopia idzie do dziś,
-  // a termin przesuwa się na następne wystąpienie.
-  const copy: Item = {
-    id: uid(),
-    day: today,
-    text: item.text,
-    type: 'done',
-    created: Date.now(),
-  };
-  commit(() => {
-    app.S.items = [...app.S.items, copy];
-    item.nextOn = nextOccurrence(item.repeat!, item.nextOn ?? today);
-  });
-}
-
-/** Ustawienie albo zdjęcie wzorca powtarzania pozycji backlogu. */
-export function setRepeat(id: string, repeat: Repeat | undefined): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item) return;
-  commit(() => {
-    if (repeat) {
-      item.repeat = repeat;
-      // Termin liczony od dziś, żeby nowy wzorzec nie zaczynał w przeszłości.
-      item.nextOn = nextOccurrence(repeat, currentDay.value);
-    } else {
-      delete item.repeat;
-      delete item.nextOn;
-    }
-  });
-}
-
-/** Przeniesienie pozycji do backlogu: dzień, opcjonalna pora, koniec powiązania. */
-export function scheduleItem(id: string, day: string | null, at?: number): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item) return;
-  commit(() => {
-    item.day = day;
-    if (at === undefined) delete item.at;
-    else item.at = at;
-    // Pozycja opuszczająca dziś nie może dalej wskazywać na dzisiejszy blok.
-    if (item.block) delete item.block;
-  });
-}
-
-/**
- * Wzięcie rzeczy z backlogu na dziś. Godzina, którą pozycja już nosi, staje się
- * blokiem — jeśli slot jest wolny. Kategorię wybiera menu radialne; pozycja bez
- * godziny pomija je i ląduje jako zwykła notatka.
- */
-export function pullToToday(id: string, x: number, y: number): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item) return;
-  const today = currentDay.value;
-
-  if (item.at === undefined) {
-    commit(() => {
-      item.day = today;
-      delete item.repeat;
-      delete item.nextOn;
-    });
-    return;
-  }
-
-  if (!slotFree(app.S.blocks, today, item.at, 2)) {
-    const at = item.at;
-    commit(() => {
-      item.day = today;
-      delete item.at;
-      delete item.repeat;
-      delete item.nextOn;
-    });
-    app.toast = {
-      msg: `O ${fmtQ(today, at)} jest już zajęte — pozycja bez bloku`,
-      undoable: false,
-    };
-    return;
-  }
-
-  // Godzina jest, miejsce jest — brakuje kategorii, więc pytamy o nią tak,
-  // jak przy tworzeniu bloku na siatce.
-  ui.pullTo = id;
-  openMenu(item.at, x, y);
-}
-
-/** Domknięcie `pullToToday` po wyborze kategorii w menu radialnym. */
-export function finishPull(id: string, catId: string): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item || item.at === undefined) return;
-  const today = currentDay.value;
-  const at = item.at;
-  const block = newBlock(today, at, 2, catId, statusFor(today, at, 2, app.now), Date.now(), uid);
-  commit(() => {
-    app.S.blocks.push(block);
-    item.day = today;
-    delete item.at;
-    delete item.repeat;
-    delete item.nextOn;
-    item.block = block.id;
-  });
-}
-
-/** Kategoria pozycji swobodnej. Powiązana bierze ją z bloku i nie da się jej tu zmienić. */
-export function setItemCategory(id: string, catId: string | null): void {
-  const item = app.S.items.find((i) => i.id === id);
-  if (!item || item.block) return;
-  commit(() => {
-    if (catId) item.cat = catId;
-    else delete item.cat;
-  });
+  const w = whenOf(item);
+  // „Bez powtarzania" zdejmuje tylko wzorzec; datę zostawia w spokoju.
+  if (!rule && w?.type !== 'recurring') return;
+  const slot = w && w.type !== 'date' ? w.slot : null;
+  dispatch([{ type: 'setWhen', id, when: rule ? { type: 'recurring', rule, slot } : null }]);
 }

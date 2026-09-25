@@ -33,7 +33,7 @@ export type WhenInput =
   | { type: 'dateSlot'; date: string; slot: Slot }
   | { type: 'recurring'; rule: Repeat; slot: Slot | null };
 
-export type State =
+export type ItemState =
   | { tag: 'today-task'; done: boolean; slot: Slot | null }
   | { tag: 'today-note' }
   | { tag: 'backlog-task'; when: When | null }
@@ -45,9 +45,12 @@ export type State =
 export interface Item {
   readonly id: string;
   readonly text: string;
-  readonly state: State;
+  readonly state: ItemState;
   /** Wzorzec, z którego pozycja jest kopią. Przeżywa wszystkie przejścia. */
   readonly from?: string;
+  /** Dane, nie stan: maszyna ich nie czyta, tylko przenosi — także na kopie. */
+  readonly cat?: string;
+  readonly created?: number;
 }
 
 export interface Machine {
@@ -63,7 +66,14 @@ export interface DayHours {
 }
 
 export type Event =
-  | { type: 'create'; id: string; text: string; place: 'today' | 'backlog' }
+  | {
+      type: 'create';
+      id: string;
+      text: string;
+      place: 'today' | 'backlog';
+      cat?: string;
+      created?: number;
+    }
   /** `copyId` nazywa kopię, gdy odhaczana jest pozycja powtarzalna. */
   | { type: 'markDone'; id: string; copyId: string }
   | { type: 'markOpen'; id: string }
@@ -128,7 +138,10 @@ const slotOf = (i: Item): Slot | null => (i.state.tag === 'today-task' ? i.state
 
 /* ───────────── Przejścia ───────────── */
 
-const put = (m: Machine, id: string, state: State): Machine => ({
+/** Kopia wzorca dziedziczy jego kategorię. */
+const catOf = (i: Item): { cat?: string } => (i.cat !== undefined ? { cat: i.cat } : {});
+
+const put = (m: Machine, id: string, state: ItemState): Machine => ({
   ...m,
   items: m.items.map((i) => (i.id === id ? { ...i, state } : i)),
 });
@@ -170,11 +183,18 @@ export function step(m: Machine, e: Event, day: DayHours): Result {
 
 function create(m: Machine, e: Extract<Event, { type: 'create' }>): Result {
   if (m.items.some((i) => i.id === e.id)) return no('duplicate-id');
-  const state: State =
+  const state: ItemState =
     e.place === 'today'
       ? { tag: 'today-task', done: false, slot: null }
       : { tag: 'backlog-task', when: null };
-  return ok({ ...m, items: [...m.items, { id: e.id, text: e.text, state }] });
+  const item: Item = {
+    id: e.id,
+    text: e.text,
+    state,
+    ...(e.cat !== undefined && { cat: e.cat }),
+    ...(e.created !== undefined && { created: e.created }),
+  };
+  return ok({ ...m, items: [...m.items, item] });
 }
 
 function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result {
@@ -199,12 +219,13 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
         if (r) return no(r);
       }
       const after = w.next > m.today ? w.next : m.today;
-      const template: State = { ...s, when: { ...w, next: nextOccurrence(w.rule, after) } };
+      const template: ItemState = { ...s, when: { ...w, next: nextOccurrence(w.rule, after) } };
       const copy: Item = {
         id: copyId,
         text: item.text,
         state: { tag: 'today-task', done: true, slot: w.slot },
         from: item.id,
+        ...catOf(item),
       };
       return ok({ ...m, items: [...put(m, item.id, template).items, copy] });
     }
@@ -323,7 +344,7 @@ function midnight(m: Machine): Machine {
  */
 function dayStart(m: Machine, d: string, day: DayHours): Machine {
   let items: Item[] = [...m.items];
-  const set = (id: string, state: State) => {
+  const set = (id: string, state: ItemState) => {
     items = items.map((i) => (i.id === id ? { ...i, state } : i));
   };
 
@@ -342,7 +363,7 @@ function dayStart(m: Machine, d: string, day: DayHours): Machine {
     if (s.tag !== 'backlog-task' || s.when?.type !== 'recurring') continue;
     const w = s.when;
     if (w.next > d) continue;
-    const advanced: State = { ...s, when: { ...w, next: nextOccurrence(w.rule, d) } };
+    const advanced: ItemState = { ...s, when: { ...w, next: nextOccurrence(w.rule, d) } };
     // Poprzednia kopia wciąż otwarta: nowej nie ma, a to wystąpienie przepada.
     // Wzorzec idzie dalej, żeby odhaczenie kopii w środę nie sprowadziło
     // poniedziałkowego wzorca w czwartek.
@@ -362,6 +383,7 @@ function dayStart(m: Machine, d: string, day: DayHours): Machine {
         text: orig.text,
         state: { tag: 'today-task', done: false, slot: w.slot },
         from: orig.id,
+        ...catOf(orig),
       },
     ];
   }
