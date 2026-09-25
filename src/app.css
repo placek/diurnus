@@ -130,12 +130,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   border:var(--frame) solid var(--raise);border-bottom:0;
   border-radius:14px 14px 0 0;
 }
-/* Linia pod nagłówkiem dnia przedłuża linię paska: wysokość to pasek z linią
-   minus odstęp od góry strony i rama. */
+/* Nagłówek dnia kończy się na wysokości linii paska (pasek z linią minus odstęp
+   od góry strony i rama), więc lista zaczyna się tam, gdzie siatka i backlog.
+   Sam nie ma linii: w sekcji dziś data i lista to jedna powierzchnia; linia
+   paska zostaje po obu stronach sekcji. */
 .today-head{
   flex:none;box-sizing:border-box;height:calc(var(--hdr) + 1px - 1em - var(--frame,0px));
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  padding:0 16px;border-bottom:1px solid var(--line-2);
+  padding:0 16px;
 }
 #backlog{
   min-height:0;overflow-y:auto;overflow-x:hidden;
