@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { normalize, bandAt, DEFAULT_DAY, uid } from '../src/lib/model';
+import { normalize, bandAt, DEFAULT_DAY, ICONS, uid } from '../src/lib/model';
 import type { Band } from '../src/lib/types';
 
 const T = '2026-09-24';
@@ -165,4 +165,39 @@ test('bandAt: kolejność w tablicy nie ma znaczenia', () => {
 
 test('bandAt: pusta lista pór daje null', () => {
   expect(bandAt([], 10)).toBeNull();
+});
+
+test('domyślne kategorie: Zadania, Modlitwa, Ruch, Dom i Telefon z podkategoriami', () => {
+  const cats = normalize(null, '2026-09-25').cats;
+  const top = cats.filter((c) => c.parent === null);
+  expect(top.map((c) => [c.name, c.icon, c.color])).toEqual([
+    ['Zadania', 'list-check', 'red'],
+    ['Modlitwa', 'cross', 'green'],
+    ['Ruch', 'person-running', 'aqua'],
+    ['Dom', 'house', 'blue'],
+    ['Telefon', 'phone', 'purple'],
+  ]);
+  const kidsOf = (name: string) => {
+    const id = top.find((c) => c.name === name)!.id;
+    return cats.filter((c) => c.parent === id).map((c) => [c.name, c.icon]);
+  };
+  expect(kidsOf('Zadania')).toEqual([
+    ['Daily', 'circle'],
+    ['Spotkanie', 'users'],
+    ['Programowanie', 'code'],
+    ['Research', 'graduation-cap'],
+  ]);
+  expect(kidsOf('Modlitwa')).toEqual([]);
+  expect(kidsOf('Ruch')).toEqual([]);
+  expect(kidsOf('Dom')).toEqual([
+    ['Ogród', 'seedling'],
+    ['Samochód', 'car'],
+    ['Zakupy', 'cart-shopping'],
+    ['Dzieci', 'child'],
+    ['Naprawy', 'hammer'],
+  ]);
+  expect(kidsOf('Telefon')).toEqual([]);
+  // Każda ikona istnieje w zestawie aplikacji; identyfikatory są unikalne.
+  for (const c of cats) if (c.icon) expect(ICONS as readonly string[], c.name).toContain(c.icon);
+  expect(new Set(cats.map((c) => c.id)).size).toBe(cats.length);
 });
