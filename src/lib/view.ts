@@ -1,6 +1,6 @@
 import { SLOT_LEN, slotFits, slotTaken } from './machine';
 import type { DayHours, Item, Slot, When } from './machine';
-import { rel } from './time';
+import { rel, splitDay } from './time';
 import type { Rel } from './time';
 import { QDAY } from './types';
 import type { Category, ItemType } from './types';
@@ -100,6 +100,29 @@ const sortSlot = (i: Item): number => {
   const w = whenOf(i);
   return w && w.type !== 'date' && w.slot !== null ? w.slot : -1;
 };
+
+/** Ile najbliższych dni dostaje względny termin i barwę bliskości. */
+export const SOON_DAYS = 5;
+
+/**
+ * Bliskość terminu pozycji backlogu: ile dni zostało i jak to powiedzieć.
+ * `null`, gdy pozycja nie ma terminu albo termin jest dalej niż SOON_DAYS.
+ * Termin dziś lub miniony — pozycja, której slot był zajęty — jest najpilniejszy.
+ */
+export function soonOf(i: Item, today: string): { days: number; label: string } | null {
+  const date = sortDate(i);
+  if (date === null) return null;
+  // Różnica dat kalendarzowych w UTC: doba zmiany czasu nie przesuwa wyniku.
+  const utc = (d: string) => {
+    const [y, m, dd] = splitDay(d);
+    return Date.UTC(y, m - 1, dd);
+  };
+  const days = Math.round((utc(date) - utc(today)) / 86_400_000);
+  if (days > SOON_DAYS) return null;
+  const label =
+    days < 0 ? 'po terminie' : days === 0 ? 'dziś' : days === 1 ? 'jutro' : `za ${days} dni`;
+  return { days, label };
+}
 
 /** Backlog: najpierw pozycje z terminem według daty i godziny, potem reszta w kolejności tablicy. */
 export function backlogList(items: readonly Item[]): Item[] {

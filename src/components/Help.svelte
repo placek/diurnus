@@ -146,6 +146,12 @@
       czeka do następnego dnia. Wzorzec przysyła wtedy kopię, chyba że poprzednia jest wciąż
       otwarta
     </dd>
+    <dt>Bliski termin</dt>
+    <dd>
+      w ciągu pięciu dni obok daty stoi pogrubione „jutro", „za 3 dni"… — im bliżej, tym
+      czerwieniej, za pięć dni już żółto. Termin, który czeka, bo godzina była zajęta, ma „dziś"
+      albo „po terminie"
+    </dd>
   </dl>
 
   <h3>Ustawienia i dane</h3>

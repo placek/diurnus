@@ -176,3 +176,27 @@ test('pole początkowe backlogu nie tworzy pozycji dopóki się nie pisze', asyn
   const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{"items":[]}');
   expect(saved.items ?? []).toEqual([]);
 });
+
+test('termin w ciągu 5 dni ma pogrubione słowo w barwie bliskości, dalszy — nie', async () => {
+  seed([
+    { id: 'a', day: shiftDay(today(), 1), text: 'Jutro', type: 'task', created: 0 },
+    { id: 'b', day: shiftDay(today(), 3), text: 'Za trzy', type: 'task', created: 0, at: 40 },
+    { id: 'c', day: shiftDay(today(), 5), text: 'Za pięć', type: 'task', created: 0 },
+    { id: 'd', day: shiftDay(today(), 6), text: 'Za sześć', type: 'task', created: 0 },
+    { id: 'e', day: null, text: 'Kiedyś', type: 'task', created: 0 },
+  ]);
+  await mountApp();
+  const soon = rows().map((r) => r.querySelector('b.backlog-soon'));
+  expect(soon.map((b) => b?.textContent ?? null)).toEqual([
+    'jutro',
+    'za 3 dni',
+    'za 5 dni',
+    null,
+    null,
+  ]);
+  expect(soon.slice(0, 3).map((b) => [...b!.classList].find((c) => c.startsWith('soon-')))).toEqual(
+    ['soon-1', 'soon-3', 'soon-5'],
+  );
+  // Data i godzina zostają obok.
+  expect(metas()[1]).toMatch(/10:00$/);
+});

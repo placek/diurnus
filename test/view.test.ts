@@ -11,6 +11,7 @@ import {
   itemTone,
   kindOf,
   occ,
+  soonOf,
   timedToday,
   todayList,
 } from '../src/lib/view';
@@ -115,4 +116,34 @@ test('categoryOf: kategoria pozycji albo null', () => {
   expect(categoryOf(tt('a'), cats)).toBeNull();
   expect(categoryOf(it('a', { tag: 'today-note' }, 'w'), cats)?.name).toBe('Praca');
   expect(categoryOf(it('a', { tag: 'today-note' }, 'gone'), cats)).toBeNull();
+});
+
+test('soonOf: termin w ciągu 5 dni dostaje słowo, dalszy i brak terminu — nic', () => {
+  const on = (date: string) => it('b', { tag: 'backlog-task', when: { type: 'date', date } });
+  expect(soonOf(on('2026-09-26'), DAY)).toEqual({ days: 1, label: 'jutro' });
+  expect(soonOf(on('2026-09-27'), DAY)).toEqual({ days: 2, label: 'za 2 dni' });
+  expect(soonOf(on('2026-09-30'), DAY)).toEqual({ days: 5, label: 'za 5 dni' });
+  expect(soonOf(on('2026-10-01'), DAY)).toBeNull();
+  expect(soonOf(on(DAY), DAY)).toEqual({ days: 0, label: 'dziś' });
+  expect(soonOf(on('2026-09-23'), DAY)).toEqual({ days: -2, label: 'po terminie' });
+  expect(soonOf(it('n', { tag: 'backlog-task', when: null }), DAY)).toBeNull();
+  expect(soonOf(it('bn', { tag: 'backlog-note' }), DAY)).toBeNull();
+});
+
+test('soonOf: data ze slotem i wzorzec liczą się od swojej daty', () => {
+  const slot = it('s', {
+    tag: 'backlog-task',
+    when: { type: 'dateSlot', date: '2026-09-28', slot: 36 },
+  });
+  const rec = it('r', {
+    tag: 'backlog-task',
+    when: { type: 'recurring', rule: { kind: 'daily' }, slot: null, next: '2026-09-26' },
+  });
+  expect(soonOf(slot, DAY)?.label).toBe('za 3 dni');
+  expect(soonOf(rec, DAY)?.label).toBe('jutro');
+});
+
+test('soonOf: przejście na czas zimowy nie zmienia liczby dni', () => {
+  const on = it('b', { tag: 'backlog-task', when: { type: 'date', date: '2026-10-27' } });
+  expect(soonOf(on, '2026-10-24')?.days).toBe(3);
 });
