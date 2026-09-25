@@ -46,6 +46,8 @@ export interface Item {
   readonly id: string;
   readonly text: string;
   readonly state: State;
+  /** Wzorzec, z którego pozycja jest kopią. Przeżywa wszystkie przejścia. */
+  readonly from?: string;
 }
 
 export interface Machine {
@@ -202,6 +204,7 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
         id: copyId,
         text: item.text,
         state: { tag: 'today-task', done: true, slot: w.slot },
+        from: item.id,
       };
       return ok({ ...m, items: [...put(m, item.id, template).items, copy] });
     }
@@ -339,17 +342,39 @@ function dayStart(m: Machine, d: string, day: DayHours): Machine {
     if (s.tag !== 'backlog-task' || s.when?.type !== 'recurring') continue;
     const w = s.when;
     if (w.next > d) continue;
+    const advanced: State = { ...s, when: { ...w, next: nextOccurrence(w.rule, d) } };
+    // Poprzednia kopia wciąż otwarta: nowej nie ma, a to wystąpienie przepada.
+    // Wzorzec idzie dalej, żeby odhaczenie kopii w środę nie sprowadziło
+    // poniedziałkowego wzorca w czwartek.
+    if (hasOpenCopy(items, orig.id)) {
+      set(orig.id, advanced);
+      continue;
+    }
     const copyId = `${orig.id}@${d}`;
     if (items.some((i) => i.id === copyId)) continue;
+    // Zajęty slot to co innego: wystąpienie czeka i ponawia o kolejnym świcie.
     if (w.slot !== null && claim(items, w.slot, day) !== null) continue;
-    set(orig.id, { ...s, when: { ...w, next: nextOccurrence(w.rule, d) } });
+    set(orig.id, advanced);
     items = [
       ...items,
-      { id: copyId, text: orig.text, state: { tag: 'today-task', done: false, slot: w.slot } },
+      {
+        id: copyId,
+        text: orig.text,
+        state: { tag: 'today-task', done: false, slot: w.slot },
+        from: orig.id,
+      },
     ];
   }
   return { today: d, items };
 }
+
+/** Otwarta kopia to zadanie niewykonane, w dziś albo odłożone do backlogu. */
+export const hasOpenCopy = (items: readonly Item[], templateId: string): boolean =>
+  items.some(
+    (i) =>
+      i.from === templateId &&
+      ((i.state.tag === 'today-task' && !i.state.done) || i.state.tag === 'backlog-task'),
+  );
 
 /* ───────────── Niezmienniki ───────────── */
 

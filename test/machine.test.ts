@@ -416,11 +416,79 @@ describe('północ i początek dnia', () => {
     expect(stateOf(m, 'c')).toEqual(bRec(null, '2026-10-03', { kind: 'weekly', weekday: 6 }));
   });
 
-  test('codzienny wzorzec przez kilka dni bez odhaczania zostawia kopię z każdego dnia', () => {
-    // Konsekwencja zaakceptowanych reguł: kopia jest otwartym zadaniem,
-    // a otwarte zadania przechodzą na następny dzień.
-    const m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'advance', to: '2026-09-28' });
-    expect(m.items.filter((i) => i.id.startsWith('a@'))).toHaveLength(3);
+  test('kopia wzorca pamięta, z którego wzorca pochodzi', () => {
+    const m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'advance', to: TOMORROW });
+    expect(m.items.find((i) => i.id === `a@${TOMORROW}`)!.from).toBe('a');
+    const d = run(machine(['a', bRec()]), { type: 'markDone', id: 'a', copyId: 'c' });
+    expect(d.items.find((i) => i.id === 'c')!.from).toBe('a');
+  });
+
+  test('wzorzec nie przysyła kopii, dopóki poprzednia jest otwarta', () => {
+    const m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'advance', to: '2026-10-02' });
+    expect(m.items.filter((i) => i.from === 'a')).toHaveLength(1);
+    // Pominięte wystąpienia przepadają: wzorzec wskazuje jutro, nie zaległy dzień.
+    expect(stateOf(m, 'a')).toEqual(bRec(null, '2026-10-03'));
+  });
+
+  test('po odhaczeniu kopii następna przychodzi w najbliższym dniu wzorca', () => {
+    let m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'advance', to: TOMORROW });
+    m = run(
+      m,
+      { type: 'markDone', id: `a@${TOMORROW}`, copyId: 'x' },
+      { type: 'advance', to: '2026-09-27' },
+    );
+    expect(stateOf(m, 'a@2026-09-27')).toEqual(tTask());
+  });
+
+  test('poniedziałkowy wzorzec odhaczony w środę nie wraca w czwartek', () => {
+    const MON: Repeat = { kind: 'weekly', weekday: 1 };
+    let m = run(machine(['a', bRec(null, '2026-09-28', MON)]), {
+      type: 'advance',
+      to: '2026-09-28',
+    });
+    expect(stateOf(m, 'a@2026-09-28')).toEqual(tTask());
+
+    m = run(
+      m,
+      { type: 'advance', to: '2026-09-30' },
+      { type: 'markDone', id: 'a@2026-09-28', copyId: 'x' },
+    );
+    m = run(m, { type: 'advance', to: '2026-10-01' });
+    expect(m.items.filter((i) => i.from === 'a' && i.state.tag === 'today-task')).toHaveLength(0);
+
+    m = run(m, { type: 'advance', to: '2026-10-05' });
+    expect(stateOf(m, 'a@2026-10-05')).toEqual(tTask());
+  });
+
+  test('otwarta kopia wstrzymuje wzorzec także z backlogu', () => {
+    let m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'advance', to: TOMORROW });
+    m = run(
+      m,
+      { type: 'move', id: `a@${TOMORROW}`, to: 'backlog' },
+      { type: 'advance', to: '2026-09-27' },
+    );
+    expect(m.items.filter((i) => i.from === 'a')).toHaveLength(1);
+  });
+
+  test('usunięta albo zamieniona w notatkę kopia nie wstrzymuje wzorca', () => {
+    let m = run(machine(['a', bRec(null, TOMORROW)], ['b', bRec(null, TOMORROW)]), {
+      type: 'advance',
+      to: TOMORROW,
+    });
+    m = run(
+      m,
+      { type: 'remove', id: `a@${TOMORROW}` },
+      { type: 'toNote', id: `b@${TOMORROW}` },
+      { type: 'advance', to: '2026-09-27' },
+    );
+    expect(stateOf(m, 'a@2026-09-27')).toEqual(tTask());
+    expect(stateOf(m, 'b@2026-09-27')).toEqual(tTask());
+  });
+
+  test('wykonana kopia z backlogu nie wstrzymuje wzorca', () => {
+    let m = run(machine(['a', bRec(null, TOMORROW)]), { type: 'markDone', id: 'a', copyId: 'x' });
+    m = run(m, { type: 'advance', to: '2026-09-27' });
+    expect(stateOf(m, 'a@2026-09-27')).toEqual(tTask());
   });
 
   test('advance na ten sam dzień nic nie zmienia', () => {

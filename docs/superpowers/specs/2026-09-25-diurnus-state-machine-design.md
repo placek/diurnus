@@ -36,6 +36,7 @@ problemy usunąć z założenia, nie łatać.
 | Data nadchodzi | O świcie pozycje z datą dziś lub wcześniejszą przychodzą do dziś, ze slotem |
 | Wzorzec pasuje | O świcie **kopia** przychodzi do dziś; wzorzec zostaje w backlogu |
 | Wzorzec odhaczony w backlogu | Wykonana kopia w dziś; wzorzec zostaje |
+| Otwarta poprzednia kopia | Wzorzec **nie przysyła nowej kopii**, dopóki poprzednia jest otwarta |
 | Zajęty slot | Przejście jest **odmawiane** |
 | Odmowa przyjścia o świcie | Pozycja zostaje w backlogu z datą i **ponawia o kolejnym świcie** |
 | Upływ slotu | Nie zmienia stanu; wykonanie oznacza wyłącznie użytkownik |
@@ -150,14 +151,21 @@ Graf nie przesądzał kilku szczegółów. Przyjęte rozstrzygnięcia, do zmiany
    trzeba najpierw go pozbawić. Wykonane zadanie nie staje się notatką.
 5. **Kopie wzorca** dostają identyfikator `wzorzec@data`, więc świt jest deterministyczny
    bez generatora identyfikatorów. Kopia odhaczona z backlogu bierze identyfikator ze
-   zdarzenia.
+   zdarzenia. Każda kopia pamięta wzorzec, z którego pochodzi.
 
-## 6. Znana konsekwencja do decyzji
+## 6. Jedna otwarta kopia wzorca
 
-Codzienny wzorzec, którego kopii się nie odhacza, zostawia kopię z każdego dnia: kopia jest
-otwartym zadaniem, a otwarte zadania przechodzą na następny dzień. Po tygodniu nieobecności
-to siedem kopii. Wynika to wprost z zaakceptowanych reguł; test to dokumentuje. Możliwa
-poprawka: wzorzec nie przysyła kopii, dopóki poprzednia jest otwarta.
+Wzorzec nie przysyła kopii, dopóki poprzednia jest otwarta. Bez tej reguły codzienny wzorzec,
+którego kopii się nie odhacza, zostawiałby kopię z każdego dnia, bo otwarte zadania
+przechodzą na następny dzień.
+
+- **Otwarta kopia** to niewykonane zadanie w dziś albo odłożone do backlogu. Kopia wykonana,
+  usunięta albo zamieniona w notatkę nie wstrzymuje wzorca.
+- **Pominięte wystąpienie przepada**: wzorzec przesuwa się na następne. Dzięki temu
+  poniedziałkowa kopia odhaczona w środę nie sprowadza nowej w czwartek, tylko w kolejny
+  poniedziałek.
+- **Zajęty slot to co innego**: wtedy wystąpienie nie przepada, tylko ponawia o kolejnym
+  świcie, zgodnie z decyzją z tabeli.
 
 ## 7. Co dalej
 
