@@ -1,6 +1,7 @@
 // WYGENEROWANE z listy ICONS w model.ts + ikon interfejsu.
 // Każda ikona to osobny moduł, więc bundler wciąga wyłącznie te path-e —
 // zamiast całej biblioteki z CDN-u, jak robił to prototyp.
+import { faGithub } from '@fortawesome/free-brands-svg-icons/faGithub';
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp';
 import { faBed } from '@fortawesome/free-solid-svg-icons/faBed';
 import { faBicycle } from '@fortawesome/free-solid-svg-icons/faBicycle';
@@ -55,7 +56,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark';
 
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
-const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChild, faChurch, faCircle, faCircleHalfStroke, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGear, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faLaptopCode, faLayerGroup, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faPlus, faQuestion, faRotateLeft, faSeedling, faStar, faSun, faTableCells, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
+const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChild, faChurch, faCircle, faCircleHalfStroke, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGear, faGithub, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faLaptopCode, faLayerGroup, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faPlus, faQuestion, faRotateLeft, faSeedling, faStar, faSun, faTableCells, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
 
 /** nazwa kebab-case → [szerokość, wysokość, ścieżka SVG] */
 export const ICON_PATHS: Record<string, [number, number, string]> = Object.fromEntries(
