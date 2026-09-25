@@ -69,11 +69,12 @@ test('pozycje backlogu z późniejszym terminem albo bez terminu nie są ruszane
 });
 
 test('wzorzec przysyła kopię o świcie, a sam zostaje w backlogu', async () => {
+  // Zapis v6 z dawnym wzorcem: start przenosi go na RRULE i dopiero wtedy liczy świt.
   seed(
     [
       backlog(
         'r',
-        { type: 'recurring', rule: { kind: 'daily' }, slot: null, next: TODAY },
+        { type: 'recurring', rule: { kind: 'daily' } as never, slot: null, next: TODAY },
         { text: 'Podlać' },
       ),
     ],
@@ -98,7 +99,7 @@ test('zmiana doby w trakcie pracy robi to samo, co start', async () => {
   expect(stateOf(app.S.items, 'd')).toEqual({ tag: 'past-done', day: TODAY, slot: null });
 });
 
-test('stary zapis v5 jest przenoszony do v6 przy starcie', async () => {
+test('stary zapis v5 jest przenoszony do v7 przy starcie', async () => {
   localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
   localStorage.setItem(
     'diurnus.v1',
@@ -122,7 +123,7 @@ test('stary zapis v5 jest przenoszony do v6 przy starcie', async () => {
     }),
   );
   const { flush, app, state } = await mountApp();
-  expect(app.S.v).toBe(6);
+  expect(app.S.v).toBe(7);
   expect(app.S.items).toEqual([
     {
       id: 'i',
@@ -135,5 +136,5 @@ test('stary zapis v5 jest przenoszony do v6 przy starcie', async () => {
   // Zapis v6 powstaje przy pierwszej zmianie.
   state.save();
   flush();
-  expect(JSON.parse(localStorage.getItem('diurnus.v1')!).v).toBe(6);
+  expect(JSON.parse(localStorage.getItem('diurnus.v1')!).v).toBe(7);
 });

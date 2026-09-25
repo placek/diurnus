@@ -136,9 +136,14 @@
     </dd>
     <dt>Prawy przycisk na znaczniku</dt>
     <dd>
-      typ i kategoria, a zadanie dostaje też termin (jutro, za tydzień, wybrana data z opcjonalną
-      godziną, bez daty) albo powtarzalność (codziennie, co tydzień, co miesiąc, co rok). Notatka
-      nie ma terminu
+      typ, „Bez daty", „Wybierz datę…" i kategoria. Notatka nie ma terminu
+    </dd>
+    <dt>Wybierz datę…</dt>
+    <dd>
+      dzień (najwcześniej jutro), opcjonalna godzina i powtarzanie: codziennie, w dni powszednie,
+      co tydzień, co miesiąc, co roku — liczone od wybranego dnia — albo „własne…": co N dni,
+      tygodni, miesięcy lub lat, wybrane dni tygodnia, N. albo ostatni dzień tygodnia w miesiącu,
+      koniec po N razach albo w dniu. Podgląd pokazuje opis, najbliższe daty i regułę iCal (RRULE)
     </dd>
     <dt>Przeciągnięcie na notatki</dt>
     <dd>
@@ -150,6 +155,11 @@
       o świcie swojego dnia pozycja przychodzi do dziś sama, z godziną. Jeśli godzina jest zajęta,
       czeka do następnego dnia. Wzorzec przysyła wtedy kopię, chyba że poprzednia jest wciąż
       otwarta
+    </dd>
+    <dt>Koniec serii</dt>
+    <dd>
+      wzorzec z końcem („3 razy", „do 31 gru") znika z backlogu po ostatnim wystąpieniu; kopie
+      zostają. Liczą się daty — także te pominięte, bo poprzednia kopia była otwarta
     </dd>
     <dt>Bliski termin</dt>
     <dd>

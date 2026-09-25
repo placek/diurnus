@@ -1,15 +1,16 @@
 import { test, expect, describe } from 'vitest';
 import { step, violations, gridOf, SLOT_LEN } from '../src/lib/machine';
 import type { DayHours, Event, ItemState as State, Machine, WhenInput } from '../src/lib/machine';
-import { nextOccurrence } from '../src/lib/repeat';
-import type { Repeat } from '../src/lib/repeat';
+import { advance as advanceRule } from '../src/lib/rrule';
+import type { RRule } from '../src/lib/rrule';
 
 // Piątek. Dzień 06:00–22:00, czyli kwanty [24, 88).
 const TODAY = '2026-09-25';
 const DAY: DayHours = { q0: 24, q1: 88 };
 const S9 = 36; // 09:00
 const S10 = 40; // 10:00
-const DAILY: Repeat = { kind: 'daily' };
+const DAILY: RRule = { freq: 'DAILY', interval: 1 };
+const weekly = (day: 'MO' | 'SA'): RRule => ({ freq: 'WEEKLY', interval: 1, byDay: [{ day }] });
 
 const machine = (...items: [string, State][]): Machine => ({
   today: TODAY,
@@ -27,7 +28,7 @@ const bNote: State = { tag: 'backlog-note' };
 const bDate = (date = '2026-10-01'): State => bTask({ type: 'date', date });
 const bDateSlot = (date = '2026-10-01', slot = S9): State =>
   bTask({ type: 'dateSlot', date, slot });
-const bRec = (slot: number | null = null, next = '2026-09-26', rule: Repeat = DAILY): State =>
+const bRec = (slot: number | null = null, next = '2026-09-26', rule: RRule = DAILY): State =>
   bTask({ type: 'recurring', rule, slot, next });
 
 /** Krok, który MUSI się udać. */
@@ -51,12 +52,13 @@ const refusal = (m: Machine, e: Event) => {
 
 // Każdy wiersz to jedna strzałka zaakceptowanego grafu: stan wyjściowy,
 // zdarzenie i stan docelowy pozycji „a".
-const recIn = (slot: number | null = null, rule: Repeat = DAILY): WhenInput => ({
+const recIn = (slot: number | null = null, rule: RRule = DAILY, start = TODAY): WhenInput => ({
   type: 'recurring',
   rule,
   slot,
+  start,
 });
-const REC_NEXT = nextOccurrence(DAILY, TODAY);
+const REC_NEXT = advanceRule(DAILY, TODAY, TODAY)!.next;
 
 const ARROWS: [string, State, Event, State][] = [
   ['task → done', tTask(), { type: 'markDone', id: 'a', copyId: 'c' }, tDone()],
@@ -148,8 +150,8 @@ const ARROWS: [string, State, Event, State][] = [
   [
     'change pattern',
     bRec(),
-    { type: 'setWhen', id: 'a', when: recIn(null, { kind: 'weekly', weekday: 1 }) },
-    bRec(null, '2026-09-28', { kind: 'weekly', weekday: 1 }),
+    { type: 'setWhen', id: 'a', when: recIn(null, weekly('MO')) },
+    bRec(null, '2026-09-28', weekly('MO')),
   ],
 
   ['today task → backlog', tTask(), { type: 'move', id: 'a', to: 'backlog' }, bTask()],
@@ -421,7 +423,7 @@ describe('północ i początek dnia', () => {
       machine(
         ['a', tDone()],
         ['b', bDate('2026-09-28')],
-        ['c', bRec(null, TOMORROW, { kind: 'weekly', weekday: 6 })],
+        ['c', bRec(null, TOMORROW, weekly('SA'))],
       ),
       { type: 'advance', to: '2026-10-02' },
     );
@@ -429,7 +431,7 @@ describe('północ i początek dnia', () => {
     expect(stateOf(m, 'a')).toEqual({ tag: 'past-done', day: TODAY, slot: null });
     expect(stateOf(m, 'b')).toEqual(tTask()); // przyszła w poniedziałek i przeszła dalej jako otwarta
     expect(stateOf(m, `c@${TOMORROW}`)).toEqual(tTask()); // sobotnia kopia
-    expect(stateOf(m, 'c')).toEqual(bRec(null, '2026-10-03', { kind: 'weekly', weekday: 6 }));
+    expect(stateOf(m, 'c')).toEqual(bRec(null, '2026-10-03', weekly('SA')));
   });
 
   test('kopia wzorca pamięta, z którego wzorca pochodzi', () => {
@@ -457,7 +459,7 @@ describe('północ i początek dnia', () => {
   });
 
   test('poniedziałkowy wzorzec odhaczony w środę nie wraca w czwartek', () => {
-    const MON: Repeat = { kind: 'weekly', weekday: 1 };
+    const MON = weekly('MO');
     let m = run(machine(['a', bRec(null, '2026-09-28', MON)]), {
       type: 'advance',
       to: '2026-09-28',
@@ -542,16 +544,18 @@ function randomEvent(r: () => number, m: Machine, n: number): Event {
   const id = ids.length && r() < 0.9 ? pick(ids) : `x${n}`;
   const slot = pick([null, 22, 24, 30, 31, 36, 37, 40, 86, 87]);
   const date = pick(['2026-09-20', TODAY, '2026-09-27', '2026-10-01', 'zła']);
-  const rule = pick<Repeat>([
+  const rule = pick<RRule>([
     DAILY,
-    { kind: 'weekly', weekday: 1 },
-    { kind: 'monthly', dayOfMonth: 31 },
+    weekly('MO'),
+    { freq: 'MONTHLY', interval: 1, byMonthDay: [-1] },
+    { freq: 'DAILY', interval: 2, count: 3 },
+    { freq: 'WEEKLY', interval: 1, byDay: [{ day: 'SA' }], until: '2026-10-10' },
   ]);
   const when = pick<WhenInput | null>([
     null,
     { type: 'date', date },
     { type: 'dateSlot', date, slot: slot ?? 36 },
-    { type: 'recurring', rule, slot },
+    { type: 'recurring', rule, slot, start: date },
   ]);
   const events: Event[] = [
     { type: 'create', id: `n${n}`, text: `n${n}`, place: pick(['today', 'backlog'] as const) },
@@ -565,7 +569,7 @@ function randomEvent(r: () => number, m: Machine, n: number): Event {
     { type: 'remove', id },
     {
       type: 'advance',
-      to: r() < 0.5 ? m.today : pick([nextOccurrence(DAILY, m.today), '2026-09-01']),
+      to: r() < 0.5 ? m.today : pick([advanceRule(DAILY, m.today, m.today)!.next, '2026-09-01']),
     },
   ];
   return pick(events);
@@ -673,10 +677,138 @@ test('kategoria jest daną pozycji: utworzenie ją nadaje, kopie wzorca ją dzie
   expect(m.items[0]).toMatchObject({ cat: 'learn', created: 7 });
   m = run(
     m,
-    { type: 'setWhen', id: 'a', when: { type: 'recurring', rule: DAILY, slot: null } },
+    { type: 'setWhen', id: 'a', when: recIn() },
     { type: 'markDone', id: 'a', copyId: 'done' },
     { type: 'advance', to: '2026-09-27' },
   );
   expect(m.items.find((i) => i.id === 'done')!.cat).toBe('learn');
   expect(m.items.find((i) => i.id === 'a@2026-09-27')!.cat).toBe('learn');
+});
+
+describe('reguły iCal we wzorcach', () => {
+  const R = (s: Partial<RRule> & Pick<RRule, 'freq'>): RRule => ({ interval: 1, ...s });
+  const pattern = (m: Machine) => m.items.find((i) => i.id === 'a');
+
+  test('początek serii: pierwsze pasujące od podanego dnia, najwcześniej jutro', () => {
+    // Czwartek 1.10 z regułą „co poniedziałek" daje poniedziałek 5.10.
+    let m = run(machine(['a', bTask()]), {
+      type: 'setWhen',
+      id: 'a',
+      when: recIn(null, weekly('MO'), '2026-10-01'),
+    });
+    expect(stateOf(m, 'a')).toEqual(bRec(null, '2026-10-05', weekly('MO')));
+    // Początek dziś albo w przeszłości nie daje wystąpienia dziś.
+    m = run(machine(['a', bTask()]), {
+      type: 'setWhen',
+      id: 'a',
+      when: recIn(null, DAILY, '2026-09-01'),
+    });
+    expect(stateOf(m, 'a')).toEqual(bRec(null, TOMORROW));
+  });
+
+  test('to, co reguła brała z początku serii, zapisuje się wprost', () => {
+    const m = run(machine(['a', bTask()]), {
+      type: 'setWhen',
+      id: 'a',
+      when: recIn(null, R({ freq: 'MONTHLY' }), '2026-10-15'),
+    });
+    expect(stateOf(m, 'a')).toEqual(
+      bRec(null, '2026-10-15', R({ freq: 'MONTHLY', byMonthDay: [15] })),
+    );
+  });
+
+  test('reguła bez sensu albo bez wystąpień od jutra jest odrzucana', () => {
+    const set = (rule: RRule, start = '2026-10-01') =>
+      refusal(machine(['a', bTask()]), {
+        type: 'setWhen',
+        id: 'a',
+        when: recIn(null, rule, start),
+      });
+    expect(set(R({ freq: 'YEARLY', byMonth: [2], byMonthDay: [30] }))).toBe('bad-rule');
+    expect(set(R({ freq: 'DAILY', count: 2, until: '2026-12-31' }))).toBe('bad-rule');
+    expect(set(R({ freq: 'DAILY', until: '2026-09-25' }))).toBe('bad-rule');
+    expect(set(DAILY, 'zła')).toBe('bad-date');
+  });
+
+  test('COUNT: każde wystąpienie o świcie zużywa jedno; ostatnie zabiera wzorzec', () => {
+    let m = run(machine(['a', bRec(null, TOMORROW, R({ freq: 'DAILY', count: 2 }))]), {
+      type: 'advance',
+      to: TOMORROW,
+    });
+    expect(stateOf(m, 'a')).toEqual(bRec(null, '2026-09-27', R({ freq: 'DAILY', count: 1 })));
+    m = run(
+      m,
+      { type: 'markDone', id: 'a@2026-09-26', copyId: 'x' },
+      { type: 'advance', to: '2026-09-27' },
+    );
+    expect(pattern(m)).toBeUndefined();
+    // Kopie zostają: wczorajsza w archiwum, dzisiejsza w dziś.
+    expect(stateOf(m, 'a@2026-09-26')).toEqual({ tag: 'past-done', day: TOMORROW, slot: null });
+    expect(stateOf(m, 'a@2026-09-27')).toEqual(tTask());
+  });
+
+  test('COUNT liczy daty: wystąpienie pominięte przez otwartą kopię też się liczy', () => {
+    const m = run(machine(['a', bRec(null, TOMORROW, R({ freq: 'DAILY', count: 3 }))]), {
+      type: 'advance',
+      to: '2026-09-28',
+    });
+    // 26.: kopia; 27. i 28.: kopia 26. wciąż otwarta — daty przepadają, seria się kończy.
+    expect(pattern(m)).toBeUndefined();
+    expect(m.items.map((i) => i.id)).toEqual(['a@2026-09-26']);
+  });
+
+  test('zajęty slot nie zużywa wystąpienia: czeka do następnego świtu', () => {
+    let m = run(
+      machine(
+        ['a', bRec(S9, TOMORROW, R({ freq: 'DAILY', count: 1 }))],
+        ['b', bDateSlot(TOMORROW, S9)],
+      ),
+      { type: 'advance', to: TOMORROW },
+    );
+    expect(stateOf(m, 'a')).toEqual(bRec(S9, TOMORROW, R({ freq: 'DAILY', count: 1 })));
+    m = run(m, { type: 'setSlot', id: 'b', slot: S10 }, { type: 'advance', to: '2026-09-27' });
+    expect(pattern(m)).toBeUndefined();
+    expect(stateOf(m, 'a@2026-09-27')).toEqual(tTask(S9));
+  });
+
+  test('UNTIL: po ostatniej dacie wzorzec znika', () => {
+    const m = run(
+      machine([
+        'a',
+        bRec(null, TOMORROW, R({ freq: 'WEEKLY', byDay: [{ day: 'SA' }], until: '2026-10-01' })),
+      ]),
+      { type: 'advance', to: TOMORROW },
+    );
+    expect(pattern(m)).toBeUndefined();
+    expect(stateOf(m, 'a@2026-09-26')).toEqual(tTask());
+  });
+
+  test('odhaczenie ostatniego wystąpienia w backlogu kończy serię', () => {
+    const m = run(machine(['a', bRec(null, TOMORROW, R({ freq: 'DAILY', count: 1 }))]), {
+      type: 'markDone',
+      id: 'a',
+      copyId: 'c',
+    });
+    expect(pattern(m)).toBeUndefined();
+    expect(stateOf(m, 'c')).toEqual(tDone());
+  });
+
+  test('INTERVAL zachowuje fazę przez kolejne świty', () => {
+    const rule = R({ freq: 'WEEKLY', interval: 2, byDay: [{ day: 'MO' }, { day: 'WE' }] });
+    let m = run(machine(['a', bTask()]), {
+      type: 'setWhen',
+      id: 'a',
+      when: recIn(null, rule, TOMORROW),
+    });
+    const arrived: string[] = [];
+    for (let d = TOMORROW; d <= '2026-10-22'; d = advanceRule(DAILY, d, d)!.next) {
+      m = run(m, { type: 'advance', to: d });
+      const copy = m.items.find((i) => i.id === `a@${d}`);
+      if (copy) {
+        arrived.push(d);
+        m = run(m, { type: 'markDone', id: copy.id, copyId: `x${d}` });
+      }
+    }
+    expect(arrived).toEqual(['2026-10-05', '2026-10-07', '2026-10-19', '2026-10-21']);
+  });
 });

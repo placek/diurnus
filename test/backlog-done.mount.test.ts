@@ -5,7 +5,7 @@ import { TODAY, backlog, mountApp, note, resetDom, seed, stateOf, task } from '.
 
 beforeEach(() => resetDom());
 
-const DAILY = { kind: 'daily' } as const;
+const DAILY = { freq: 'DAILY', interval: 1 } as const;
 const rec = (id: string, next = TODAY, slot: number | null = null) =>
   backlog(id, { type: 'recurring', rule: DAILY, slot, next }, { text: 'Podlać kwiaty' });
 
@@ -102,69 +102,73 @@ const openMenu = (flush: () => void) => {
   return [...document.querySelectorAll<HTMLElement>('.bullet-menu button')];
 };
 
-test('menu pozycji backlogu oferuje cztery wzorce i zdjęcie powtarzania', async () => {
+test('menu pozycji backlogu: typy | bez daty, wybierz datę… | kategoria', async () => {
   seed([backlog('a')]);
   const { flush } = await mountApp();
-  const labels = openMenu(flush).map((b) => b.textContent?.trim());
-  expect(labels).toContain('○codziennie');
-  expect(labels).toContain('·bez powtarzania');
-  expect(labels.filter((l) => l?.startsWith('○'))).toHaveLength(4);
+  openMenu(flush);
+  const seq = [...document.querySelector('.bullet-menu')!.children].map((el) =>
+    el.classList.contains('bm-sep') ? '—' : el.textContent?.trim(),
+  );
+  expect(seq).toEqual([
+    '·Zadanie',
+    '–Notatka',
+    '—',
+    '→Bez daty',
+    '…Wybierz datę…',
+    '—',
+    '#Kategoria…',
+  ]);
 });
 
-test('wybór wzorca nadaje powtarzalność i wylicza termin od jutra', async () => {
-  seed([backlog('a')]);
-  const { flush, app } = await mountApp();
-
-  openMenu(flush)
-    .find((b) => b.textContent?.includes('codziennie'))!
-    .click();
-  flush();
-
-  expect(stateOf(app.S.items, 'a')).toEqual({
-    tag: 'backlog-task',
-    when: { type: 'recurring', rule: DAILY, slot: null, next: shiftDay(TODAY, 1) },
-  });
-  expect(document.querySelector('#backlog .bullet')!.classList.contains('is-repeat')).toBe(true);
-});
-
-test('bez powtarzania zdejmuje wzorzec', async () => {
-  seed([rec('a')]);
-  const { flush, app } = await mountApp();
-
-  openMenu(flush)
-    .find((b) => b.textContent?.includes('bez powtarzania'))!
-    .click();
-  flush();
-
-  expect(stateOf(app.S.items, 'a')).toEqual({ tag: 'backlog-task', when: null });
-  expect(document.querySelector('#backlog .bullet')!.classList.contains('is-repeat')).toBe(false);
-});
-
-test('bez powtarzania na pozycji z samą datą zostawia datę', async () => {
-  seed([backlog('a', { type: 'date', date: shiftDay(TODAY, 3) })]);
-  const { flush, app } = await mountApp();
-  openMenu(flush)
-    .find((b) => b.textContent?.includes('bez powtarzania'))!
-    .click();
-  flush();
-  expect(stateOf(app.S.items, 'a')).toMatchObject({ when: { type: 'date' } });
-});
-
-test('pozycja dzisiejsza nie dostaje wzorców w menu', async () => {
+test('menu pozycji dzisiejszej: typy | kategoria, bez terminów', async () => {
   seed([task('a')]);
   const { flush } = await mountApp();
   const bullet = document.querySelector<HTMLElement>('#list .item[data-id] .bullet')!;
   bullet.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   flush();
-  const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) =>
-    b.textContent?.trim(),
+  const seq = [...document.querySelector('.bullet-menu')!.children].map((el) =>
+    el.classList.contains('bm-sep') ? '—' : el.textContent?.trim(),
   );
-  expect(labels.some((l) => l?.startsWith('○'))).toBe(false);
+  expect(seq).toEqual(['·Zadanie', '×Wykonane', '–Notatka', '—', '#Kategoria…']);
+});
+
+test('„Bez daty" zdejmuje wzorzec', async () => {
+  seed([rec('a')]);
+  const { flush, app } = await mountApp();
+  openMenu(flush)
+    .find((b) => b.textContent?.includes('Bez daty'))!
+    .click();
+  flush();
+  expect(stateOf(app.S.items, 'a')).toEqual({ tag: 'backlog-task', when: null });
+  expect(document.querySelector('#backlog .bullet')!.classList.contains('is-repeat')).toBe(false);
+});
+
+test('„Bez daty" zdejmuje też samą datę, a przy pozycji bez terminu jest zaznaczone', async () => {
+  seed([backlog('a', { type: 'date', date: shiftDay(TODAY, 3) })]);
+  const { flush, app } = await mountApp();
+  openMenu(flush)
+    .find((b) => b.textContent?.includes('Bez daty'))!
+    .click();
+  flush();
+  expect(stateOf(app.S.items, 'a')).toEqual({ tag: 'backlog-task', when: null });
+  const again = openMenu(flush).find((b) => b.textContent?.includes('Bez daty'))!;
+  expect(again.classList.contains('sel')).toBe(true);
+});
+
+test('„Wybierz datę…" otwiera okienko terminu z powtarzaniem', async () => {
+  seed([rec('a')]);
+  const { flush } = await mountApp();
+  openMenu(flush)
+    .find((b) => b.textContent?.includes('Wybierz datę'))!
+    .click();
+  flush();
+  expect(document.querySelector('.date-prompt')).not.toBeNull();
+  expect(document.querySelector('.date-prompt select[aria-label="Powtarzaj"]')).not.toBeNull();
 });
 
 test('notatka w backlogu nie dostaje terminów ani wzorców', async () => {
   seed([note('n'), { ...backlog('b'), state: { tag: 'backlog-note' } }]);
   const { flush } = await mountApp();
   const labels = openMenu(flush).map((b) => b.textContent?.trim());
-  expect(labels.some((l) => l?.includes('jutro') || l?.startsWith('○'))).toBe(false);
+  expect(labels.some((l) => l?.includes('Bez daty') || l?.includes('Wybierz datę'))).toBe(false);
 });

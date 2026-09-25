@@ -1,5 +1,6 @@
 import { normalize } from '../model';
-import { nextOccurrence } from '../repeat';
+import { advance, pin } from '../rrule';
+import { shiftDay } from '../time';
 import { slotFits, violations } from '../machine';
 import type { DayHours, Item, ItemState } from '../machine';
 import type { State } from '../types';
@@ -134,9 +135,19 @@ function stateOf(l: Line, ctx: Ctx): { state: ItemState; patternId?: string } | 
   if (slot !== null && !slotFits(slot, ctx.hours))
     return 'godzina nie mieści się w dniu z ustawień';
   if (l.pattern) {
-    const next = l.date ?? nextOccurrence(l.pattern, ctx.today);
+    // Data w linii to najbliższe wystąpienie, a COUNT — ile zostało od niego.
+    // Wzorzec wpisany bez daty zaczyna się od pierwszego wystąpienia po dziś.
+    // Data, która nie pasuje do reguły, jest początkiem serii: liczy się
+    // pierwsze pasujące od niej.
+    const anchor = l.date ?? ctx.today;
+    const rule = pin(l.pattern, anchor);
+    const first = advance(rule, anchor, l.date ? shiftDay(l.date, -1) : ctx.today);
+    if (!first) return 'reguła nie ma już żadnego wystąpienia';
     return {
-      state: { tag: 'backlog-task', when: { type: 'recurring', rule: l.pattern, slot, next } },
+      state: {
+        tag: 'backlog-task',
+        when: { type: 'recurring', rule: first.rule, slot, next: first.next },
+      },
       ...(l.id !== undefined ? { patternId: l.id } : {}),
     };
   }
@@ -229,7 +240,7 @@ export function parseFiles(files: Files): ParseResult {
     errors.push({ file: null, line: null, message: v });
   if (errors.length) return { ok: false, errors };
 
-  return { ok: true, state: { v: 6, cats, day, today, items } };
+  return { ok: true, state: { v: 7, cats, day, today, items } };
 }
 
 // Brak pliku ustawień: domyślne kategorie i doba, z tagami z nazw.

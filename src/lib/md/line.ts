@@ -1,4 +1,4 @@
-import type { Repeat } from '../repeat';
+import type { RRule } from '../rrule';
 import { pad } from '../time';
 import { parsePattern, patternWord } from './pattern';
 import { TAG } from './slug';
@@ -15,7 +15,7 @@ import { TAG } from './slug';
 export interface Line {
   marker: 'note' | 'open' | 'done';
   date?: string;
-  pattern?: Repeat;
+  pattern?: RRule;
   /** kwant początku slotu */
   slot?: number;
   tag?: string;
@@ -99,8 +99,8 @@ export function parseLine(src: string): LineResult {
   const pattern = take(/^\{([^}]*)\}(?= |$)/);
   if (pattern) {
     const r = parsePattern(pattern[1]!);
-    if (!r) return fail(`nieznany wzorzec „{${pattern[1]}}"`);
-    line.pattern = r;
+    if (!r.ok) return fail(r.error);
+    line.pattern = r.rule;
   }
 
   const time = take(/^(\d{1,2}):(\d{2})(?= |$)/);

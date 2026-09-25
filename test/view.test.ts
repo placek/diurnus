@@ -100,7 +100,7 @@ test('backlogList: z terminem według daty i godziny, bez terminu na końcu w ko
     b('late', { type: 'date', date: '2026-10-05' }),
     b('slot10', { type: 'dateSlot', date: '2026-10-01', slot: 40 }),
     it('note', { tag: 'backlog-note' }),
-    b('rec', { type: 'recurring', rule: { kind: 'daily' }, slot: null, next: '2026-09-26' }),
+    b('rec', { type: 'recurring', rule: { freq: 'DAILY', interval: 1 }, slot: null, next: '2026-09-26' }),
     b('day', { type: 'date', date: '2026-10-01' }),
     tt('today'),
   ];
@@ -140,7 +140,7 @@ test('soonOf: data ze slotem i wzorzec liczą się od swojej daty', () => {
   });
   const rec = it('r', {
     tag: 'backlog-task',
-    when: { type: 'recurring', rule: { kind: 'daily' }, slot: null, next: '2026-09-26' },
+    when: { type: 'recurring', rule: { freq: 'DAILY', interval: 1 }, slot: null, next: '2026-09-26' },
   });
   expect(soonOf(slot, DAY)?.label).toBe('za 3 dni');
   expect(soonOf(rec, DAY)?.label).toBe('jutro');

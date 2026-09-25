@@ -1,7 +1,7 @@
 import { slotFits, slotTaken } from './machine';
 import type { DayHours, Item, ItemState, When } from './machine';
-import { nextOccurrence } from './repeat';
-import type { Repeat } from './repeat';
+import { advance, fromLegacy } from './rrule';
+import type { LegacyRepeat } from './rrule';
 import type { Category, DaySettings, State } from './types';
 
 /*
@@ -48,7 +48,7 @@ interface V5Item {
   block?: string;
   cat?: string;
   at?: number;
-  repeat?: Repeat;
+  repeat?: LegacyRepeat;
   nextOn?: string;
 }
 
@@ -130,7 +130,7 @@ export function fromV5(s: V5State, today: string): State {
     else if (b.status === 'confirmed') push(base, { tag: 'past-done', day: b.day, slot: b.q });
   }
 
-  return { v: 6, cats: s.cats, day: s.day, today, items: out };
+  return { v: 7, cats: s.cats, day: s.day, today, items: out };
 }
 
 function fromBlock(b: V5Block, slot: number | null): ItemState {
@@ -144,11 +144,13 @@ function backlogState(i: V5Item, today: string, hours: DayHours): ItemState {
 
   let when: When | null = null;
   if (i.repeat) {
+    const rule = fromLegacy(i.repeat);
     when = {
       type: 'recurring',
-      rule: i.repeat,
+      rule,
       slot: null,
-      next: i.nextOn ?? nextOccurrence(i.repeat, today),
+      // Dawny wzorzec zawsze ma kolejne wystąpienie; pierwsze liczy się od jutra.
+      next: i.nextOn ?? advance(rule, today, today)!.next,
     };
   } else if (i.day !== null) {
     when =

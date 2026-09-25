@@ -106,3 +106,9 @@ test('termin na obu listach ma jeden krój: .item-meta, bez osobnej reguły godz
   expect(css).not.toContain('.item-hour');
   expect(css).not.toContain('.backlog-meta');
 });
+
+test('okienko terminu nie dziedziczy centrującego przesunięcia .card', () => {
+  // Stoi tam, gdzie kliknięto, przycięte do widoku; przesunięcie o połowę
+  // wysokości wypychało wyższe okienko (z powtarzaniem) poza ekran.
+  expect(css).toMatch(/\.date-prompt\.card\{[^}]*transform:none/);
+});

@@ -23,7 +23,7 @@ export interface Band {
 /** Jak pozycja wygląda na liście: znacznik bullet journal. Wynika ze stanu. */
 export type ItemType = 'task' | 'done' | 'note';
 
-export type { Repeat } from './repeat';
+export type { RRule } from './rrule';
 export type { Item } from './machine';
 
 export interface DaySettings {
@@ -33,12 +33,13 @@ export interface DaySettings {
 }
 
 /**
- * v6: pozycje są stanami maszyny z `machine.ts`. Siatka nie ma własnych
+ * v7: pozycje są stanami maszyny z `machine.ts`, a wzorce powtarzania to
+ * reguły iCal (RRULE, `rrule.ts`); v6 miało cztery własne wzorce. Siatka nie ma własnych
  * danych — to rzut dzisiejszych zadań ze slotem. `today` zmienia wyłącznie
  * zdarzenie `advance`.
  */
 export interface State {
-  v: 6;
+  v: 7;
   cats: Category[];
   day: DaySettings;
   today: string;

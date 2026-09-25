@@ -53,9 +53,9 @@ const migrate = (blocks: B[], items: I[]) => {
 const stateOf = (s: ReturnType<typeof fromV5>, id: string) =>
   s.items.find((i) => i.id === id)?.state;
 
-test('wynik jest w v6 na podany dzień, z kategoriami i ustawieniami dnia', () => {
+test('wynik jest w v7 na podany dzień, z kategoriami i ustawieniami dnia', () => {
   const s = migrate([], []);
-  expect(s.v).toBe(6);
+  expect(s.v).toBe(7);
   expect(s.today).toBe(T);
   expect(s.day.start).toBe(6);
 });
@@ -174,7 +174,7 @@ test('backlog: wzorzec zachowuje najbliższe wystąpienie', () => {
   const s = migrate([], [itm('r', null, { repeat: { kind: 'daily' }, nextOn: '2026-09-27' })]);
   expect(stateOf(s, 'r')).toEqual({
     tag: 'backlog-task',
-    when: { type: 'recurring', rule: { kind: 'daily' }, slot: null, next: '2026-09-27' },
+    when: { type: 'recurring', rule: { freq: 'DAILY', interval: 1 }, slot: null, next: '2026-09-27' },
   });
 });
 

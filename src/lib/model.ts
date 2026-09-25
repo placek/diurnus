@@ -1,4 +1,5 @@
 import { fromV5 } from './migrate';
+import { fromLegacy, isLegacy } from './rrule';
 import type { V5State } from './migrate';
 import { today as todayKey } from './time';
 import type { Band, Category, DaySettings, Item, State } from './types';
@@ -95,7 +96,7 @@ export function bandAt(bands: readonly Band[], h: number): Band | null {
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const fresh = (today: string): State => ({
-  v: 6,
+  v: 7,
   cats: clone(DEFAULT_CATS) as Category[],
   day: clone(DEFAULT_DAY) as DaySettings,
   today,
@@ -103,7 +104,7 @@ const fresh = (today: string): State => ({
 });
 
 /**
- * Stan z pamięci albo z kopii zapasowej, podniesiony do v6. `today` to dzień,
+ * Stan z pamięci albo z kopii zapasowej, podniesiony do v7. `today` to dzień,
  * na który ustawia się stan przechodzący z v5 — v5 nie wiedziało, który dzień
  * jest „dziś". Stan v6 niesie swój dzień sam; do bieżącego dogania go zegar.
  */
@@ -150,16 +151,27 @@ export function normalize(x: unknown, today: string = todayKey()): State {
     return fromV5(v5, today);
   }
 
-  if (s.v !== 6 || !Array.isArray(s.items)) return fresh(today);
-  const v6 = s as unknown as State;
-  v6.cats = validCats(v6.cats);
-  v6.day = validDay(v6.day);
-  if (typeof v6.today !== 'string' || !DATE.test(v6.today)) v6.today = today;
+  // v6 miało cztery własne wzorce powtarzania; v7 zapisuje je jako RRULE,
+  // tak żeby żadna data się nie zmieniła.
+  if (s.v === 6 && Array.isArray(s.items)) {
+    s.items = (s.items as Item[]).map((i) => {
+      const w = i?.state?.tag === 'backlog-task' ? i.state.when : null;
+      if (w?.type !== 'recurring' || !isLegacy(w.rule)) return i;
+      return { ...i, state: { ...i.state, when: { ...w, rule: fromLegacy(w.rule) } } } as Item;
+    });
+    s.v = 7;
+  }
+
+  if (s.v !== 7 || !Array.isArray(s.items)) return fresh(today);
+  const v7 = s as unknown as State;
+  v7.cats = validCats(v7.cats);
+  v7.day = validDay(v7.day);
+  if (typeof v7.today !== 'string' || !DATE.test(v7.today)) v7.today = today;
   // Uszkodzona kopia może mieć pozycje bez stanu; takich nie da się pokazać.
-  v6.items = (v6.items as Item[]).filter(
+  v7.items = (v7.items as Item[]).filter(
     (i) => i && typeof i.id === 'string' && i.state && typeof i.state.tag === 'string',
   );
-  return v6;
+  return v7;
 }
 
 function validCats(c: unknown): Category[] {

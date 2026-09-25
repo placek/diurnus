@@ -2,7 +2,7 @@ import { app, commit, currentDay, dispatch, ui, uid, win } from './state.svelte'
 import { kids, topCats } from './lib/categories';
 import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
 import type { Event, Item, Refusal, WhenInput } from './lib/machine';
-import type { Repeat } from './lib/repeat';
+import type { RRule } from './lib/rrule';
 import { fmtQ, pad, rel } from './lib/time';
 import type { ItemType } from './lib/types';
 import { canClaim, isBacklog, isDone, kindOf, occ, slotOf, whenOf } from './lib/view';
@@ -303,24 +303,19 @@ export function completeBacklogItem(id: string): void {
   });
 }
 
-/** Termin pozycji backlogu: dzień z opcjonalną godziną albo brak terminu. */
-export function scheduleItem(id: string, date: string | null, slot?: number): void {
+/**
+ * Termin pozycji backlogu: dzień z opcjonalną godziną albo brak terminu.
+ * Z regułą dzień jest początkiem serii, a pierwsze wystąpienie to pierwsza
+ * pasująca data od niego.
+ */
+export function scheduleItem(id: string, date: string | null, slot?: number, rule?: RRule): void {
   const when: WhenInput | null =
     date === null
       ? null
-      : slot === undefined
-        ? { type: 'date', date }
-        : { type: 'dateSlot', date, slot };
+      : rule
+        ? { type: 'recurring', rule, slot: slot ?? null, start: date }
+        : slot === undefined
+          ? { type: 'date', date }
+          : { type: 'dateSlot', date, slot };
   dispatch([{ type: 'setWhen', id, when }]);
-}
-
-/** Wzorzec powtarzania albo jego zdjęcie. Godzina, którą pozycja miała, zostaje. */
-export function setRepeat(id: string, rule: Repeat | undefined): void {
-  const item = find(id);
-  if (!item) return;
-  const w = whenOf(item);
-  // „Bez powtarzania" zdejmuje tylko wzorzec; datę zostawia w spokoju.
-  if (!rule && w?.type !== 'recurring') return;
-  const slot = w && w.type !== 'date' ? w.slot : null;
-  dispatch([{ type: 'setWhen', id, when: rule ? { type: 'recurring', rule, slot } : null }]);
 }

@@ -211,7 +211,7 @@ test('backlog idzie za tym samym schematem barw: kategoria, ton, godzina', async
     backlog('date', { type: 'date', date: next }, { cat: 'learn' }),
     backlog(
       'rec',
-      { type: 'recurring', rule: { kind: 'daily' }, slot: 44, next },
+      { type: 'recurring', rule: { freq: 'DAILY', interval: 1 }, slot: 44, next },
       { cat: 'learn' },
     ),
     backlog('none', null, { cat: 'learn' }),

@@ -1,13 +1,14 @@
 import { test, expect } from 'vitest';
 import { normalize, bandAt, DEFAULT_DAY, ICONS, uid } from '../src/lib/model';
 import type { Band } from '../src/lib/types';
+import { formatRRule } from '../src/lib/rrule';
 
 const T = '2026-09-24';
 const X = [{ id: 'x', name: 'X', icon: 'circle', color: 'red', parent: null }];
 
 test('normalize: brak stanu daje domyślne kategorie, pory dnia, dzień i wersję bieżącą', () => {
   const s = normalize(null, T);
-  expect(s.v).toBe(6);
+  expect(s.v).toBe(7);
   expect(s.today).toBe(T);
   expect(s.items).toEqual([]);
   expect(s.cats.length).toBeGreaterThan(0);
@@ -19,12 +20,12 @@ test('normalize: brak stanu daje domyślne kategorie, pory dnia, dzień i wersj�
 test('normalize: śmieci dają czysty stan domyślny', () => {
   for (const junk of [undefined, 0, 'tekst', [], { v: 99 }, { v: 6 }, { v: 5 }]) {
     const s = normalize(junk, T);
-    expect(s.v).toBe(6);
+    expect(s.v).toBe(7);
     expect(s.items).toEqual([]);
   }
 });
 
-test('normalize: migracja v1 przesuwa q z bazy 06:00 na bazę północy i idzie do v6', () => {
+test('normalize: migracja v1 przesuwa q z bazy 06:00 na bazę północy i idzie do v7', () => {
   const s = normalize(
     {
       v: 1,
@@ -35,13 +36,13 @@ test('normalize: migracja v1 przesuwa q z bazy 06:00 na bazę północy i idzie 
     },
     T,
   );
-  expect(s.v).toBe(6);
+  expect(s.v).toBe(7);
   expect(s.items).toEqual([
     { id: 'a', text: '', created: 0, cat: 'x', state: { tag: 'today-task', done: true, slot: 40 } },
   ]);
 });
 
-test('normalize: v2 i v3 przechodzą przez wszystkie wersje do v6', () => {
+test('normalize: v2 i v3 przechodzą przez wszystkie wersje do v7', () => {
   for (const v of [2, 3]) {
     const s = normalize(
       {
@@ -63,7 +64,7 @@ test('normalize: v2 i v3 przechodzą przez wszystkie wersje do v6', () => {
       },
       T,
     );
-    expect(s.v).toBe(6);
+    expect(s.v).toBe(7);
     expect(s.items).toHaveLength(1);
     expect(s.items[0]).toMatchObject({
       id: 'b1',
@@ -200,4 +201,48 @@ test('domyślne kategorie: Zadania, Modlitwa, Ruch, Dom i Telefon z podkategoria
   // Każda ikona istnieje w zestawie aplikacji; identyfikatory są unikalne.
   for (const c of cats) if (c.icon) expect(ICONS as readonly string[], c.name).toContain(c.icon);
   expect(new Set(cats.map((c) => c.id)).size).toBe(cats.length);
+});
+
+test('normalize: v6 zamienia dawne wzorce na RRULE, zachowując daty', () => {
+  const rec = (id: string, rule: unknown) => ({
+    id,
+    text: id,
+    state: { tag: 'backlog-task', when: { type: 'recurring', rule, slot: 36, next: '2026-09-30' } },
+  });
+  const s = normalize(
+    {
+      v: 6,
+      cats: [{ id: 'x', name: 'X', icon: null, color: 'red', parent: null }],
+      day: DEFAULT_DAY,
+      today: T,
+      items: [
+        rec('d', { kind: 'daily' }),
+        rec('w', { kind: 'weekly', weekday: 3 }),
+        rec('m', { kind: 'monthly', dayOfMonth: 30 }),
+        rec('y', { kind: 'yearly', month: 2, dayOfMonth: 29 }),
+        { id: 't', text: 't', state: { tag: 'today-task', done: false, slot: null } },
+      ],
+    },
+    T,
+  );
+  expect(s.v).toBe(7);
+  const rule = (id: string) => {
+    const st = s.items.find((i) => i.id === id)!.state;
+    return st.tag === 'backlog-task' && st.when?.type === 'recurring'
+      ? formatRRule(st.when.rule)
+      : null;
+  };
+  expect(rule('d')).toBe('FREQ=DAILY');
+  expect(rule('w')).toBe('FREQ=WEEKLY;BYDAY=WE');
+  expect(rule('m')).toBe('FREQ=MONTHLY;BYMONTHDAY=28,29,30;BYSETPOS=-1');
+  expect(rule('y')).toBe('FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1');
+  // Termin i pora zostają bez zmian.
+  expect(s.items.find((i) => i.id === 'd')!.state).toMatchObject({
+    when: { slot: 36, next: '2026-09-30' },
+  });
+  expect(s.items.find((i) => i.id === 't')!.state).toEqual({
+    tag: 'today-task',
+    done: false,
+    slot: null,
+  });
 });
