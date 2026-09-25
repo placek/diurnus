@@ -87,8 +87,12 @@ test('wykonana pozycja z kategorią przygasza akcent, ale zachowuje tło', () =>
   // Kategoria zostaje widoczna; pasek przestaje być jasny.
   expect(css).toMatch(/\.item\.has-cat\.tone-done\{box-shadow:inset[^}]*color-mix/);
   expect(css).not.toContain('.item.has-cat.tone-done{box-shadow:none}');
-  // Szczegółowość 0-3-0 bije 0-2-0, więc kolejność nie ma tu znaczenia —
-  // ale tło musi nadal pochodzić z reguły .item.has-cat.
-  expect(css).toMatch(/\.item\.has-cat\{[^}]*background:color-mix/);
+  // Tło pochodzi z reguły pozycji z godziną; reguła wykonanego go nie rusza.
+  expect(css).toMatch(/\.item\.has-cat\.is-linked\{[^}]*background:color-mix/);
   expect(css).not.toMatch(/\.item\.has-cat\.tone-done\{[^}]*background/);
+});
+
+test('pozycja z kategorią, ale bez godziny, ma sam pasek, bez podbarwienia', () => {
+  expect(css).toMatch(/\.item\.has-cat\{[^}]*box-shadow:inset/);
+  expect(css).not.toMatch(/\.item\.has-cat\{[^}]*background/);
 });

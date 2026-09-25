@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { test, expect, beforeEach } from 'vitest';
-import { TODAY, done, mountApp, note, resetDom, seed, stateOf, task } from './helpers';
+import { TODAY, backlog, done, mountApp, note, resetDom, seed, stateOf, task } from './helpers';
+import { shiftDay } from '../src/lib/time';
 
 // Siatka i lista pokazują ten sam rekord: zadanie dziś ze slotem. Nie ma
 // drugiej kopii do uzgadniania, więc te testy pilnują, że obie strony
@@ -181,6 +182,43 @@ test('kategoria to jedno pole: pozycja z kategorią niesie jej kolor, bez niej z
   expect(row('a').classList.contains('has-cat')).toBe(true);
   expect(row('a').getAttribute('style')!.replace(/\s+/g, '')).toContain('--c:var(--blue)');
   expect(row('b').classList.contains('has-cat')).toBe(false);
+});
+
+test('lista dnia: podbarwienie ma tylko pozycja z godziną, bez godziny — sam pasek', async () => {
+  seed([task('a', 36, { cat: 'learn' }), task('b', null, { cat: 'learn' })]);
+  await mountApp();
+  expect(row('a').classList.contains('is-linked')).toBe(true);
+  expect(row('b').classList.contains('is-linked')).toBe(false);
+  expect(row('b').classList.contains('has-cat')).toBe(true);
+});
+
+test('backlog idzie za tym samym schematem barw: kategoria, ton, godzina', async () => {
+  const next = shiftDay(TODAY, 2);
+  seed([
+    backlog('slot', { type: 'dateSlot', date: next, slot: 40 }, { cat: 'learn' }),
+    backlog('date', { type: 'date', date: next }, { cat: 'learn' }),
+    backlog(
+      'rec',
+      { type: 'recurring', rule: { kind: 'daily' }, slot: 44, next },
+      { cat: 'learn' },
+    ),
+    backlog('none', null, { cat: 'learn' }),
+    backlog('plain'),
+    note('n', { state: { tag: 'backlog-note' } }),
+  ]);
+  await mountApp();
+  const b = (id: string) => document.querySelector<HTMLElement>(`#backlog .item[data-id="${id}"]`)!;
+  for (const id of ['slot', 'date', 'rec', 'none']) {
+    expect(b(id).classList.contains('has-cat'), id).toBe(true);
+    expect(b(id).getAttribute('style')!.replace(/\s+/g, ''), id).toContain('--c:var(--blue)');
+    expect(b(id).classList.contains('tone-incoming'), id).toBe(true);
+  }
+  expect(b('slot').classList.contains('is-linked')).toBe(true);
+  expect(b('rec').classList.contains('is-linked')).toBe(true);
+  expect(b('date').classList.contains('is-linked')).toBe(false);
+  expect(b('none').classList.contains('is-linked')).toBe(false);
+  expect(b('plain').classList.contains('has-cat')).toBe(false);
+  expect(b('n').classList.contains('tone-note')).toBe(true);
 });
 
 test('kategoria wybrana z menu znacznika przebarwia też blok na siatce', async () => {
