@@ -546,6 +546,15 @@ kbd{
   flex:none;font:500 12px var(--sans);color:var(--fg-faint);white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }
+/* Bliski termin: im bliżej, tym czerwieniej; za 5 dni już żółć. */
+.backlog-soon{
+  flex:none;font:700 12px var(--sans);white-space:nowrap;
+  --soon:100%;color:color-mix(in oklab, var(--red) var(--soon), var(--yellow));
+}
+.backlog-soon.soon-2{--soon:75%}
+.backlog-soon.soon-3{--soon:50%}
+.backlog-soon.soon-4{--soon:25%}
+.backlog-soon.soon-5{--soon:0%}
 /* Pozycja powtarzalna: kółko zamiast kropki. */
 .bullet.is-repeat{
   border:2px solid currentColor;border-radius:50%;

@@ -5,7 +5,7 @@
   import { colorOf } from '../../lib/categories';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
-  import { backlogList, categoryOf, itemTone, kindOf, whenOf } from '../../lib/view';
+  import { backlogList, categoryOf, itemTone, kindOf, soonOf, whenOf } from '../../lib/view';
   import Bullet from '../list/Bullet.svelte';
 
   interface Props {
@@ -54,6 +54,9 @@
         : `${describeRepeat(w.rule)} ${fmtQ(currentDay.value, w.slot)}`;
     return w.type === 'dateSlot' ? `${fmtDay(w.date)} ${fmtQ(w.date, w.slot)}` : fmtDay(w.date);
   });
+
+  // Termin w najbliższych dniach: słowo „jutro", „za 3 dni"… w barwie od czerwieni do żółci.
+  const soon = $derived(soonOf(item, currentDay.value));
 
   function onKeydown(e: KeyboardEvent) {
     const input = e.currentTarget as HTMLInputElement;
@@ -107,5 +110,6 @@
     onblur={() => (dirty = false)}
     onkeydown={onKeydown}
   />
+  {#if soon}<b class="backlog-soon soon-{Math.max(soon.days, 1)}">{soon.label}</b>{/if}
   {#if meta}<span class="backlog-meta">{meta}</span>{/if}
 </div>
