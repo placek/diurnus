@@ -26,7 +26,7 @@ export const WEEKDAYS = [
   'sobotę',
 ] as const;
 
-const MONTHS = [
+export const MONTHS = [
   'sty', 'lut', 'mar', 'kwi', 'maj', 'cze',
   'lip', 'sie', 'wrz', 'paź', 'lis', 'gru',
 ] as const;

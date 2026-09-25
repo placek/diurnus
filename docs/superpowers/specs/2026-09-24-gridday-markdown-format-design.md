@@ -1,6 +1,6 @@
 # Diurnus — format markdown dziennika (faza 2 z 3): projekt
 
-**Status:** do przeglądu · **Data:** 2026-09-24 · **Poprzednia faza:** [serwer plików](2026-09-24-diurnus-diary-server-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
+**Status:** zastąpiony przez [stan w plikach markdown](2026-09-25-diurnus-markdown-files-design.md) — powstał dla modelu bloków sprzed maszyny stanów · **Data:** 2026-09-24 · **Poprzednia faza:** [serwer plików](2026-09-24-diurnus-diary-server-design.md) · **Specyfikacja nadrzędna:** [`PLAN.md`](../../../PLAN.md)
 
 ## 1. Cel
 
