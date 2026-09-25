@@ -19,8 +19,7 @@
   }
 </script>
 
-<section id="backlog">
-  <h2 class="pane-title">Backlog</h2>
+<section id="backlog" aria-label="Backlog">
   {#each items as item (item.id)}
     <BacklogItem {item} />
   {/each}

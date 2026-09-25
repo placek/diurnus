@@ -27,6 +27,7 @@ const atDay = (day: string, hour = 12) => {
 
 let htmlToday = '';
 let htmlOther = '';
+let htmlWide = '';
 
 beforeAll(async () => {
   Object.defineProperty(globalThis, 'localStorage', {
@@ -44,15 +45,29 @@ beforeAll(async () => {
     configurable: true,
   });
 
-  const { app } = await import('../src/state.svelte');
+  const { app, ui } = await import('../src/state.svelte');
   const { render } = await import('svelte/server');
   const Header = (await import('../src/components/Header.svelte')).default;
 
+  // Nagłówek dnia stoi w pasku tylko na wąskim ekranie; na szerokim jest
+  // w sekcji dziś (patrz layout.mount.test.ts).
+  ui.narrow = true;
   app.now = atDay(DAY);
   htmlToday = render(Header).body;
 
   app.now = atDay(shiftDay(DAY, -3));
   htmlOther = render(Header).body;
+
+  ui.narrow = false;
+  app.now = atDay(DAY);
+  htmlWide = render(Header).body;
+});
+
+test('na szerokim ekranie pasek nie niesie daty, zegara ani paska postępu — tylko narzędzia', () => {
+  expect(htmlWide).not.toContain('id="date"');
+  expect(htmlWide).not.toContain('id="clock"');
+  expect(htmlWide).not.toContain('id="pips"');
+  expect(htmlWide).toContain('aria-label="Ustawienia"');
 });
 
 test('pasek ma jeden pip na każde pół godziny widocznego okna', () => {

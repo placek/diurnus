@@ -111,22 +111,37 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 
 /* Jedyna przewijalna powierzchnia w aplikacji: doba ma skończoną liczbę
    kwantów, ale nie ma skończonej liczby notatek. */
-/* Panel środkowy jest wyniesiony: to miejsce, w którym się pisze. */
+/* Panel środkowy jest wyniesiony: to miejsce, w którym się pisze. Przewija
+   się jego treść, nie on sam — nagłówek dnia zostaje na miejscu. */
 #list{
-  min-height:0;overflow-y:auto;overflow-x:hidden;
+  min-height:0;display:flex;flex-direction:column;
   background:var(--raise);
   border-left:1px solid var(--line-2);border-right:1px solid var(--line-2);
-  padding:10px 16px;
+}
+.list-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 16px}
+/* Szeroki ekran: sekcja dziś wychodzi w górę na pasek, 1em od góry strony, ma
+   tło strony i grubą jaśniejszą ramę, a na górze niesie nagłówek dnia. Dół
+   sięga do końca strony. */
+#panes:not(.narrow) #list{
+  --frame:6px;
+  position:relative;z-index:1;
+  margin-top:calc(1em - var(--hdr) - 1px);   /* pasek ma --hdr i 1px linii */
+  background:var(--bg);
+  border:var(--frame) solid var(--raise);border-bottom:0;
+  border-radius:14px 14px 0 0;
+}
+/* Linia pod nagłówkiem dnia przedłuża linię paska: wysokość to pasek z linią
+   minus odstęp od góry strony i rama. */
+.today-head{
+  flex:none;box-sizing:border-box;height:calc(var(--hdr) + 1px - 1em - var(--frame,0px));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding:0 16px;border-bottom:1px solid var(--line-2);
 }
 #backlog{
   min-height:0;overflow-y:auto;overflow-x:hidden;
   padding:10px max(10px,env(safe-area-inset-right)) 10px 10px;
 }
 #panes.narrow #list{border-left:0;border-right:0}
-.pane-title{
-  margin:0 0 8px;font:600 12px var(--sans);color:var(--fg-faint);
-  text-transform:uppercase;letter-spacing:.07em;
-}
 
 .row{
   position:relative;min-height:0;display:grid;

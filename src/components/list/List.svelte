@@ -3,6 +3,7 @@
   import { createItemWithText } from '../../actions.svelte';
   import { doneToday, openFree, openTimed } from '../../lib/view';
   import ListItem from './ListItem.svelte';
+  import TodayHead from '../TodayHead.svelte';
 
   // Trzy grupy: najpierw wykonane w kolejności odhaczenia, potem nieodhaczone zadania
   // ze slotem według godzin, potem reszta w kolejności własnej.
@@ -30,35 +31,42 @@
   }
 </script>
 
-<section id="list">
-  {#each done as item (item.id)}
-    <ListItem {item} />
-  {/each}
+<section id="list" aria-label="Dziś">
+  <!-- Na szerokim ekranie sekcja dziś zachodzi na pasek u góry i niesie nagłówek
+       dnia; przewija się tylko lista pod nim. -->
+  {#if !ui.narrow}
+    <header class="today-head"><TodayHead /></header>
+  {/if}
+  <div class="list-body">
+    {#each done as item (item.id)}
+      <ListItem {item} />
+    {/each}
 
-  {#each linked as item (item.id)}
-    <ListItem {item} />
-  {/each}
+    {#each linked as item (item.id)}
+      <ListItem {item} />
+    {/each}
 
-  {#each items as item (item.id)}
-    <!-- Kreska wstawienia liczy się wśród pozycji BEZ przeciąganej, więc
+    {#each items as item (item.id)}
+      <!-- Kreska wstawienia liczy się wśród pozycji BEZ przeciąganej, więc
          rysujemy ją przed wierszem o tym numerze w tak liczonej sekwencji. -->
-    {#if dragFree && ui.drag && ui.drag.id !== item.id && dropBefore(item.id)}
-      <div class="drop-line"></div>
-    {/if}
-    <ListItem {item} />
-  {/each}
-  {#if dragFree && ui.drag && dropAtEnd()}<div class="drop-line"></div>{/if}
+      {#if dragFree && ui.drag && ui.drag.id !== item.id && dropBefore(item.id)}
+        <div class="drop-line"></div>
+      {/if}
+      <ListItem {item} />
+    {/each}
+    {#if dragFree && ui.drag && dropAtEnd()}<div class="drop-line"></div>{/if}
 
-  <div class="item t-task is-draft">
-    <span class="bullet t-task" aria-hidden="true">·</span>
-    <input
-      class="item-text"
-      value={draft}
-      maxlength="200"
-      autocomplete="off"
-      aria-label="Nowa pozycja"
-      placeholder={items.length + linked.length + done.length === 0 ? 'Zacznij pisać…' : ''}
-      oninput={onDraftInput}
-    />
+    <div class="item t-task is-draft">
+      <span class="bullet t-task" aria-hidden="true">·</span>
+      <input
+        class="item-text"
+        value={draft}
+        maxlength="200"
+        autocomplete="off"
+        aria-label="Nowa pozycja"
+        placeholder={items.length + linked.length + done.length === 0 ? 'Zacznij pisać…' : ''}
+        oninput={onDraftInput}
+      />
+    </div>
   </div>
 </section>
