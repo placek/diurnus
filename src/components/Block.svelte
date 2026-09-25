@@ -170,9 +170,10 @@
   }}
 >
   {#if seg.first}
-    <Icon name={iconName} fallback={letter} />
     <span class="t">{label}</span>
     {#if tone === 'active'}<span class="cd">{countdown}</span>{/if}
+    <!-- Ikona kategorii po prawej, jak na listach. -->
+    <Icon name={iconName} fallback={letter} />
   {:else}
     <span class="cont"><Icon name={iconName} fallback={letter} /></span>
   {/if}

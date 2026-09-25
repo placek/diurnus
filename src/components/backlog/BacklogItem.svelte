@@ -2,7 +2,8 @@
   import { app, currentDay, pushHistory, save, ui } from '../../state.svelte';
   import { addItemAfter, deleteItem, setItemText } from '../../actions.svelte';
   import { describeRepeat } from '../../lib/repeat';
-  import { colorOf } from '../../lib/categories';
+  import { colorOf, iconOf } from '../../lib/categories';
+  import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import { backlogList, categoryOf, itemTone, kindOf, soonOf, whenOf } from '../../lib/view';
@@ -125,4 +126,8 @@
   />
   {#if soon}<b class="backlog-soon soon-{Math.max(soon.days, 1)}">{soon.label}</b>{/if}
   {#if meta}<span class="item-meta backlog-meta">{meta}</span>{/if}
+  <!-- Ikona kategorii stoi na samym końcu, za terminem. -->
+  {#if cat}<span class="item-cat" title={cat.name}
+      ><Icon name={iconOf(app.S.cats, cat)} fallback={cat.name[0] ?? '?'} /></span
+    >{/if}
 </div>

@@ -49,7 +49,9 @@ test('menu przy prawej krawędzi jest wsuwane w widok', () => {
 });
 
 test('menu przy górnej i dolnej krawędzi mieści się w pionie', () => {
-  expect(ringLayout(6, 600, 0, VW, VH).y).toBeGreaterThanOrEqual(ringLayout(6, 600, 0, VW, VH).r + 30);
+  expect(ringLayout(6, 600, 0, VW, VH).y).toBeGreaterThanOrEqual(
+    ringLayout(6, 600, 0, VW, VH).r + 30,
+  );
   const bottom = ringLayout(6, 600, VH, VW, VH);
   expect(bottom.y).toBeLessThanOrEqual(VH - (bottom.r + 30));
 });
@@ -64,4 +66,13 @@ test('zero pozycji nie wywraca obliczeń', () => {
   const l = ringLayout(0, 600, 400, VW, VH);
   expect(l.items).toEqual([]);
   expect(l.r).toBe(66);
+});
+
+test('pierścień z podpisami jest szerszy i zostawia pod sobą miejsce na podpis', () => {
+  expect(ringLayout(1, 600, 400, VW, VH, true).r).toBe(92);
+  expect(ringLayout(8, 600, 400, VW, VH, true).r).toBeGreaterThan(
+    ringLayout(8, 600, 400, VW, VH).r,
+  );
+  const bottom = ringLayout(6, 600, VH, VW, VH, true);
+  expect(bottom.y).toBeLessThanOrEqual(VH - (bottom.r + 30 + 24));
 });

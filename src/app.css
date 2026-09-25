@@ -6,7 +6,6 @@
      ta sama grubość akcentu, ta sama siła podbarwienia. Zmiana tu zmienia
      obie połowy ekranu naraz — o to chodziło w ujednoliceniu. */
   --shape-r: 8px;
-  --accent-w: 4px;
   --tint: 12%;
   --hdr: 76px;
   --bg:#fbf1c7; --raise:#fffbe8; --fg:#3c3836; --fg-dim:#7c6f64; --fg-faint:#a89984;
@@ -192,7 +191,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .blk .ic{flex:none;font-size:11px}
 .blk .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .blk .cd{flex:none;font:500 13px var(--mono);opacity:.8}
-.blk .cont{opacity:.55}
+.blk .cont{opacity:.55;margin-left:auto}
 
 /* Ta sama zasada co na listach: rzecz zrobiona jest zapisem i schodzi w tło,
    rzecz zaplanowana jest zobowiązaniem i ma przyciągać wzrok. Wcześniej było
@@ -266,6 +265,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   animation:pop .24s cubic-bezier(.2,.9,.3,1.25) backwards;animation-delay:var(--d);
 }
 .rb:hover,.rb:focus-visible{background:var(--c);color:var(--on);outline:none}
+/* Podpis podkategorii pod ikoną. */
+.rn{
+  position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);
+  max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:1px 7px;border-radius:9px;pointer-events:none;
+  font:500 12px var(--sans);color:var(--fg);background:var(--raise);box-shadow:var(--shadow);
+}
 @media (hover:none){ .rb .k{display:none} }
 @keyframes pop{from{transform:translate(0,0) scale(.3);opacity:0}}
 @keyframes fade{from{opacity:0;scale:.85}}
@@ -501,23 +507,18 @@ kbd{
 .bullet-menu button:hover{background:var(--line)}
 .bullet-menu button.sel{color:var(--fg);background:var(--line)}
 .bm-mark{width:14px;text-align:center;color:var(--fg-dim)}
-/* Wiersz listy i backlogu z kategorią ma akcent po lewej. Podbarwienie bloku
-   dostaje tylko pozycja z godziną — ta, która jest (albo będzie) blokiem na
-   siatce; reszta ma sam pasek. Pozycja bez kategorii zostaje samym tekstem —
-   panele są powierzchnią do pisania i obramowanie każdej linii walczyłoby z tym. */
+/* Kategorię wiersza listy i backlogu pokazuje ikona na prawym końcu, w kolorze
+   kategorii. Podbarwienie bloku dostaje tylko pozycja z godziną — ta, która jest
+   (albo będzie) blokiem na siatce. Wszystkie wiersze mają to samo wcięcie, więc
+   tekst stoi w jednej linii bez względu na kategorię. */
 .item{
   display:flex;align-items:center;gap:7px;position:relative;
-  margin:2px 0;padding:2px 6px 2px 0;border-radius:var(--shape-r);
-}
-.item.has-cat{
-  box-shadow:inset var(--accent-w) 0 0 var(--c);
-  padding-left:calc(var(--accent-w) + 4px);
+  margin:2px 0;padding:2px 6px 2px 4px;border-radius:var(--shape-r);
 }
 .item.has-cat.is-linked{background:color-mix(in srgb, var(--c) var(--tint), transparent)}
-/* Wykonane przygasza akcent, zamiast go gubić: kategoria nadal jest widoczna,
-   ale pasek przestaje krzyczeć „to na ciebie czeka". Wcięcie zostaje, żeby
-   tekst nie przeskakiwał w bok w momencie odhaczenia. */
-.item.has-cat.tone-done{box-shadow:inset var(--accent-w) 0 0 color-mix(in srgb,var(--c) 38%,transparent)}
+.item-cat{flex:none;display:grid;place-items:center;width:16px;font-size:13px;color:var(--c)}
+/* Wykonane przygasza ikonę jak blok na siatce: kategoria zostaje, ale nie woła. */
+.item.tone-done .item-cat{color:var(--fg-faint)}
 .item-text{
   flex:1;min-width:0;border:0;background:transparent;outline:0;padding:4px 2px;
   font:500 16px var(--sans);color:var(--fg);
@@ -530,7 +531,7 @@ kbd{
 .item.is-dragging{opacity:.4}
 .drop-line{
   height:0;border-top:2px solid var(--blue);border-radius:2px;
-  margin:1px 0 1px 33px;                   /* wyrównanie do tekstu, nie do znacznika */
+  margin:1px 0 1px 37px;                   /* wyrównanie do tekstu, nie do znacznika */
 }
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
 .item.is-linked .item-text{color:var(--fg)}

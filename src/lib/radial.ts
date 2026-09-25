@@ -14,6 +14,10 @@ export interface RingLayout {
 
 const GAP = 52; // minimalny odstęp między środkami ikon
 const MARGIN = 30;
+// Z podpisami pod ikonami (podkategorie) pozycje potrzebują więcej miejsca:
+// podpis jest szerszy od ikony i nie może najechać na sąsiada ani na środek.
+const LABELED_GAP = 108;
+const LABEL_H = 24;
 
 // Promień rośnie z liczbą pozycji, żeby ikony nigdy na siebie nie zachodziły:
 // obwód musi pomieścić `count` ikon co GAP pikseli. Minimum jest mniejsze na
@@ -24,10 +28,13 @@ export function ringLayout(
   cy: number,
   viewportW: number,
   viewportH: number,
+  labeled = false,
 ): RingLayout {
-  const min = viewportW < 420 ? 60 : 66;
-  const r = Math.max(min, (count * GAP) / (2 * Math.PI));
+  const min = labeled ? (viewportW < 420 ? 84 : 92) : viewportW < 420 ? 60 : 66;
+  const r = Math.max(min, (count * (labeled ? LABELED_GAP : GAP)) / (2 * Math.PI));
   const m = r + MARGIN;
+  // Podpis wisi pod ikoną, więc od dołu trzeba zostawić na niego miejsce.
+  const below = labeled ? LABEL_H : 0;
 
   const items: RingItem[] = Array.from({ length: count }, (_, i) => {
     // Start u góry (−π/2), dalej zgodnie z ruchem wskazówek zegara.
@@ -38,7 +45,7 @@ export function ringLayout(
   return {
     r,
     x: Math.min(Math.max(cx, m), viewportW - m),
-    y: Math.min(Math.max(cy, m + 8), viewportH - m),
+    y: Math.min(Math.max(cy, m + 8), viewportH - m - below),
     items,
   };
 }

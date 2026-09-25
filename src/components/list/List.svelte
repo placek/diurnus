@@ -64,7 +64,7 @@
         maxlength="200"
         autocomplete="off"
         aria-label="Nowa pozycja"
-        placeholder={items.length + linked.length + done.length === 0 ? 'Zacznij pisać…' : ''}
+        placeholder="Nowe zadanie/notatka…"
         oninput={onDraftInput}
       />
     </div>

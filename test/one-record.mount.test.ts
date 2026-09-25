@@ -271,3 +271,29 @@ test('menu znacznika otwiera się w miejscu kliknięcia, nie w wierszu', async (
   expect(menu.style.left).toBe('240px');
   expect(menu.style.top).toBe('380px');
 });
+
+test('ikona kategorii stoi na samym końcu wiersza: za godziną na liście, za terminem w backlogu', async () => {
+  seed([
+    task('a', 36, { cat: 'learn' }),
+    task('b', null, { cat: 'work' }),
+    task('c'),
+    backlog('d', { type: 'dateSlot', date: shiftDay(TODAY, 2), slot: 40 }, { cat: 'learn' }),
+  ]);
+  await mountApp();
+  const a = row('a');
+  expect(a.lastElementChild!.classList.contains('item-cat')).toBe(true);
+  expect(a.lastElementChild!.previousElementSibling!.classList.contains('item-hour')).toBe(true);
+  expect(row('b').lastElementChild!.classList.contains('item-cat')).toBe(true);
+  expect(row('c').querySelector('.item-cat')).toBeNull();
+  const d = document.querySelector<HTMLElement>('#backlog .item[data-id="d"]')!;
+  expect(d.lastElementChild!.classList.contains('item-cat')).toBe(true);
+  expect(d.lastElementChild!.previousElementSibling!.classList.contains('backlog-meta')).toBe(true);
+});
+
+test('blok na siatce ma ikonę kategorii po prawej, za tytułem', async () => {
+  seed([task('a', 36, { cat: 'learn' })]);
+  await mountApp();
+  const blk = block('a')!;
+  expect(blk.firstElementChild!.classList.contains('t')).toBe(true);
+  expect(blk.lastElementChild!.classList.contains('ic')).toBe(true);
+});
