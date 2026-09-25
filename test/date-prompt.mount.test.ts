@@ -104,8 +104,10 @@ test('bez godziny minuty są nieaktywne, a pozycja dostaje sam dzień', async ()
   flush();
 
   const item = app.S.items.find((i) => i.id === 'a')!;
-  expect(item.day).toBe(shiftDay(today(), 1));
-  expect(item.at).toBeUndefined();
+  expect(item.state).toEqual({
+    tag: 'backlog-task',
+    when: { type: 'date', date: shiftDay(today(), 1) },
+  });
 });
 
 test('wybrana godzina i kwadrans zapisują się jako pora pozycji', async () => {
@@ -119,8 +121,10 @@ test('wybrana godzina i kwadrans zapisują się jako pora pozycji', async () => 
   flush();
 
   const item = app.S.items.find((i) => i.id === 'a')!;
-  expect(item.day).toBe(shiftDay(today(), 1));
-  expect(item.at).toBe(9 * 4 + 3); // 09:45
+  expect(item.state).toEqual({
+    tag: 'backlog-task',
+    when: { type: 'dateSlot', date: shiftDay(today(), 1), slot: 9 * 4 + 3 }, // 09:45
+  });
   expect(document.querySelector('.date-prompt')).toBeNull();
 });
 
@@ -135,5 +139,30 @@ test('powrót do „bez pory" po wyborze godziny kasuje porę', async () => {
   schedule();
   flush();
 
-  expect(app.S.items.find((i) => i.id === 'a')!.at).toBeUndefined();
+  expect(app.S.items.find((i) => i.id === 'a')!.state).toMatchObject({ when: { type: 'date' } });
+});
+
+test('w ostatniej godzinie dnia nie ma :45 — slot trwa 30 minut i musi się zmieścić', async () => {
+  seed(8, 12);
+  const { flush } = await openPrompt();
+
+  choose(hourSel(), '10', flush);
+  expect(labels(minSel())).toEqual(['00', '15', '30', '45']);
+  choose(minSel(), '45', flush);
+
+  choose(hourSel(), '11', flush);
+  expect(labels(minSel())).toEqual(['00', '15', '30']);
+  // Wybór :45 przechodzi na najpóźniejszy możliwy, zamiast zostać niepoprawny.
+  expect(minSel().value).toBe('30');
+});
+
+test('„Bez daty" nie zostawia samej godziny bez daty', async () => {
+  seed(8, 12);
+  const { flush, app } = await openPrompt();
+  choose(hourSel(), '9', flush);
+  [...document.querySelectorAll<HTMLElement>('.date-prompt button')]
+    .find((b) => b.textContent?.includes('Bez daty'))!
+    .click();
+  flush();
+  expect(app.S.items.find((i) => i.id === 'a')!.state).toEqual({ tag: 'backlog-task', when: null });
 });

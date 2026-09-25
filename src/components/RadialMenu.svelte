@@ -6,7 +6,8 @@
   import { ringLayout } from '../lib/radial';
   import Icon from './Icon.svelte';
 
-  const MODE_LABEL = { past: 'wstecz', now: 'start', future: 'plan' } as const;
+  // Czas nowego zadania opisuje tylko jego kolor: nic nie startuje ani nie kończy się samo.
+  const MODE_LABEL = { past: 'minione', now: 'teraz', future: 'plan' } as const;
 
   interface Props {
     menu: NonNullable<typeof ui.menu>;
@@ -38,8 +39,12 @@
     </button>
   {:else}
     <div class="rc">
-      <div class="rt">{fmtQ(currentDay.value, menu.fit.q)}</div>
-      <div class="rl">{MODE_LABEL[menu.rel]}</div>
+      {#if menu.fit}
+        <div class="rt">{fmtQ(currentDay.value, menu.fit.q)}</div>
+        <div class="rl">{MODE_LABEL[menu.rel]}</div>
+      {:else}
+        <div class="rl">kategoria</div>
+      {/if}
     </div>
   {/if}
 

@@ -1,7 +1,7 @@
 # Diurnus — maszyna stanów pozycji: projekt
 
-**Status:** graf zaakceptowany, maszyna zaimplementowana jako osobny moduł, aplikacja jeszcze
-z niej nie korzysta · **Data:** 2026-09-25 · **Kod:** [`src/lib/machine.ts`](../../../src/lib/machine.ts),
+**Status:** graf zaakceptowany, maszyna zaimplementowana i podłączona do aplikacji
+(schemat v6) · **Data:** 2026-09-25 · **Kod:** [`src/lib/machine.ts`](../../../src/lib/machine.ts),
 testy [`test/machine.test.ts`](../../../test/machine.test.ts)
 
 ## 1. Cel
@@ -167,17 +167,39 @@ przechodzą na następny dzień.
 - **Zajęty slot to co innego**: wtedy wystąpienie nie przepada, tylko ponawia o kolejnym
   świcie, zgodnie z decyzją z tabeli.
 
-## 7. Co dalej
+## 7. Podłączenie do aplikacji
 
-Moduł jest gotowy i przetestowany, ale aplikacja nadal działa na starym modelu. Podłączenie to
-osobny krok, bo zmienia zachowanie i zapisane dane:
+Aplikacja działa na maszynie od schematu v6.
 
-- migracja schematu v5 do nowego modelu, łącznie z usunięciem sugestii i bloków odrzuconych;
-- siatka jako rzut dzisiejszych zadań ze slotem, bez klikania „start" i bez samoczynnego
-  kończenia bloku;
-- okienko daty z ostatnim wyborem 30 minut przed końcem dnia;
-- zegar aplikacji wysyłający przesunięcie dnia zamiast mutować stan w timerze;
-- kategorie pozostają danymi pozycji, poza maszyną.
+- **Jedna droga zmiany stanu.** Każda zmiana stanu pozycji to zdarzenie wysłane przez
+  `dispatch()` w `src/state.svelte.ts`. Kilka zdarzeń naraz przechodzi albo w całości, albo
+  wcale, i trafia do jednej migawki cofania. Odmowa pokazuje komunikat i nic nie zmienia.
+- **Dane poza maszyną.** Tekst, kategoria i kolejność pozycji swobodnych to dane, nie stan;
+  zmieniają się wprost, ale z migawką cofania. Kopie wzorca dziedziczą kategorię.
+- **Zegar.** Raz na sekundę zegar porównuje dzień maszyny z kalendarzem i wysyła `advance`.
+  To samo dzieje się przy starcie, więc stan zapisany tydzień temu dochodzi do dziś dzień po
+  dniu. Przesunięcie dnia czyści historię cofania: cofnięcie przez północ nie ma sensu.
+- **Siatka** to rzut dzisiejszych zadań ze slotem. Klik w blok przełącza wykonane ↔ otwarte;
+  nic nie startuje ani nie kończy się samo, czas zmienia tylko kolor. Wykonanego zadania nie
+  da się przeciągnąć na inną godzinę.
+- **Ustawienia dnia.** Zwężenie dnia, które wyrzuciłoby dzisiejszy slot poza zakres, jest
+  odmawiane z listą godzin, które przeszkadzają.
+- **Okienko daty** w ostatniej godzinie dnia nie proponuje :45, bo 30 minut by się nie
+  zmieściło. „Bez daty" nie zostawia samej godziny.
+
+### Przejście z v5
+
+`src/lib/migrate.ts`, jednorazowo przy pierwszym wczytaniu starego zapisu albo starej kopii
+zapasowej:
+
+- blok z pozycją zlewa się w jedną pozycję ze slotem i kategorią bloku; potwierdzony jest
+  wykonany, każdy inny otwarty;
+- dzisiejsza pozycja z ukrytą godziną (`at`), której v5 nie pokazywało, dostaje ją jako slot;
+- bloki 15-minutowe tracą slot, jeśli 30 minut nachodziłoby na sąsiada albo koniec dnia;
+- przeszłość: wykonane i notatki zostają w swoim dniu, otwarte zadania przechodzą do dziś;
+  **niepotwierdzone bloki przeszłości przepadają** — v5 też ich nigdy nie przenosiło;
+- odrzucone sugestie przepadają; notatka z backlogu traci datę; wykonane z backlogu trafia
+  do dziś.
 
 ## 8. Testy
 

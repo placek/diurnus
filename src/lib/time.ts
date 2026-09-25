@@ -59,6 +59,13 @@ export const QUARTERS = [0, 15, 30, 45] as const;
 export const activeHours = (startH: number, endH: number): number[] =>
   Array.from({ length: Math.max(0, endH - startH) }, (_, i) => startH + i);
 
+/**
+ * Kwadranse do wyboru w danej godzinie. Slot trwa 30 minut i musi zmieścić się
+ * w dniu, więc w ostatniej godzinie odpada :45 — skończyłby się po końcu dnia.
+ */
+export const quartersFor = (hour: number, endH: number): readonly number[] =>
+  hour === endH - 1 ? QUARTERS.filter((m) => m <= 30) : QUARTERS;
+
 /** Kwant z wybranej godziny i minuty; pusta godzina znaczy „bez pory". */
 export function pickedQuantum(hour: string, minute: string): number | undefined {
   if (hour === '') return undefined;

@@ -2,16 +2,17 @@
   import { MARK } from '../../lib/items';
   import {
     completeBacklogItem,
-    openMenu,
-    pullToToday,
-    scheduleItem,
-    setRepeat,
     moveItemTo,
+    moveToBacklog,
+    moveToToday,
+    openCategoryMenu,
+    scheduleItem,
     setItemType,
-    toggleBlockDone,
+    setRepeat,
+    toggleDone,
   } from '../../actions.svelte';
-  import { isBacklog } from '../../lib/backlog';
   import { describeRepeat } from '../../lib/repeat';
+  import { isBacklog as inBacklogPane, kindOf, slotOf, whenOf } from '../../lib/view';
   import { shiftDay, splitDay } from '../../lib/time';
   import type { Repeat } from '../../lib/types';
   import { app, currentDay, ui } from '../../state.svelte';
@@ -19,11 +20,15 @@
 
   interface Props {
     item: Item;
-    /** pozycja powiązana nie przeciąga się — jej miejsce to jej godzina */
-    draggable?: boolean;
   }
 
-  const { item, draggable = true }: Props = $props();
+  const { item }: Props = $props();
+
+  const kind = $derived(kindOf(item));
+  const rule = $derived.by(() => {
+    const w = whenOf(item);
+    return w?.type === 'recurring' ? w.rule : undefined;
+  });
 
   let menu = $state(false);
   let menuX = $state(0);
@@ -54,25 +59,31 @@
     return () => removeEventListener('click', close);
   });
 
-  // Pozycja powiązana nie ma własnych znaczników — jej znacznik jest statusem
-  // bloku, więc menu jest dla niej puste. Przenoszenie odbywa się
-  // przeciągnięciem do backlogu, nie z tego menu.
+  // Znaczniki w miejscu. Notatka nie ma czasu, więc zadanie ze slotem jej nie
+  // proponuje; w backlogu „wykonane" nie jest znacznikiem, tylko kliknięciem,
+  // które przenosi rzecz do dziś.
   const IN_PLACE: { type: ItemType; label: string }[] = [
     { type: 'task', label: 'Zadanie' },
     { type: 'done', label: 'Wykonane' },
     { type: 'note', label: 'Notatka' },
   ];
 
-  const TYPES = $derived(item.block ? [] : IN_PLACE);
+  const TYPES = $derived(
+    IN_PLACE.filter(
+      (t) =>
+        !(inBacklog && t.type === 'done') &&
+        !(t.type === 'note' && (slotOf(item) !== null || whenOf(item) !== null)),
+    ),
+  );
 
 
   // Wzorce budowane z dzisiejszej daty — „co poniedziałek" znaczy ten dzień
   // tygodnia, „3. każdego miesiąca" ten dzień miesiąca. Bez osobnego formularza.
-  const inBacklog = $derived(isBacklog(item, currentDay.value));
+  const inBacklog = $derived(inBacklogPane(item));
   // Terminy jako gotowe wybory; „wybierz datę…" otwiera okienko dla reszty.
   type DateChoice = { label: string; day: string | null } | 'pick';
   const DATES = $derived.by((): DateChoice[] => {
-    if (!inBacklog) return [];
+    if (!inBacklog || kind === 'note') return [];
     return [
       { label: 'jutro', day: shiftDay(currentDay.value, 1) },
       { label: 'za tydzień', day: shiftDay(currentDay.value, 7) },
@@ -82,7 +93,7 @@
   });
 
   const REPEATS = $derived.by((): (Repeat | undefined)[] => {
-    if (!inBacklog) return [];
+    if (!inBacklog || kind === 'note') return [];
     const [, month, dom] = splitDay(currentDay.value);
     const weekday = new Date(app.now).getDay();
     return [
@@ -93,10 +104,8 @@
       undefined,
     ];
   });
-  // Pozycja powiązana nie ma czego pokazać w menu: jej znacznik jest statusem
-  // bloku, terminy i powtarzalność należą do backlogu. Pusta ramka byłaby
-  // gorsza niż brak reakcji, więc nie przechwytujemy prawego przycisku.
-  const hasMenu = $derived(!item.block || TYPES.length + DATES.length + REPEATS.length > 0);
+  // Kategoria jest zawsze do wyboru, więc menu nigdy nie jest puste.
+  const hasMenu = true;
 
   /* ── Przeciąganie ──
      Znacznik pełni trzy role: klik przełącza zadanie/wykonane, prawy przycisk
@@ -125,7 +134,6 @@
   }
 
   function onPointerDown(e: PointerEvent) {
-    if (!draggable) return;
     if (e.button !== 0) return; // prawy przycisk należy do menu
     startX = e.clientX;
     startY = e.clientY;
@@ -172,18 +180,14 @@
     const from = inBacklog ? 'backlog' : 'list';
 
     if (target === from || target === null) {
-      // Pozycja powiązana nie przestawia się — jej miejsce to jej godzina.
-      // Przeciągnąć ją jednak wolno: to jedyna droga do odłożenia bloku.
-      if (!item.block) moveItemTo(drag.id, drag.toIndex);
+      // Przestawiają się tylko pozycje swobodne dziś; zadanie ze slotem ma
+      // miejsce wyznaczone godziną, a backlog układa się sam według terminów.
+      if (from === 'list') moveItemTo(drag.id, drag.toIndex);
       return;
     }
-    if (target === 'backlog') {
-      // Bez pytania: rzecz odłożona jest najpierw „kiedyś". Termin nadaje się
-      // osobno, z menu znacznika — tak samo jak powtarzalność.
-      scheduleItem(drag.id, null);
-      return;
-    }
-    pullToToday(drag.id, e.clientX, e.clientY);
+    // Między polami: maszyna decyduje, co przechodzi i z jakim czasem.
+    if (target === 'backlog') moveToBacklog(drag.id);
+    else moveToToday(drag.id);
   }
 
   function onClick() {
@@ -191,10 +195,11 @@
       suppressClick = false;
       return;
     }
-    // Trzy konteksty, trzy znaczenia kliknięcia w znacznik.
-    if (item.block) toggleBlockDone(item.id);
-    else if (isBacklog(item, currentDay.value)) completeBacklogItem(item.id);
-    else setItemType(item.id, item.type === 'done' ? 'task' : 'done');
+    // W backlogu kliknięcie to „zrobione" i przeniesienie do dziś; w dziś
+    // przełącza wykonane ↔ otwarte. Notatka nie ma czego przełączać.
+    if (kind === 'note') return;
+    if (inBacklog) completeBacklogItem(item.id);
+    else toggleDone(item.id);
   }
 
   function choose(type: ItemType) {
@@ -207,9 +212,9 @@
      razy dziennie i nie może wymagać celowania w menu. Reszta typów siedzi
      pod prawym przyciskiem, bo dwa z nich zapisują do listy innego dnia. -->
 <button
-  class="bullet t-{item.type}"
-  class:is-repeat={!!item.repeat}
-  aria-label="Znacznik: {item.type}"
+  class="bullet t-{kind}"
+  class:is-repeat={!!rule}
+  aria-label="Znacznik: {kind}"
   onclick={onClick}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
@@ -221,30 +226,27 @@
     menuX = e.clientX;
     menuY = e.clientY;
     menu = !menu;
-  }}>{MARK[item.type]}</button
+  }}>{MARK[kind]}</button
 >
 
 {#if menu}
   <div bind:this={menuEl} class="bullet-menu" role="menu" style="left:{menuX}px;top:{menuY}px">
     {#each TYPES as t (t.type)}
-      <button role="menuitem" class:sel={t.type === item.type} onclick={() => choose(t.type)}>
+      <button role="menuitem" class:sel={t.type === kind} onclick={() => choose(t.type)}>
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}
       </button>
     {/each}
-    <!-- Pozycja powiązana bierze kategorię z bloku, więc nie ma tu czego wybierać. -->
-    {#if !item.block}
-      <button
-        role="menuitem"
-        onclick={() => {
-          menu = false;
-          ui.catFor = item.id;
-          openMenu(0, menuX, menuY);
-        }}
-      >
-        <span class="bm-mark">#</span>Kategoria…
-      </button>
-      <div class="bm-sep"></div>
-    {/if}
+    <!-- Jedna pozycja, jedna kategoria: ta sama na liście i na siatce. -->
+    <button
+      role="menuitem"
+      onclick={() => {
+        menu = false;
+        openCategoryMenu(item.id, menuX, menuY);
+      }}
+    >
+      <span class="bm-mark">#</span>Kategoria…
+    </button>
+    <div class="bm-sep"></div>
 
     {#each DATES as d, i (i)}
       <button
@@ -263,7 +265,7 @@
     {#each REPEATS as r, i (i)}
       <button
         role="menuitem"
-        class:sel={r === undefined ? !item.repeat : JSON.stringify(r) === JSON.stringify(item.repeat)}
+        class:sel={r === undefined ? !rule : JSON.stringify(r) === JSON.stringify(rule)}
         onclick={() => {
           menu = false;
           setRepeat(item.id, r);

@@ -3,7 +3,9 @@
   import { bandAt } from '../lib/model';
   import { segments } from '../lib/segments';
   import { pad, qTime, rel } from '../lib/time';
-  import type { Block as BlockT } from '../lib/types';
+  import { SLOT_LEN } from '../lib/machine';
+  import type { Item } from '../lib/machine';
+  import { slotOf } from '../lib/view';
   import Block from './Block.svelte';
   import { actAt } from '../actions.svelte';
 
@@ -11,10 +13,11 @@
     hour: number;
     /** indeks rzędu w widocznym oknie; 0 = pierwszy */
     row: number;
-    blocks: BlockT[];
+    /** dzisiejsze zadania ze slotem */
+    items: Item[];
   }
 
-  const { hour, row, blocks }: Props = $props();
+  const { hour, row, items }: Props = $props();
 
   const band = $derived(bandAt(app.S.day.bands, hour));
   // Pierwszy rząd zawsze pokazuje nazwę pory, nawet gdy pora zaczęła się wcześniej.
@@ -39,7 +42,7 @@
   // segments() z oknem jednej godziny zwraca dokładnie fragmenty dla tego rzędu.
   // Podgląd miejsca, które zajmie blok tworzony z otwartego menu.
   const ghost = $derived(
-    ui.menu ? segments(ui.menu.fit.q, ui.menu.fit.len, hour, hour + 1) : [],
+    ui.menu?.fit ? segments(ui.menu.fit.q, ui.menu.fit.len, hour, hour + 1) : [],
   );
 
   // Podgląd miejsca, na które spadnie przeciągany blok; `bad` = zajęte albo
@@ -54,8 +57,8 @@
   );
 
   const segs = $derived(
-    blocks.flatMap((b) =>
-      segments(b.q, b.len, hour, hour + 1).map((seg) => ({ block: b, seg })),
+    items.flatMap((item) =>
+      segments(slotOf(item)!, SLOT_LEN, hour, hour + 1).map((seg) => ({ item, seg })),
     ),
   );
 </script>
@@ -102,8 +105,8 @@
     ></div>
   {/each}
 
-  {#each segs as { block, seg } (block.id + ':' + seg.from)}
-    <Block {block} {seg} {hour} />
+  {#each segs as { item, seg } (item.id + ':' + seg.from)}
+    <Block {item} {seg} {hour} />
   {/each}
 
   {#if ui.cursor.visible && Math.floor(ui.cursor.q / 4) === hour}

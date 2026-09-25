@@ -1,26 +1,53 @@
-import { reconcile } from './link';
-import type { Band, Block, Category, DaySettings, Item, State, Status } from './types';
+import { fromV5 } from './migrate';
+import type { V5State } from './migrate';
+import { today as todayKey } from './time';
+import type { Band, Category, DaySettings, Item, State } from './types';
 
 export const COLORS = ['yellow', 'orange', 'red', 'purple', 'blue', 'aqua', 'green'] as const;
 
 export const ICONS = [
-  'circle', 'star', 'hands-praying', 'church', 'cross', 'book-bible', 'sun', 'moon',
-  'laptop-code', 'briefcase', 'code', 'book-open', 'graduation-cap', 'pen-nib', 'brain',
-  'dumbbell', 'person-running', 'bicycle', 'mountain', 'house', 'seedling', 'broom',
-  'utensils', 'hammer', 'mug-hot', 'bed', 'music', 'guitar', 'gamepad', 'film', 'users',
-  'child', 'heart', 'phone', 'envelope', 'cart-shopping', 'car', 'list-check',
+  'circle',
+  'star',
+  'hands-praying',
+  'church',
+  'cross',
+  'book-bible',
+  'sun',
+  'moon',
+  'laptop-code',
+  'briefcase',
+  'code',
+  'book-open',
+  'graduation-cap',
+  'pen-nib',
+  'brain',
+  'dumbbell',
+  'person-running',
+  'bicycle',
+  'mountain',
+  'house',
+  'seedling',
+  'broom',
+  'utensils',
+  'hammer',
+  'mug-hot',
+  'bed',
+  'music',
+  'guitar',
+  'gamepad',
+  'film',
+  'users',
+  'child',
+  'heart',
+  'phone',
+  'envelope',
+  'cart-shopping',
+  'car',
+  'list-check',
 ] as const;
 
 export const MAX_TOP = 9;
 export const MAX_KIDS = 9; // cyfry 1–9 jako skróty
-
-export const STATUS_LABEL: Record<Status, string> = {
-  suggested: 'sugestia',
-  planned: 'plan',
-  active: 'w toku',
-  confirmed: 'wykonane',
-  discarded: 'odrzucone',
-};
 
 const DEFAULT_CATS: readonly Category[] = [
   { id: 'work', name: 'Praca', icon: 'laptop-code', color: 'yellow', parent: null },
@@ -61,67 +88,83 @@ export function bandAt(bands: readonly Band[], h: number): Band | null {
   return best;
 }
 
-export function normalize(x: unknown): State {
-  const s = x as Partial<State> | null | undefined;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const fresh = (today: string): State => ({
+  v: 6,
+  cats: clone(DEFAULT_CATS) as Category[],
+  day: clone(DEFAULT_DAY) as DaySettings,
+  today,
+  items: [],
+});
+
+/**
+ * Stan z pamięci albo z kopii zapasowej, podniesiony do v6. `today` to dzień,
+ * na który ustawia się stan przechodzący z v5 — v5 nie wiedziało, który dzień
+ * jest „dziś". Stan v6 niesie swój dzień sam; do bieżącego dogania go zegar.
+ */
+export function normalize(x: unknown, today: string = todayKey()): State {
+  // Stare wersje miały pola, których v6 nie zna — stąd luźny typ roboczy.
+  const s = x as (Record<string, unknown> & { v?: number }) | null | undefined;
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return fresh(today);
 
   // v1 trzymało q względem 06:00; v2 liczy od północy.
-  if (s && typeof s === 'object' && s.v === 1 && Array.isArray(s.blocks)) {
-    s.blocks.forEach((b) => {
+  if (s.v === 1 && Array.isArray(s.blocks)) {
+    (s.blocks as { q: number }[]).forEach((b) => {
       b.q += 24;
     });
     s.v = 2;
   }
 
   // v2 nie znało listy notatek.
-  if (s && typeof s === 'object' && s.v === 2) {
+  if (s.v === 2) {
     s.items = [];
     s.v = 3;
   }
 
-  // v3 nie znało powiązania bloków z pozycjami: dorabiamy je dla wszystkich dni
-  // jeden raz, żeby niezmiennik obowiązywał także w dniach, których użytkownik
-  // jeszcze nie odwiedził.
-  if (s && typeof s === 'object' && s.v === 3) {
-    s.items = reconcile(
-      (s.items ?? []) as Item[],
-      (s.blocks ?? []) as Block[],
-      null,
-      Date.now(),
-      uid,
-    );
-    s.v = 4;
-  }
+  // v3 nie znało powiązania bloków z pozycjami. Przejście do v6 i tak zlewa
+  // blok z pozycją, a blok bez pozycji dostaje własną — nie ma czego dorabiać.
+  if (s.v === 3) s.v = 4;
 
-  // v4 znało znaczniki przeniesienia; v5 przenosi pozycje dosłownie, więc
-  // znaczniki nie mają czego opisywać.
-  if (s && typeof s === 'object' && s.v === 4) {
-    s.items = ((s.items ?? []) as Item[]).map((i) => {
-      const { movedTo, ...rest } = i as unknown as Record<string, unknown>;
+  // v4 znało znaczniki przeniesienia; v5 przenosi pozycje dosłownie.
+  if (s.v === 4) {
+    s.items = ((s.items ?? []) as Record<string, unknown>[]).map((i) => {
+      const { movedTo: _movedTo, ...rest } = i;
       const raw = rest['type'];
       const type = raw === 'migrated' || raw === 'scheduled' ? 'task' : raw;
-      return { ...rest, type } as unknown as Item;
+      return { ...rest, type };
     });
     s.v = 5;
   }
 
-  if (!s || typeof s !== 'object' || Array.isArray(s) || s.v !== 5 || !Array.isArray(s.blocks)) {
-    return {
-      v: 5,
-      cats: clone(DEFAULT_CATS) as Category[],
-      day: clone(DEFAULT_DAY) as DaySettings,
-      blocks: [],
-      items: [],
-    };
+  if (s.v === 5) {
+    if (!Array.isArray(s.blocks)) return fresh(today);
+    const v5 = s as unknown as V5State;
+    if (!Array.isArray(v5.items)) v5.items = [];
+    v5.cats = validCats(v5.cats);
+    v5.day = validDay(v5.day);
+    return fromV5(v5, today);
   }
 
-  if (!Array.isArray(s.cats) || !s.cats.length) s.cats = clone(DEFAULT_CATS) as Category[];
-  if (!s.day || !(s.day.start < s.day.end) || !Array.isArray(s.day.bands)) {
-    s.day = clone(DEFAULT_DAY) as DaySettings;
-  }
-  // Uszkodzona kopia zapasowa może nie mieć listy w ogóle.
-  if (!Array.isArray(s.items)) s.items = [] as Item[];
+  if (s.v !== 6 || !Array.isArray(s.items)) return fresh(today);
+  const v6 = s as unknown as State;
+  v6.cats = validCats(v6.cats);
+  v6.day = validDay(v6.day);
+  if (typeof v6.today !== 'string' || !DATE.test(v6.today)) v6.today = today;
+  // Uszkodzona kopia może mieć pozycje bez stanu; takich nie da się pokazać.
+  v6.items = (v6.items as Item[]).filter(
+    (i) => i && typeof i.id === 'string' && i.state && typeof i.state.tag === 'string',
+  );
+  return v6;
+}
 
-  // Bloki poza widocznym oknem doby zostają w danych. Zwężenie dnia chowa je
-  // z widoku; rozszerzenie musi je przywrócić, a nie odkryć, że zniknęły.
-  return s as State;
+function validCats(c: unknown): Category[] {
+  return Array.isArray(c) && c.length ? (c as Category[]) : (clone(DEFAULT_CATS) as Category[]);
+}
+
+function validDay(d: unknown): DaySettings {
+  const day = d as DaySettings | undefined;
+  return day && day.start < day.end && Array.isArray(day.bands)
+    ? day
+    : (clone(DEFAULT_DAY) as DaySettings);
 }

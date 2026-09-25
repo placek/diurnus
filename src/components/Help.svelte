@@ -14,14 +14,15 @@
   <h2>Diurnus</h2>
   <p>
     Dzień od {pad(win.startH)} do {pad(win.endH)} to {slots}
-    {plural(slots)} po 30 minut. Kliknij pole, wybierz kategorię. To, co kliknięcie zrobi, zależy od
-    czasu: przeszłość zapisuje wykonanie, teraźniejszość uruchamia odliczanie, przyszłość planuje.
+    {plural(slots)} po 30 minut. Kliknij pole, wybierz kategorię — powstaje zadanie na tę godzinę.
+    Kolor mówi, czy jego pora jest przed tobą, trwa, czy minęła. Czas niczego nie zmienia sam:
+    wykonanie oznaczasz tylko ty.
   </p>
 
   <div class="legend">
-    <div class="blk st-suggested first last">sugestia</div>
     <div class="blk st-planned first last">plan</div>
-    <div class="blk st-active first last" style="--p:.45">w toku</div>
+    <div class="blk st-active first last" style="--p:.45">teraz</div>
+    <div class="blk st-planned stale first last">minęło</div>
     <div class="blk st-confirmed first last">wykonane</div>
   </div>
 
@@ -35,29 +36,26 @@
   <dl class="keys">
     <dt>Klik w puste pole</dt>
     <dd>
-      menu kategorii; nowy blok ma 30 minut albo 15, gdy dalej jest zajęte. Kategoria
-      z podkategoriami ma kropkowaną obwódkę i otwiera drugi pierścień, którego środek wybiera
-      samą kategorię nadrzędną
+      menu kategorii; nowe zadanie ma zawsze 30 minut, więc tam, gdzie się nie zmieści, menu się
+      nie otworzy. Kategoria z podkategoriami ma kropkowaną obwódkę i otwiera drugi pierścień,
+      którego środek wybiera samą kategorię nadrzędną
     </dd>
     <dt>Klik w blok</dt>
     <dd>
-      przyjmuje sugestię albo potwierdza plan według czasu: miniony staje się wykonanym,
-      trwający startuje; wykonany i trwający nie reagują
+      oznacza zadanie jako wykonane; drugi klik cofa wykonanie
     </dd>
     <dt>Dwuklik, prawy przycisk, przytrzymanie</dt>
-    <dd>edycja: nazwa, kategoria i podkategoria, zmiana statusu, usunięcie</dd>
+    <dd>edycja: nazwa, kategoria i podkategoria, wykonane albo cofnięcie, usunięcie</dd>
     <dt>Przeciągnięcie bloku</dt>
     <dd>
-      przenosi go na inną godzinę, z tą samą długością. Obrys pokazuje cel; czerwony znaczy, że
-      miejsce jest zajęte albo poza zakresem dnia — wtedy blok zostaje, gdzie był
+      przenosi zadanie na inną godzinę. Obrys pokazuje cel; czerwony znaczy, że miejsce jest
+      zajęte, poza zakresem dnia albo zadanie jest wykonane — wtedy zostaje, gdzie było
     </dd>
-    <dt>Blok w toku</dt>
+    <dt>Upływ czasu</dt>
     <dd>
-      naraz trwa tylko jeden — start nowego kończy poprzedni. Kończy się sam, gdy minie jego czas;
-      przeniesiony poza teraz staje się planem albo wykonanym
+      zadanie, którego pora trwa, odlicza czas; gdy pora minie, zadanie zostaje otwarte, dopóki
+      nie oznaczysz go jako wykonane
     </dd>
-    <dt>Usunięcie sugestii</dt>
-    <dd>odrzuca ją na stałe — nie wróci</dd>
   </dl>
 
   <h3 class="kb">Klawiatura na siatce</h3>
@@ -66,24 +64,24 @@
     <dd>kursor o 15 minut lub o godzinę; pierwsze wciśnięcie stawia go na teraz</dd>
     <dt><kbd>Shift</kbd> + <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> lub <kbd>HJKL</kbd></dt>
     <dd>
-      przenosi blok spod kursora o 15 minut lub o godzinę, a kursor jedzie z nim. Zajęte miejsce
-      albo koniec dnia zatrzymuje blok i mówi dlaczego
+      przenosi zadanie spod kursora o 15 minut lub o godzinę, a kursor jedzie z nim. Zajęte
+      miejsce albo koniec dnia zatrzymuje je i mówi dlaczego
     </dd>
     <dt><kbd>Enter</kbd> <kbd>Spacja</kbd></dt>
     <dd>to samo, co klik w pole pod kursorem</dd>
     <dt><kbd>1</kbd>–<kbd>{topCats(app.S.cats).length}</kbd></dt>
     <dd>
-      kategoria w polu kursora: blokowi ją zmienia, puste pole wypełnia. Bez kursora działa na
+      kategoria w polu kursora: zadaniu ją zmienia, puste pole wypełnia. Bez kursora działa na
       bieżący slot
     </dd>
     <dt><kbd>E</kbd> <kbd>Del</kbd></dt>
-    <dd>edytuj, usuń blok pod kursorem</dd>
+    <dd>edytuj, usuń zadanie pod kursorem</dd>
     <dt>W menu kategorii</dt>
     <dd>
       <kbd>1</kbd>–<kbd>9</kbd> wybór; w drugim pierścieniu <kbd>0</kbd> lub <kbd>Enter</kbd>
       kategoria nadrzędna, <kbd>⌫</kbd> powrót
     </dd>
-    <dt>W edycji bloku</dt>
+    <dt>W edycji zadania</dt>
     <dd>cyfry zmieniają kategorię; <kbd>Esc</kbd> zamyka bez zapisu</dd>
   </dl>
 
@@ -94,7 +92,7 @@
     <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
     <dd class="kb">
       nowa pozycja pod bieżącą; zmiana znacznika zadanie → wykonane → notatka
-      (<kbd>Shift</kbd> wstecz)
+      (<kbd>Shift</kbd> wstecz). Zadanie z godziną pomija notatkę
     </dd>
     <dt class="kb"><kbd>⌫</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Esc</kbd></dt>
     <dd class="kb">
@@ -105,14 +103,19 @@
     <dt>Prawy przycisk na znaczniku</dt>
     <dd>typ pozycji i kategoria</dd>
     <dt>Przeciągnięcie znacznika</dt>
-    <dd>w obrębie listy przestawia; upuszczone na backlogu odkłada pozycję bez terminu</dd>
+    <dd>
+      w obrębie listy przestawia pozycje bez godziny. Upuszczone na backlogu odkłada: zadanie
+      z godziną idzie z dzisiejszą datą i tą godziną. Wykonane zostaje w swoim dniu
+    </dd>
     <dt>Pozycje z godziną</dt>
     <dd>
-      to bloki z siatki: tekst jest nazwą bloku, odhaczenie potwierdza blok, a usunięcie pozycji
-      usuwa blok
+      to te same zadania, co na siatce — jedna pozycja: ten sam tekst, kategoria i znacznik
     </dd>
     <dt>Nowy dzień</dt>
-    <dd>niedokończone zadania z ostatniego dnia wracają dziś na górę</dd>
+    <dd>
+      o północy otwarte zadania przechodzą na nowy dzień, bez godziny; wykonane i notatki zostają
+      w swoim dniu
+    </dd>
   </dl>
 
   <h3>Backlog</h3>
@@ -123,21 +126,26 @@
     <dd class="kb">jak w notatkach; znacznik zmienia się tylko z menu</dd>
     <dt>Klik w znacznik</dt>
     <dd>
-      zrobione — trafia do dzisiejszych notatek. Powtarzalna zostaje w backlogu i przeskakuje na
-      następne wystąpienie
+      zrobione — trafia do dziś jako wykonane, z godziną, jeśli ją miało. Wzorzec zostaje
+      w backlogu i przeskakuje na następne wystąpienie
     </dd>
     <dt>Prawy przycisk na znaczniku</dt>
     <dd>
-      typ i kategoria, a do tego termin (jutro, za tydzień, wybrana data z opcjonalną godziną, bez
-      daty) i powtarzalność (codziennie, co tydzień, co miesiąc, co rok)
+      typ i kategoria, a zadanie dostaje też termin (jutro, za tydzień, wybrana data z opcjonalną
+      godziną, bez daty) albo powtarzalność (codziennie, co tydzień, co miesiąc, co rok). Notatka
+      nie ma terminu
     </dd>
     <dt>Przeciągnięcie na notatki</dt>
     <dd>
-      bierze pozycję na dziś. Pozycja z godziną pyta o kategorię i staje się blokiem, jeśli
-      miejsce jest wolne; gdy zajęte, zostaje zwykłą pozycją
+      bierze pozycję na dziś; data przepada, godzina zostaje. Gdy ta godzina jest zajęta, pozycja
+      zostaje w backlogu. Wzorca się nie przeciąga — przychodzi sam
     </dd>
     <dt>Termin</dt>
-    <dd>pozycja z datą przechodzi do notatek w swoim dniu</dd>
+    <dd>
+      o świcie swojego dnia pozycja przychodzi do dziś sama, z godziną. Jeśli godzina jest zajęta,
+      czeka do następnego dnia. Wzorzec przysyła wtedy kopię, chyba że poprzednia jest wciąż
+      otwarta
+    </dd>
   </dl>
 
   <h3>Ustawienia i dane</h3>

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { app, currentDay } from '../../state.svelte';
-  import { backlogItems, sortBacklog } from '../../lib/backlog';
+  import { app } from '../../state.svelte';
+  import { backlogList } from '../../lib/view';
   import { createItemWithText } from '../../actions.svelte';
   import BacklogItem from './BacklogItem.svelte';
 
-  const items = $derived(sortBacklog(backlogItems(app.S.items, currentDay.value)));
+  const items = $derived(backlogList(app.S.items));
 
   // Pole początkowe nie jest pozycją w stanie — materializuje się przy
   // pierwszym znaku, tak samo jak w panelu notatek. Nowa pozycja jest BEZ
@@ -15,7 +15,7 @@
     const text = e.currentTarget.value;
     e.currentTarget.value = '';
     draft = '';
-    if (text) createItemWithText(text, null);
+    if (text) createItemWithText(text, 'backlog');
   }
 </script>
 

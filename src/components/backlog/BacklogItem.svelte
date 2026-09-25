@@ -1,13 +1,11 @@
 <script lang="ts">
   import { app, currentDay, pushHistory, save, ui } from '../../state.svelte';
   import { addItemAfter, deleteItem, setItemText } from '../../actions.svelte';
-  import { backlogItems, sortBacklog } from '../../lib/backlog';
   import { describeRepeat } from '../../lib/repeat';
-  import { itemTone } from '../../lib/tone';
-  import { itemCategory } from '../../lib/category';
   import { colorOf } from '../../lib/categories';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
+  import { backlogList, categoryOf, itemTone, kindOf, whenOf } from '../../lib/view';
   import Bullet from '../list/Bullet.svelte';
 
   interface Props {
@@ -27,12 +25,12 @@
     }
   });
 
-  // Pozycja backlogu nigdy nie ma bloku, więc ton wynika z samego typu.
-  const tone = $derived(itemTone(item, undefined, app.now));
-  const cat = $derived(itemCategory(item, undefined, app.S.cats));
+  // Pozycja backlogu nie ma slotu dziś, więc ton wynika z samego typu.
+  const tone = $derived(itemTone(item, currentDay.value, app.now));
+  const cat = $derived(categoryOf(item, app.S.cats));
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
 
-  const siblings = $derived(sortBacklog(backlogItems(app.S.items, currentDay.value)));
+  const siblings = $derived(backlogList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
   const fmtShort = new Intl.DateTimeFormat('pl-PL', {
@@ -41,13 +39,20 @@
     month: 'short',
   });
 
+  const fmtDay = (day: string) => {
+    const [y, m, d] = day.split('-').map(Number);
+    return fmtShort.format(new Date(y!, m! - 1, d!)).replace(',', '');
+  };
+
   // Metryka mówi, co o pozycji wiadomo: wzorzec, albo data i ewentualna pora.
   const meta = $derived.by(() => {
-    if (item.repeat) return describeRepeat(item.repeat);
-    if (!item.day) return '';
-    const [y, m, d] = item.day.split('-').map(Number);
-    const date = fmtShort.format(new Date(y!, m! - 1, d!)).replace(',', '');
-    return item.at !== undefined ? `${date} ${fmtQ(item.day, item.at)}` : date;
+    const w = whenOf(item);
+    if (!w) return '';
+    if (w.type === 'recurring')
+      return w.slot === null
+        ? describeRepeat(w.rule)
+        : `${describeRepeat(w.rule)} ${fmtQ(currentDay.value, w.slot)}`;
+    return w.type === 'dateSlot' ? `${fmtDay(w.date)} ${fmtQ(w.date, w.slot)}` : fmtDay(w.date);
   });
 
   function onKeydown(e: KeyboardEvent) {
@@ -82,7 +87,7 @@
   }
 </script>
 
-<div class="item backlog-item t-{item.type}" class:is-dragging={ui.drag?.id === item.id} data-id={item.id}>
+<div class="item backlog-item t-{kindOf(item)}" class:is-dragging={ui.drag?.id === item.id} data-id={item.id}>
   <Bullet {item} />
   <input
     bind:this={el}

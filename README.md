@@ -3,7 +3,7 @@
 Kwantowanie doby na 15-minutowe tokeny. Ekran dzieli się na trzy panele: dzisiejsza siatka,
 dzisiejsze notatki i backlog. Aplikacja pokazuje **wyłącznie dziś** — nie ma nawigacji po dniach. Cała aktywna część dnia mieści się w jednym oknie
 przeglądarki — bez przewijania — a każdy blok czasu jest jednym kliknięciem oznaczany jako
-zaplanowany, trwający albo wykonany.
+wykonany. Upływ czasu zmienia tylko kolor bloku, nigdy jego stan.
 
 ## Uruchomienie
 
@@ -34,10 +34,13 @@ bazę danych.
 
 ## Struktura
 
-- `src/lib/` — czysta logika, **zero importów ze Svelte**: arytmetyka doby, model stanu
-  i migracje, zajętość siatki, segmentacja bloków, skróty klawiszowe, kopia zapasowa.
+- `src/lib/` — czysta logika, **zero importów ze Svelte**. Sercem jest `machine.ts`:
+  deterministyczna maszyna stanów pozycji (dziś, backlog, przeszłość), opisana w
+  [specyfikacji](docs/superpowers/specs/2026-09-25-diurnus-state-machine-design.md). Obok:
+  odczyty dla widoku, arytmetyka doby, migracje schematu, skróty klawiszowe, kopia zapasowa.
   Testowana zwykłym `import`.
-- `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach i mutacje.
+- `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach. Stan pozycji
+  zmienia się wyłącznie zdarzeniami maszyny wysłanymi przez `dispatch()`.
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
 - `src/components/list/` — dzienny log w duchu bullet journal (panel środkowy).
 - `src/components/backlog/` — backlog: wszystko, co nie należy do dziś.

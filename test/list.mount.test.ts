@@ -78,7 +78,8 @@ test('wpisanie tekstu utrwala pozycję w localStorage', async () => {
   const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].text).toBe('Kupić chleb');
-  expect(saved.items[0].day).toBe(today());
+  expect(saved.items[0].state).toEqual({ tag: 'today-task', done: false, slot: null });
+  expect(saved.today).toBe(today());
 });
 
 test('Enter tworzy kolejną pozycję i przenosi do niej fokus', async () => {
@@ -196,12 +197,18 @@ test('wykonana pozycja zostaje we wczorajszym dniu, niedokończona idzie dalej',
   flush();
   typeInto(inputs()[1]!, 'Niedokończone', flush);
 
+  // Zmiana doby to zdarzenie maszyny — to samo, które wysyła zegar.
+  const { advanceTo } = await import('../src/state.svelte');
   const wasToday = today();
-  app.now = atDay(shiftDay(wasToday, 1));
+  advanceTo(shiftDay(wasToday, 1));
   flush();
 
-  expect(app.S.items.find((i) => i.text === 'Zrobione')!.day).toBe(wasToday);
-  expect(app.S.items.find((i) => i.text === 'Niedokończone')!.day).toBe(shiftDay(wasToday, 1));
+  expect(app.S.items.find((i) => i.text === 'Zrobione')!.state).toEqual({
+    tag: 'past-done',
+    day: wasToday,
+    slot: null,
+  });
+  expect(app.S.items.find((i) => i.text === 'Niedokończone')!.state.tag).toBe('today-task');
   expect(inputs().map((i) => i.value)).toEqual(['Niedokończone']);
 });
 

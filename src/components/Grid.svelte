@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { app, win, currentDay } from '../state.svelte';
+  import { app, win } from '../state.svelte';
+  import { timedToday } from '../lib/view';
   import { consumeSwallowedClick } from '../actions.svelte';
   import HourRow from './HourRow.svelte';
 
-  const blocks = $derived(
-    app.S.blocks.filter((b) => b.day === currentDay.value && b.status !== 'discarded'),
-  );
+  // Siatka nie ma własnych danych: to rzut dzisiejszych zadań ze slotem.
+  const items = $derived(timedToday(app.S.items));
   const hours = $derived(Array.from({ length: win.hours }, (_, i) => win.startH + i));
 </script>
 
@@ -19,6 +19,6 @@
   }}
 >
   {#each hours as hour, row (hour)}
-    <HourRow {hour} {row} {blocks} />
+    <HourRow {hour} {row} {items} />
   {/each}
 </main>

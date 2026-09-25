@@ -1,12 +1,10 @@
 <script lang="ts">
   import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
-  import { blockOfItem, freeItems, linkedItems } from '../../lib/link';
-  import { itemTone } from '../../lib/tone';
   import { colorOf } from '../../lib/categories';
-  import { itemCategory } from '../../lib/category';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
+  import { categoryOf, itemTone, kindOf, slotOf, todayList } from '../../lib/view';
   import Bullet from './Bullet.svelte';
 
   interface Props {
@@ -29,20 +27,16 @@
     }
   });
 
-  const block = $derived(blockOfItem(app.S.blocks, item));
-  const cat = $derived(itemCategory(item, block, app.S.cats));
-  // Godzina i kolor są wyliczane z bloku, nie przechowywane w pozycji: zmiana
-  // kategorii bloku przebarwia pozycję sama, bez trzeciego pola do rozjechania.
+  // Pozycja ze slotem JEST blokiem na siatce — jeden rekord, więc godzina,
+  // kategoria i znacznik nie mają się z czym rozjechać.
+  const slot = $derived(slotOf(item));
+  const cat = $derived(categoryOf(item, app.S.cats));
   const color = $derived(cat ? colorOf(app.S.cats, cat) : null);
-  const tone = $derived(itemTone(item, block, app.now));
+  const tone = $derived(itemTone(item, currentDay.value, app.now));
 
   // Nawigacja klawiszami idzie przez OBIE grupy w kolejności wyświetlania:
-  // powiązane według godzin, potem swobodne. Liczenie samych swobodnych
-  // dawało dla pozycji powiązanej index -1 i strzałki przestawały działać.
-  const siblings = $derived([
-    ...linkedItems(app.S.items, app.S.blocks, currentDay.value),
-    ...freeItems(app.S.items, currentDay.value),
-  ]);
+  // ze slotem według godzin, potem swobodne.
+  const siblings = $derived(todayList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
   function focusSibling(offset: -1 | 1) {
@@ -96,15 +90,15 @@
 </script>
 
 <div
-  class="item t-{item.type} tone-{tone}"
-  class:is-linked={!!block}
+  class="item t-{kindOf(item)} tone-{tone}"
+  class:is-linked={slot !== null}
   class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}
 >
   <Bullet {item} />
-  {#if block}<span class="item-hour">{fmtQ(block.day, block.q)}</span>{/if}
+  {#if slot !== null}<span class="item-hour">{fmtQ(currentDay.value, slot)}</span>{/if}
   <input
     bind:this={el}
     class="item-text"

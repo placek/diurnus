@@ -1,7 +1,7 @@
 <script lang="ts">
   import { currentDay, ui, win } from '../../state.svelte';
   import { scheduleItem } from '../../actions.svelte';
-  import { QUARTERS, activeHours, pad, pickedQuantum, shiftDay } from '../../lib/time';
+  import { activeHours, pad, pickedQuantum, quartersFor, shiftDay } from '../../lib/time';
 
   interface Props {
     prompt: NonNullable<typeof ui.datePrompt>;
@@ -18,6 +18,11 @@
   let hour = $state(''); // '' = bez pory
   let minute = $state('0');
   const hours = $derived(activeHours(win.startH, win.endH));
+  const minutes = $derived(hour === '' ? [0, 15, 30, 45] : quartersFor(Number(hour), win.endH));
+  // Przejście na ostatnią godzinę z :45 przesuwa wybór na najpóźniejszy możliwy.
+  $effect(() => {
+    if (!minutes.includes(Number(minute))) minute = String(minutes.at(-1));
+  });
 
   const close = () => (ui.datePrompt = null);
 
@@ -62,7 +67,7 @@
       </select>
       <span aria-hidden="true">:</span>
       <select aria-label="Minuty" bind:value={minute} disabled={hour === ''}>
-        {#each QUARTERS as m (m)}
+        {#each minutes as m (m)}
           <option value={String(m)}>{pad(m)}</option>
         {/each}
       </select>

@@ -1,5 +1,5 @@
 import { bandAt } from './model';
-import type { Band, Block, Category, DaySettings } from './types';
+import type { Band, Category, DaySettings } from './types';
 
 export interface DraftCategory extends Category {
   /** oznaczona do usunięcia w trwającej edycji */
@@ -9,16 +9,15 @@ export interface DraftCategory extends Category {
 const alive = (c: DraftCategory) => !c._del && !c.archived;
 
 // Kategoria wciąż obecna w historii nie jest kasowana, tylko archiwizowana:
-// znika z menu, ale stare bloki zachowują nazwę i kolor. Skasowanie jej
-// odbarwiłoby zapisy sprzed miesięcy.
+// znika z menu, ale stare pozycje zachowują nazwę i kolor. Skasowanie jej
+// odbarwiłoby zapisy sprzed miesięcy. `used` to kategorie dowolnych pozycji.
 export function buildCats(
   draft: readonly DraftCategory[],
   original: ReadonlySet<string>,
-  blocks: readonly Block[],
+  used: ReadonlySet<string>,
   originalCats: readonly Category[],
 ): Category[] | null {
   const origMap = new Map(originalCats.map((c) => [c.id, c]));
-  const used = new Set(blocks.filter((b) => b.status !== 'discarded').map((b) => b.cat));
 
   const del = new Set<string>();
   for (const c of draft) {

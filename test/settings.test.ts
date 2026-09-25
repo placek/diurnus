@@ -1,32 +1,54 @@
 import { test, expect } from 'vitest';
-import { buildCats, moveUp, dayPreview, duplicateBandStart, clampDayRange } from '../src/lib/settings';
-import type { Band, Block, Category } from '../src/lib/types';
+import {
+  buildCats,
+  moveUp,
+  dayPreview,
+  duplicateBandStart,
+  clampDayRange,
+} from '../src/lib/settings';
+import type { Band, Category } from '../src/lib/types';
 import type { DraftCategory } from '../src/lib/settings';
 
-const cat = (id: string, name: string, parent: string | null = null, extra: Partial<DraftCategory> = {}): DraftCategory =>
-  ({ id, name, icon: null, parent, ...(parent ? {} : { color: 'yellow' }), ...extra });
+const cat = (
+  id: string,
+  name: string,
+  parent: string | null = null,
+  extra: Partial<DraftCategory> = {},
+): DraftCategory => ({
+  id,
+  name,
+  icon: null,
+  parent,
+  ...(parent ? {} : { color: 'yellow' }),
+  ...extra,
+});
 
-const blk = (cat: string): Block =>
-  ({ id: 'b-' + cat, day: '2026-09-24', q: 32, len: 2, cat, title: '', status: 'confirmed', created: 0 });
+/** Kategorie używane przez jakąkolwiek pozycję. */
+const used = (...ids: string[]) => new Set(ids);
 
 test('buildCats: przycina nazwy i uzupełnia brakujący kolor kategorii głównej', () => {
-  const out = buildCats([cat('a', '  Praca  ')], new Set(['a']), [], []);
+  const out = buildCats([cat('a', '  Praca  ')], new Set(['a']), used(), []);
   expect(out).toEqual([{ id: 'a', name: 'Praca', icon: null, parent: null, color: 'yellow' }]);
 });
 
 test('buildCats: nowa kategoria bez nazwy jest odrzucana', () => {
-  const out = buildCats([cat('a', 'Praca'), cat('nowa', '  ')], new Set(['a']), [], []);
+  const out = buildCats([cat('a', 'Praca'), cat('nowa', '  ')], new Set(['a']), used(), []);
   expect(out).toHaveLength(1);
 });
 
 test('buildCats: istniejąca kategoria z wyczyszczoną nazwą zachowuje starą nazwę', () => {
   const orig: Category[] = [{ id: 'a', name: 'Praca', icon: null, parent: null, color: 'yellow' }];
-  const out = buildCats([cat('a', '   ')], new Set(['a']), [], orig);
+  const out = buildCats([cat('a', '   ')], new Set(['a']), used(), orig);
   expect(out?.[0]?.name).toBe('Praca');
 });
 
 test('buildCats: usunięta i nieużywana kategoria znika', () => {
-  const out = buildCats([cat('a', 'Praca'), cat('b', 'Nauka', null, { _del: true })], new Set(['a', 'b']), [], []);
+  const out = buildCats(
+    [cat('a', 'Praca'), cat('b', 'Nauka', null, { _del: true })],
+    new Set(['a', 'b']),
+    used(),
+    [],
+  );
   expect(out?.map((c) => c.id)).toEqual(['a']);
 });
 
@@ -34,7 +56,7 @@ test('buildCats: usunięta ale używana w historii jest archiwizowana, nie kasow
   const out = buildCats(
     [cat('a', 'Praca'), cat('b', 'Nauka', null, { _del: true })],
     new Set(['a', 'b']),
-    [blk('b')],
+    used('b'),
     [],
   );
   expect(out?.map((c) => [c.id, c.archived])).toEqual([
@@ -47,7 +69,7 @@ test('buildCats: usunięcie rodzica usuwa też dzieci', () => {
   const out = buildCats(
     [cat('a', 'Praca', null, { _del: true }), cat('a1', 'Projekt', 'a'), cat('z', 'Inna')],
     new Set(['a', 'a1', 'z']),
-    [],
+    used(),
     [],
   );
   expect(out?.map((c) => c.id)).toEqual(['z']);
@@ -57,30 +79,23 @@ test('buildCats: rodzic używanego dziecka też jest archiwizowany, nie kasowany
   const out = buildCats(
     [cat('a', 'Praca', null, { _del: true }), cat('a1', 'Projekt', 'a'), cat('z', 'Inna')],
     new Set(['a', 'a1', 'z']),
-    [blk('a1')],
+    used('a1'),
     [],
   );
   expect(out?.find((c) => c.id === 'a')?.archived).toBe(true);
   expect(out?.find((c) => c.id === 'a1')?.archived).toBe(true);
 });
 
-test('buildCats: bloki discarded nie chronią kategorii przed usunięciem', () => {
-  const discarded: Block = { ...blk('b'), status: 'discarded' };
-  const out = buildCats(
-    [cat('a', 'Praca'), cat('b', 'Nauka', null, { _del: true })],
-    new Set(['a', 'b']),
-    [discarded],
-    [],
-  );
-  expect(out?.map((c) => c.id)).toEqual(['a']);
-});
-
 test('buildCats: usunięcie wszystkich kategorii głównych jest odrzucane', () => {
-  expect(buildCats([cat('a', 'Praca', null, { _del: true })], new Set(['a']), [], [])).toBeNull();
+  expect(
+    buildCats([cat('a', 'Praca', null, { _del: true })], new Set(['a']), used(), []),
+  ).toBeNull();
 });
 
 test('buildCats: same kategorie archiwalne też nie wystarczą', () => {
-  expect(buildCats([cat('a', 'Praca', null, { archived: true })], new Set(['a']), [], [])).toBeNull();
+  expect(
+    buildCats([cat('a', 'Praca', null, { archived: true })], new Set(['a']), used(), []),
+  ).toBeNull();
 });
 
 test('moveUp: kategoria główna przesuwa się razem z dziećmi', () => {
