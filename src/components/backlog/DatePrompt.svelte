@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { currentDay, ui } from '../../state.svelte';
+  import { currentDay, ui, win } from '../../state.svelte';
   import { scheduleItem } from '../../actions.svelte';
-  import { shiftDay } from '../../lib/time';
+  import { QUARTERS, activeHours, pad, pickedQuantum, shiftDay } from '../../lib/time';
 
   interface Props {
     prompt: NonNullable<typeof ui.datePrompt>;
@@ -11,19 +11,18 @@
 
   // Jutro jako najbliższy sensowny termin — planuje się zwykle na „nie dziś".
   let day = $state(shiftDay(currentDay.value, 1));
-  let time = $state('');
-
-  /** Godzina zaokrąglana W DÓŁ do kwadransa: siatka nie umie pokazać innych. */
-  function toQuantum(hhmm: string): number | undefined {
-    if (!hhmm) return undefined;
-    const [h, m] = hhmm.split(':').map(Number);
-    return (h ?? 0) * 4 + Math.floor((m ?? 0) / 15);
-  }
+  // Dwie listy zamiast pola czasu: `step` w <input type="time"> jest tylko
+  // podpowiedzią i przeglądarki pozwalają wpisać dowolną minutę i godzinę.
+  // Tu wybór jest ograniczony do tego, co siatka potrafi pokazać: godzin
+  // aktywnej części dnia z ustawień i czterech kwadransów.
+  let hour = $state(''); // '' = bez pory
+  let minute = $state('0');
+  const hours = $derived(activeHours(win.startH, win.endH));
 
   const close = () => (ui.datePrompt = null);
 
   function confirm() {
-    scheduleItem(prompt.itemId, day || null, toQuantum(time));
+    scheduleItem(prompt.itemId, day || null, pickedQuantum(hour, minute));
     close();
   }
 </script>
@@ -52,10 +51,23 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input type="date" bind:value={day} autofocus />
   </label>
-  <label class="dp-field">
+  <div class="dp-field">
     Godzina
-    <input type="time" step="900" bind:value={time} placeholder="bez pory" />
-  </label>
+    <div class="dp-time">
+      <select aria-label="Godzina" bind:value={hour}>
+        <option value="">bez pory</option>
+        {#each hours as h (h)}
+          <option value={String(h)}>{pad(h)}</option>
+        {/each}
+      </select>
+      <span aria-hidden="true">:</span>
+      <select aria-label="Minuty" bind:value={minute} disabled={hour === ''}>
+        {#each QUARTERS as m (m)}
+          <option value={String(m)}>{pad(m)}</option>
+        {/each}
+      </select>
+    </div>
+  </div>
   <div class="sh-actions">
     <button class="btn" onclick={() => { day = ''; confirm(); }}>Bez daty</button>
     <span class="sp"></span>

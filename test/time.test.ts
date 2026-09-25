@@ -1,5 +1,17 @@
 import { describe, test, expect } from 'vitest';
-import { dayKey, today, qTime, shiftDay, fmtQ, rel, nowQ, fmtDur } from '../src/lib/time';
+import {
+  dayKey,
+  today,
+  qTime,
+  shiftDay,
+  fmtQ,
+  rel,
+  nowQ,
+  fmtDur,
+  QUARTERS,
+  activeHours,
+  pickedQuantum,
+} from '../src/lib/time';
 
 const D = (y: number, m: number, d: number, h = 0, mi = 0) => new Date(y, m - 1, d, h, mi).getTime();
 
@@ -95,4 +107,31 @@ describe('fmtDur', () => {
 
 test('today zwraca klucz dzisiejszego dnia', () => {
   expect(today()).toBe(dayKey(new Date()));
+});
+
+test('QUARTERS: do wyboru są tylko cztery kwadranse', () => {
+  expect([...QUARTERS]).toEqual([0, 15, 30, 45]);
+});
+
+test('activeHours: godzina końcowa jest wyłączna', () => {
+  expect(activeHours(6, 22)).toHaveLength(16);
+  expect(activeHours(6, 22)[0]).toBe(6);
+  expect(activeHours(6, 22).at(-1)).toBe(21);
+  expect(activeHours(8, 10)).toEqual([8, 9]);
+});
+
+test('activeHours: pusty albo odwrócony zakres daje brak godzin', () => {
+  expect(activeHours(10, 10)).toEqual([]);
+  expect(activeHours(12, 10)).toEqual([]);
+});
+
+test('pickedQuantum: godzina i kwadrans dają kwant od północy', () => {
+  expect(pickedQuantum('9', '0')).toBe(36);
+  expect(pickedQuantum('9', '15')).toBe(37);
+  expect(pickedQuantum('9', '45')).toBe(39);
+  expect(pickedQuantum('0', '0')).toBe(0);
+});
+
+test('pickedQuantum: bez godziny nie ma pory', () => {
+  expect(pickedQuantum('', '30')).toBeUndefined();
 });
