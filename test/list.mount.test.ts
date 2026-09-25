@@ -69,7 +69,7 @@ test('pusty dzień pokazuje samo pole początkowe, bez pozycji', async () => {
   await mountApp();
   expect(inputs()).toHaveLength(0);
   expect(draft()).not.toBeNull();
-  expect(draft().placeholder).toBe('Zacznij pisać…');
+  expect(draft().placeholder).toBe('Nowe zadanie/notatka…');
 });
 
 test('wpisanie tekstu utrwala pozycję w localStorage', async () => {

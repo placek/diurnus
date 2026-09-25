@@ -18,8 +18,14 @@
   const items = $derived(menu.level ? kids(app.S.cats, menu.level) : topCats(app.S.cats));
   const parent = $derived(menu.level ? catOf(app.S.cats, menu.level) : null);
 
+  // Podkategorie często dziedziczą ikonę rodzica, więc same ikony byłyby
+  // nie do odróżnienia — na tym poziomie każda ma podpis z nazwą.
+  const labeled = $derived(!!menu.level);
+
   // Geometria pierścienia i wsunięcie w widok liczy się w lib/radial.ts.
-  const layout = $derived(ringLayout(items.length, menu.x, menu.y, innerWidth, innerHeight));
+  const layout = $derived(
+    ringLayout(items.length, menu.x, menu.y, innerWidth, innerHeight, labeled),
+  );
   const placed = $derived(items.map((cat, i) => ({ cat, i, ...layout.items[i]! })));
 </script>
 
@@ -61,6 +67,7 @@
     >
       <Icon name={iconOf(app.S.cats, p.cat)} fallback={p.cat.name[0] ?? '?'} />
       <span class="k">{p.i + 1}</span>
+      {#if labeled}<span class="rn">{p.cat.name}</span>{/if}
     </button>
   {/each}
 </div>

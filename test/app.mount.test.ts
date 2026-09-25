@@ -104,6 +104,20 @@ test('kategoria z podkategoriami otwiera drugi pierścień zamiast zapisywać', 
   // Środek drugiego pierścienia wybiera kategorię nadrzędną "ogólnie".
   expect(document.querySelector('#radial .rc.pick')).not.toBeNull();
   expect(document.querySelector('#radial .rb[aria-label="Projekt A"]')).not.toBeNull();
+  // Podkategorie mają podpisy z nazwami — ich ikony bywają takie same jak rodzica.
+  const names = [...document.querySelectorAll('#radial .rb .rn')].map((n) => n.textContent);
+  expect(names).toContain('Projekt A');
+  expect(names).toHaveLength(document.querySelectorAll('#radial .rb').length);
+});
+
+test('pierwszy pierścień (kategorie główne) zostaje bez podpisów', async () => {
+  localStorage.setItem('diurnus.prefs', JSON.stringify({ theme: 'auto', seenHelp: true }));
+  const { flushSync } = await import('svelte');
+  await mountApp();
+  document.querySelector<HTMLElement>('#grid .cell[data-q="32"]')!.click();
+  flushSync();
+  expect(document.querySelectorAll('#radial .rb').length).toBeGreaterThan(0);
+  expect(document.querySelector('#radial .rn')).toBeNull();
 });
 
 test('motyw ustawiony na ciemny trafia na element html', async () => {

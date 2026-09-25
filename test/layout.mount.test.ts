@@ -58,3 +58,10 @@ test('sekcja dziś: 1em od góry strony, tło strony, gruba jaśniejsza rama, d�
   expect(rule).toMatch(/--frame:\s*\d+px/);
   expect(rule).toMatch(/z-index:\s*1/);
 });
+
+test('nagłówek dnia nie ma linii oddzielającej go od listy; linia paska zostaje', () => {
+  const head = /\.today-head\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  expect(head).not.toMatch(/(^|;)\s*border(-(top|bottom|left|right))?:/);
+  const top = /#top\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  expect(top).toMatch(/border-bottom:1px solid var\(--line-2\)/);
+});

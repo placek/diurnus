@@ -76,24 +76,28 @@ test('nie zostały martwe reguły po usuniętych funkcjach', () => {
   // Każdy z tych selektorów przeżył swoją funkcję i został usunięty razem
   // z nią; obecność któregokolwiek znaczy, że coś wróciło bez markupu.
   const dead = [
-    '.cell.q0', '.cell.q2', '.row.band-start',   // linie siatki
-    '.nav', '.ce-title', '.item-moved',          // nagłówek i znacznik przeniesienia
-    '.list-empty', 'nudge',                      // puste panele i animacja szturchnięcia
+    '.cell.q0',
+    '.cell.q2',
+    '.row.band-start', // linie siatki
+    '.nav',
+    '.ce-title',
+    '.item-moved', // nagłówek i znacznik przeniesienia
+    '.list-empty',
+    'nudge', // puste panele i animacja szturchnięcia
   ];
   for (const sel of dead) expect(css, sel).not.toContain(sel);
 });
 
-test('wykonana pozycja z kategorią przygasza akcent, ale zachowuje tło', () => {
-  // Kategoria zostaje widoczna; pasek przestaje być jasny.
-  expect(css).toMatch(/\.item\.has-cat\.tone-done\{box-shadow:inset[^}]*color-mix/);
-  expect(css).not.toContain('.item.has-cat.tone-done{box-shadow:none}');
-  // Tło pochodzi z reguły pozycji z godziną; reguła wykonanego go nie rusza.
-  expect(css).toMatch(/\.item\.has-cat\.is-linked\{[^}]*background:color-mix/);
-  expect(css).not.toMatch(/\.item\.has-cat\.tone-done\{[^}]*background/);
+test('kategorię wiersza pokazuje ikona po prawej, nie pasek po lewej', () => {
+  expect(css).not.toMatch(/\.item\.has-cat[^{]*\{[^}]*box-shadow/);
+  expect(css).not.toContain('--accent-w');
+  expect(css).toMatch(/\.item-cat\{[^}]*color:var\(--c\)/);
+  // Wykonane przygasza ikonę, jak blok na siatce.
+  expect(css).toMatch(/\.item\.tone-done \.item-cat\{color:var\(--fg-faint\)\}/);
 });
 
-test('pozycja z kategorią, ale bez godziny, ma sam pasek, bez podbarwienia', () => {
-  expect(css).toMatch(/\.item\.has-cat\{[^}]*box-shadow:inset/);
+test('podbarwienie ma tylko pozycja z godziną; bez godziny zostaje sam tekst', () => {
+  expect(css).toMatch(/\.item\.has-cat\.is-linked\{[^}]*background:color-mix/);
   expect(css).not.toMatch(/\.item\.has-cat\{[^}]*background/);
 });
 

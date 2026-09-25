@@ -1,7 +1,8 @@
 <script lang="ts">
   import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
   import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
-  import { colorOf } from '../../lib/categories';
+  import { colorOf, iconOf } from '../../lib/categories';
+  import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import { categoryOf, itemTone, kindOf, slotOf, todayList } from '../../lib/view';
@@ -125,4 +126,8 @@
     onkeydown={onKeydown}
   />
   {#if slot !== null}<span class="item-meta item-hour">{fmtQ(currentDay.value, slot)}</span>{/if}
+  <!-- Ikona kategorii stoi na samym końcu, za czasem. -->
+  {#if cat}<span class="item-cat" title={cat.name}
+      ><Icon name={iconOf(app.S.cats, cat)} fallback={cat.name[0] ?? '?'} /></span
+    >{/if}
 </div>
