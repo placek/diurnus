@@ -2,7 +2,7 @@
 
 Planer jednego dnia: doba podzielona na 15-minutowe kwanty, dzienny log w duchu bullet
 journal i backlog na wszystko, co nie jest na dziś. Działa w przeglądarce, bez konta
-i bez serwera — **[otwórz aplikację](https://placek.github.io/diurnus/)**.
+i bez serwera — **[github.com/placek/diurnus](https://github.com/placek/diurnus)**.
 
 Aplikacja pokazuje **wyłącznie dziś**. Cała aktywna część dnia mieści się w jednym oknie bez
 przewijania, każdy blok czasu jednym kliknięciem oznacza się jako wykonany, a upływ czasu
