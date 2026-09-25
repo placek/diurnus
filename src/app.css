@@ -9,6 +9,7 @@
   --tint: 12%;
   --hdr: 76px;
   --bg:#fbf1c7; --raise:#fffbe8; --fg:#3c3836; --fg-dim:#7c6f64; --fg-faint:#a89984;
+  --frame-c:#bdae93;   /* rama sekcji dziś: w jasnym szara, nie biała */
   --line:rgba(60,56,54,.09); --line-2:rgba(60,56,54,.17);
   --past:rgba(60,56,54,.05);
   --on:#fbf1c7;
@@ -25,6 +26,7 @@
   :root:not([data-theme="light"]){
     color-scheme: dark;
     --bg:#282828; --raise:#3c3836; --fg:#ebdbb2; --fg-dim:#a89984; --fg-faint:#7c6f64;
+    --frame-c:#3c3836;
     --line:rgba(235,219,178,.07); --line-2:rgba(235,219,178,.14);
     --past:rgba(0,0,0,.2);
     --on:#1d2021;
@@ -36,6 +38,7 @@
 :root[data-theme="dark"]{
   color-scheme: dark;
   --bg:#282828; --raise:#3c3836; --fg:#ebdbb2; --fg-dim:#a89984; --fg-faint:#7c6f64;
+  --frame-c:#3c3836;
   --line:rgba(235,219,178,.07); --line-2:rgba(235,219,178,.14);
   --past:rgba(0,0,0,.2);
   --on:#1d2021;
@@ -120,15 +123,16 @@ a.ib{text-decoration:none}
 }
 .list-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 16px}
 /* Szeroki ekran: sekcja dziś wychodzi w górę na pasek, 1em od góry strony, ma
-   tło strony i grubą jaśniejszą ramę, a na górze niesie nagłówek dnia. Dół
+   tło strony, cienką ramę (w ciemnym jaśniejszą, w jasnym szarą) i cień, a na górze niesie nagłówek dnia. Dół
    sięga do końca strony. */
 #panes:not(.narrow) #list{
-  --frame:6px;
+  --frame:3px;
   position:relative;z-index:1;
   margin-top:calc(1em - var(--hdr) - 1px);   /* pasek ma --hdr i 1px linii */
   background:var(--bg);
-  border:var(--frame) solid var(--raise);border-bottom:0;
+  border:var(--frame) solid var(--frame-c);border-bottom:0;
   border-radius:14px 14px 0 0;
+  box-shadow:var(--shadow);
 }
 /* Nagłówek dnia kończy się na wysokości linii paska (pasek z linią minus odstęp
    od góry strony i rama), więc lista zaczyna się tam, gdzie siatka i backlog.
