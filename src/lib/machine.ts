@@ -1,5 +1,5 @@
-import { nextOccurrence } from './repeat';
-import type { Repeat } from './repeat';
+import { advance as advanceRule, canonical, check, pin } from './rrule';
+import type { RRule } from './rrule';
 import { shiftDay } from './time';
 import { QDAY } from './types';
 
@@ -24,14 +24,22 @@ export const SLOT_LEN = 2; // 30 minut
 export type When =
   | { type: 'date'; date: string }
   | { type: 'dateSlot'; date: string; slot: Slot }
-  /** `next` — najbliższe wystąpienie; ≤ dziś znaczy „zaległe, ponów o świcie". */
-  | { type: 'recurring'; rule: Repeat; slot: Slot | null; next: string };
+  /**
+   * `next` — najbliższe wystąpienie; ≤ dziś znaczy „zaległe, ponów o świcie".
+   * Reguła liczy się od `next` jako kotwicy, a jej COUNT to liczba wystąpień
+   * pozostałych od `next` włącznie.
+   */
+  | { type: 'recurring'; rule: RRule; slot: Slot | null; next: string };
 
-/** To samo, ale tak, jak podaje je użytkownik: `next` wylicza maszyna. */
+/**
+ * To samo, ale tak, jak podaje je użytkownik: `next` wylicza maszyna. `start`
+ * to początek serii (DTSTART) — pierwsze wystąpienie to pierwsza pasująca data
+ * od niego, najwcześniej jutro.
+ */
 export type WhenInput =
   | { type: 'date'; date: string }
   | { type: 'dateSlot'; date: string; slot: Slot }
-  | { type: 'recurring'; rule: Repeat; slot: Slot | null };
+  | { type: 'recurring'; rule: RRule; slot: Slot | null; start: string };
 
 export type ItemState =
   | { tag: 'today-task'; done: boolean; slot: Slot | null }
@@ -87,7 +95,14 @@ export type Event =
   | { type: 'advance'; to: string };
 
 export type Refusal =
-  'unknown-item' | 'duplicate-id' | 'not-allowed' | 'slot-taken' | 'slot-outside-day' | 'bad-date';
+  | 'unknown-item'
+  | 'duplicate-id'
+  | 'not-allowed'
+  | 'slot-taken'
+  | 'slot-outside-day'
+  | 'bad-date'
+  /** reguła powtarzania bez sensu albo bez żadnego wystąpienia od jutra */
+  | 'bad-rule';
 
 export type Result = { ok: true; machine: Machine } | { ok: false; reason: Refusal };
 
@@ -222,14 +237,15 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
         return r ? no(r) : ok(putLast(m, item.id, { tag: 'today-task', done: true, slot: w.slot }));
       }
       // Powtarzalna: wykonana kopia idzie do dziś, wzorzec zostaje i przesuwa
-      // się za odhaczone wystąpienie. Zaległe (next ≤ dziś) przeskakuje za dziś.
+      // się za odhaczone wystąpienie. Zaległe (next ≤ dziś) przeskakuje za dziś;
+      // każda przeskoczona data zużywa jedno z COUNT. Ostatnie wystąpienie
+      // kończy serię i wzorzec znika — kopie zostają.
       if (m.items.some((i) => i.id === copyId)) return no('duplicate-id');
       if (w.slot !== null) {
         const r = claim(m.items, w.slot, day);
         if (r) return no(r);
       }
       const after = w.next > m.today ? w.next : m.today;
-      const template: ItemState = { ...s, when: { ...w, next: nextOccurrence(w.rule, after) } };
       const copy: Item = {
         id: copyId,
         text: item.text,
@@ -237,7 +253,7 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
         from: item.id,
         ...catOf(item),
       };
-      return ok({ ...m, items: [...put(m, item.id, template).items, copy] });
+      return ok({ ...m, items: [...stepPattern(m.items, item, w, after), copy] });
     }
     case 'today-note':
     case 'backlog-note':
@@ -281,15 +297,21 @@ function setWhen(m: Machine, item: Item, when: WhenInput | null, day: DayHours):
       // W backlogu slot nie koliduje z niczym; musi tylko mieścić się w dniu.
       if (!slotFits(when.slot, day)) return no('slot-outside-day');
       return ok(put(m, item.id, { tag: 'backlog-task', when }));
-    case 'recurring':
+    case 'recurring': {
+      if (!DATE.test(when.start)) return no('bad-date');
       if (when.slot !== null && !slotFits(when.slot, day)) return no('slot-outside-day');
-      // Pierwsze wystąpienie liczone od jutra: dzisiejszy świt już minął.
+      if (check(when.rule) !== null) return no('bad-rule');
+      // Pierwsze wystąpienie: pierwsza pasująca data od początku serii, ale
+      // najwcześniej jutro — dzisiejszy świt już minął.
+      const first = advanceRule(pin(canonical(when.rule), when.start), when.start, m.today);
+      if (!first) return no('bad-rule');
       return ok(
         put(m, item.id, {
           tag: 'backlog-task',
-          when: { ...when, next: nextOccurrence(when.rule, m.today) },
+          when: { type: 'recurring', rule: first.rule, slot: when.slot, next: first.next },
         }),
       );
+    }
     default:
       return assertNever(when);
   }
@@ -373,19 +395,18 @@ function dayStart(m: Machine, d: string, day: DayHours): Machine {
     if (s.tag !== 'backlog-task' || s.when?.type !== 'recurring') continue;
     const w = s.when;
     if (w.next > d) continue;
-    const advanced: ItemState = { ...s, when: { ...w, next: nextOccurrence(w.rule, d) } };
-    // Poprzednia kopia wciąż otwarta: nowej nie ma, a to wystąpienie przepada.
-    // Wzorzec idzie dalej, żeby odhaczenie kopii w środę nie sprowadziło
-    // poniedziałkowego wzorca w czwartek.
+    // Poprzednia kopia wciąż otwarta: nowej nie ma, a to wystąpienie przepada
+    // (i zużywa jedno z COUNT — liczą się daty). Wzorzec idzie dalej, żeby
+    // odhaczenie kopii w środę nie sprowadziło poniedziałkowego wzorca w czwartek.
     if (hasOpenCopy(items, orig.id)) {
-      set(orig.id, advanced);
+      items = stepPattern(items, orig, w, d);
       continue;
     }
     const copyId = `${orig.id}@${d}`;
     if (items.some((i) => i.id === copyId)) continue;
     // Zajęty slot to co innego: wystąpienie czeka i ponawia o kolejnym świcie.
     if (w.slot !== null && claim(items, w.slot, day) !== null) continue;
-    set(orig.id, advanced);
+    items = stepPattern(items, orig, w, d);
     items = [
       ...items,
       {
@@ -398,6 +419,22 @@ function dayStart(m: Machine, d: string, day: DayHours): Machine {
     ];
   }
   return { today: d, items };
+}
+
+/**
+ * Wzorzec za datą `after`: kolejne wystąpienie i to, co zostało z COUNT.
+ * Seria, która się skończyła, zabiera wzorzec z backlogu.
+ */
+function stepPattern(
+  items: readonly Item[],
+  pattern: Item,
+  w: Extract<When, { type: 'recurring' }>,
+  after: string,
+): Item[] {
+  const a = advanceRule(w.rule, w.next, after);
+  if (!a) return items.filter((i) => i.id !== pattern.id);
+  const state: ItemState = { tag: 'backlog-task', when: { ...w, rule: a.rule, next: a.next } };
+  return items.map((i) => (i.id === pattern.id ? { ...i, state } : i));
 }
 
 /** Otwarta kopia to zadanie niewykonane, w dziś albo odłożone do backlogu. */
@@ -435,6 +472,11 @@ export function violations(m: Machine, day: DayHours): string[] {
         }
         if (s.when && s.when.type !== 'recurring' && !DATE.test(s.when.date))
           out.push(`${i.id}: zła data`);
+        if (s.when?.type === 'recurring') {
+          if (!DATE.test(s.when.next)) out.push(`${i.id}: zła data wzorca`);
+          const bad = check(s.when.rule);
+          if (bad) out.push(`${i.id}: ${bad}`);
+        }
         break;
       case 'past-done':
       case 'past-note':

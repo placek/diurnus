@@ -1,7 +1,7 @@
 <script lang="ts">
   import { app, currentDay, pushHistory, save, ui } from '../../state.svelte';
   import { addItemAfter, deleteItem, setItemText } from '../../actions.svelte';
-  import { describeRepeat } from '../../lib/repeat';
+  import { describeRule } from '../../lib/rrule';
   import { colorOf, iconOf } from '../../lib/categories';
   import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
@@ -57,8 +57,8 @@
     if (!w) return '';
     if (w.type === 'recurring')
       return w.slot === null
-        ? describeRepeat(w.rule)
-        : `${describeRepeat(w.rule)} ${fmtQ(currentDay.value, w.slot)}`;
+        ? describeRule(w.rule, { left: true })
+        : `${describeRule(w.rule, { left: true })} ${fmtQ(currentDay.value, w.slot)}`;
     return w.type === 'dateSlot' ? `${fmtDay(w.date)} ${fmtQ(w.date, w.slot)}` : fmtDay(w.date);
   });
 

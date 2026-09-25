@@ -9,8 +9,9 @@ import type { Files } from '../src/lib/md/files';
 import { step } from '../src/lib/machine';
 import type { Event, Item, Machine } from '../src/lib/machine';
 import { normalize } from '../src/lib/model';
-import { nextOccurrence } from '../src/lib/repeat';
-import type { Repeat } from '../src/lib/repeat';
+import { formatRRule, parseRRule } from '../src/lib/rrule';
+import type { RRule } from '../src/lib/rrule';
+import { shiftDay } from '../src/lib/time';
 import type { State } from '../src/lib/types';
 import { backlogList, todayList } from '../src/lib/view';
 
@@ -41,13 +42,24 @@ describe('linia', () => {
       {
         marker: 'open',
         date: '2026-09-26',
-        pattern: { kind: 'daily' },
+        pattern: { freq: 'DAILY', interval: 1 },
         slot: 56,
         tag: 'dom',
         text: 'Podlać',
         id: 'p1',
       },
-      '* [ ] 2026-09-26 {codziennie} 14:00 #dom Podlać ^p1',
+      '* [ ] 2026-09-26 {FREQ=DAILY} 14:00 #dom Podlać ^p1',
+    ],
+    [
+      'reguła iCal z licznikiem',
+      {
+        marker: 'open',
+        date: '2026-10-30',
+        pattern: { freq: 'MONTHLY', interval: 2, byDay: [{ day: 'FR', n: -1 }], count: 3 },
+        text: 'Rachunki',
+        id: 'p2',
+      },
+      '* [ ] 2026-10-30 {FREQ=MONTHLY;INTERVAL=2;BYDAY=-1FR;COUNT=3} Rachunki ^p2',
     ],
     ['pusta notatka', { marker: 'note', text: '' }, '*'],
     ['puste zadanie', { marker: 'open', text: '' }, '* [ ]'],
@@ -110,17 +122,36 @@ describe('linia', () => {
 
 /* ───────────── Wzorce i slugi ───────────── */
 
-test('każdy wzorzec wraca z napisu, którym go opisujemy', () => {
-  const rules: Repeat[] = [
-    { kind: 'daily' },
-    ...[0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ kind: 'weekly' as const, weekday })),
-    ...[1, 15, 31].map((dayOfMonth) => ({ kind: 'monthly' as const, dayOfMonth })),
-    ...[1, 6, 12].map((month) => ({ kind: 'yearly' as const, month, dayOfMonth: 24 })),
-  ];
-  for (const r of rules) expect(parsePattern(patternWord(r)), patternWord(r)).toEqual(r);
-  expect(patternWord({ kind: 'weekly', weekday: 1 })).toBe('co poniedziałek');
-  expect(parsePattern('co miesiąc')).toBeNull();
-  expect(parsePattern('32. każdego miesiąca')).toBeNull();
+test('wzorzec w pliku to RRULE; każda reguła wraca z napisu', () => {
+  const rules = [
+    'FREQ=DAILY',
+    'FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE',
+    'FREQ=MONTHLY;BYDAY=-1FR',
+    'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1',
+    'FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=24;UNTIL=20301231',
+    'FREQ=DAILY;COUNT=7',
+  ].map((t) => (parseRRule(t) as { rule: RRule }).rule);
+  for (const r of rules) {
+    expect(patternWord(r)).toBe(formatRRule(r));
+    expect(parsePattern(patternWord(r))).toEqual({ ok: true, rule: r });
+  }
+  expect(parsePattern('RRULE:FREQ=WEEKLY;BYDAY=MO')).toEqual(parsePattern('FREQ=WEEKLY;BYDAY=MO'));
+});
+
+test('dawne polskie wzorce nadal się czytają — jako RRULE o tych samych datach', () => {
+  const as = (w: string) => {
+    const r = parsePattern(w);
+    return r.ok ? formatRRule(r.rule) : r.error;
+  };
+  expect(as('codziennie')).toBe('FREQ=DAILY');
+  expect(as('co poniedziałek')).toBe('FREQ=WEEKLY;BYDAY=MO');
+  expect(as('3. każdego miesiąca')).toBe('FREQ=MONTHLY;BYMONTHDAY=3');
+  expect(as('31. każdego miesiąca')).toBe('FREQ=MONTHLY;BYMONTHDAY=-1');
+  expect(as('co rok 24 wrz')).toBe('FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=24');
+  expect(as('co miesiąc')).toMatch(/nieznany wzorzec/);
+  expect(as('32. każdego miesiąca')).toMatch(/nieznany wzorzec/);
+  expect(as('FREQ=HOURLY')).toMatch(/FREQ=HOURLY/);
+  expect(as('FREQ=DAILY;BYHOUR=9')).toMatch(/BYHOUR/);
 });
 
 test('slug: bez polskich znaków, z łącznikami, unikalny', () => {
@@ -245,7 +276,7 @@ const TODAY_FILE = `# 2026-09-25
 
 const BACKLOG_FILE = `# Backlog
 
-* [ ] 2026-09-26 {codziennie} 14:00 #dom Podlać kwiaty ^p1
+* [ ] 2026-09-26 {FREQ=DAILY} 14:00 #dom Podlać kwiaty ^p1
 * [ ] 2026-10-01 09:00 #praca Spotkanie
 * [ ] 2026-10-03 Dentysta
 * [ ] Kiedyś, bez daty
@@ -316,7 +347,12 @@ describe('pliki', () => {
     expect(pattern.id).toBe('p1');
     expect(pattern.state).toEqual({
       tag: 'backlog-task',
-      when: { type: 'recurring', rule: { kind: 'daily' }, slot: 56, next: '2026-09-26' },
+      when: {
+        type: 'recurring',
+        rule: { freq: 'DAILY', interval: 1 },
+        slot: 56,
+        next: '2026-09-26',
+      },
     });
     const copy = s.items.find((i) => i.from === 'p1')!;
     expect(copy.state).toEqual({ tag: 'today-task', done: false, slot: 56 });
@@ -372,9 +408,29 @@ describe('pliki', () => {
     });
     const p = s.items.find((i) => i.text === 'Pranie')!;
     expect(p.id).toBe('BACKLOG.md:3');
-    expect(p.state).toMatchObject({
-      when: { next: nextOccurrence({ kind: 'weekly', weekday: 1 }, TODAY) },
+    expect(p.state).toMatchObject({ when: { next: '2026-09-28' } });
+  });
+
+  test('data wzorca spoza reguły to początek serii: liczy się pierwsze pasujące od niej', () => {
+    const s = parsed({
+      ...specFiles(),
+      [BACKLOG]: '# Backlog\n\n* [ ] 2026-10-01 {FREQ=WEEKLY;BYDAY=MO;COUNT=2} Pranie ^w\n',
     });
+    const p = s.items.find((i) => i.id === 'w')!;
+    expect(p.state).toMatchObject({ when: { next: '2026-10-05', rule: { count: 2 } } });
+    // Po odczycie plik jest już kanoniczny: data to najbliższe wystąpienie.
+    expect(renderFiles(s)[BACKLOG]).toContain(
+      '* [ ] 2026-10-05 {FREQ=WEEKLY;BYDAY=MO;COUNT=2} Pranie ^w',
+    );
+  });
+
+  test('reguła bez wystąpień jest błędem pliku', () => {
+    expect(
+      errorsOf({
+        ...specFiles(),
+        [BACKLOG]: '# Backlog\n\n* [ ] {FREQ=DAILY;UNTIL=20200101} Stare ^o\n',
+      }).map((e) => e.message),
+    ).toEqual(['reguła nie ma już żadnego wystąpienia']);
   });
 
   test('archiwum: miniony dzień czyta się jako przeszłość, dziś to najpóźniejszy plik', () => {
@@ -509,10 +565,12 @@ function randomState(seed: number): State {
     const id = ids.length ? pick(ids) : 'x';
     const slot = pick([null, 24, 30, 36, 37, 40, 86]);
     const date = pick(['2026-09-27', '2026-10-01', TODAY]);
-    const rule = pick<Repeat>([
-      { kind: 'daily' },
-      { kind: 'weekly', weekday: 1 },
-      { kind: 'yearly', month: 2, dayOfMonth: 29 },
+    const rule = pick<RRule>([
+      { freq: 'DAILY', interval: 1 },
+      { freq: 'WEEKLY', interval: 2, byDay: [{ day: 'MO' }, { day: 'TH' }] },
+      { freq: 'YEARLY', interval: 1, byMonth: [2], byMonthDay: [-1] },
+      { freq: 'MONTHLY', interval: 1, byDay: [{ day: 'FR', n: -1 }], count: 4 },
+      { freq: 'DAILY', interval: 3, until: '2026-12-31' },
     ]);
     const create: Event = {
       type: 'create',
@@ -525,8 +583,8 @@ function randomState(seed: number): State {
       null,
       { type: 'date' as const, date },
       { type: 'dateSlot' as const, date, slot: slot ?? 40 },
-      { type: 'recurring' as const, rule, slot },
-      { type: 'recurring' as const, rule, slot: null },
+      { type: 'recurring' as const, rule, slot, start: date },
+      { type: 'recurring' as const, rule, slot: null, start: date },
     ]);
     // Tworzenie i nadawanie czasu częściej niż usuwanie, żeby stan końcowy był
     // bogaty: wzorce, kopie, archiwum, sloty.
@@ -543,7 +601,7 @@ function randomState(seed: number): State {
       { type: 'setWhen', id, when },
       { type: 'move', id, to: pick(['today', 'backlog'] as const) },
       r() < 0.3 ? { type: 'remove', id } : create,
-      { type: 'advance', to: nextOccurrence({ kind: 'daily' }, m.today) },
+      { type: 'advance', to: shiftDay(m.today, 1) },
     ]);
     const res = step(m, e, hours);
     if (res.ok) m = res.machine;

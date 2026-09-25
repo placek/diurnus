@@ -115,7 +115,7 @@ test('wzorca nie da się przeciągnąć — przychodzi sam', async () => {
   seed([
     backlog('a', {
       type: 'recurring',
-      rule: { kind: 'daily' },
+      rule: { freq: 'DAILY', interval: 1 },
       slot: null,
       next: shiftDay(TODAY, 1),
     }),
@@ -130,7 +130,7 @@ test('wzorca nie da się przeciągnąć — przychodzi sam', async () => {
 
 /* ── Menu terminów ── */
 
-test('menu znacznika w backlogu pozwala nadać termin', async () => {
+test('menu znacznika w backlogu nadaje termin przez okienko; domyślnie to jutro', async () => {
   seed([backlog('a')]);
   const { flush, app } = await mountApp();
 
@@ -139,12 +139,15 @@ test('menu znacznika w backlogu pozwala nadać termin', async () => {
   const labels = [...document.querySelectorAll('.bullet-menu button')].map((b) =>
     b.textContent?.trim(),
   );
-  expect(labels).toEqual(
-    expect.arrayContaining(['→jutro', '→za tydzień', '…wybierz datę…', '→bez daty']),
-  );
+  expect(labels).toEqual(expect.arrayContaining(['→Bez daty', '…Wybierz datę…']));
+  expect(labels.some((l) => l?.includes('jutro') || l?.includes('za tydzień'))).toBe(false);
 
   [...document.querySelectorAll<HTMLElement>('.bullet-menu button')]
-    .find((b) => b.textContent?.includes('jutro'))!
+    .find((b) => b.textContent?.includes('Wybierz datę'))!
+    .click();
+  flush();
+  [...document.querySelectorAll<HTMLElement>('.date-prompt button')]
+    .find((b) => b.textContent?.includes('Zaplanuj'))!
     .click();
   flush();
   expect(stateOf(app.S.items, 'a')).toEqual({
@@ -153,14 +156,14 @@ test('menu znacznika w backlogu pozwala nadać termin', async () => {
   });
 });
 
-test('„wybierz datę…" otwiera okienko', async () => {
+test('„Wybierz datę…" otwiera okienko', async () => {
   seed([backlog('a')]);
   const { flush } = await mountApp();
 
   backlogBullet().dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   flush();
   [...document.querySelectorAll<HTMLElement>('.bullet-menu button')]
-    .find((b) => b.textContent?.includes('wybierz datę'))!
+    .find((b) => b.textContent?.includes('Wybierz datę'))!
     .click();
   flush();
   expect(document.querySelector('.date-prompt')).not.toBeNull();

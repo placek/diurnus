@@ -65,7 +65,7 @@ test('import przepuszcza starszą wersję schematu przez normalize', () => {
     },
   });
   const back = bundleParse(old);
-  expect(back.state.v).toBe(6);
+  expect(back.state.v).toBe(7);
   // Kwant 0 z bazy 06:00 to 06:00 od północy, czyli kwant 24.
   expect(back.state.items.find((i) => i.id === 'a')!.state).toMatchObject({ slot: 24 });
 });

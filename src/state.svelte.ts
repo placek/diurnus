@@ -187,6 +187,7 @@ export const REFUSAL_MSG: Record<Refusal, string> = {
   'slot-taken': 'Ta godzina jest już zajęta',
   'slot-outside-day': 'Ta godzina nie mieści się w dniu',
   'bad-date': 'Nieprawidłowa data',
+  'bad-rule': 'Ta reguła powtarzania nie ma żadnego wystąpienia od jutra',
 };
 
 export interface DispatchOptions {

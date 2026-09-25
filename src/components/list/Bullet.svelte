@@ -8,14 +8,10 @@
     openCategoryMenu,
     scheduleItem,
     setItemType,
-    setRepeat,
     toggleDone,
   } from '../../actions.svelte';
-  import { describeRepeat } from '../../lib/repeat';
   import { isBacklog as inBacklogPane, kindOf, openFree, slotOf, whenOf } from '../../lib/view';
-  import { shiftDay, splitDay } from '../../lib/time';
-  import type { Repeat } from '../../lib/types';
-  import { app, currentDay, ui } from '../../state.svelte';
+  import { app, ui } from '../../state.svelte';
   import type { Item, ItemType } from '../../lib/types';
 
   interface Props {
@@ -76,34 +72,12 @@
     ),
   );
 
-
-  // Wzorce budowane z dzisiejszej daty — „co poniedziałek" znaczy ten dzień
-  // tygodnia, „3. każdego miesiąca" ten dzień miesiąca. Bez osobnego formularza.
   const inBacklog = $derived(inBacklogPane(item));
-  // Terminy jako gotowe wybory; „wybierz datę…" otwiera okienko dla reszty.
-  type DateChoice = { label: string; day: string | null } | 'pick';
-  const DATES = $derived.by((): DateChoice[] => {
-    if (!inBacklog || kind === 'note') return [];
-    return [
-      { label: 'jutro', day: shiftDay(currentDay.value, 1) },
-      { label: 'za tydzień', day: shiftDay(currentDay.value, 7) },
-      'pick',
-      { label: 'bez daty', day: null },
-    ];
-  });
+  // Termin nadaje się w backlogu i tylko zadaniu: „bez daty" zdejmuje go od razu,
+  // „wybierz datę…" otwiera okienko z dniem, porą i powtarzaniem.
+  const canSchedule = $derived(inBacklog && kind !== 'note');
+  const hasWhen = $derived(whenOf(item) !== null);
 
-  const REPEATS = $derived.by((): (Repeat | undefined)[] => {
-    if (!inBacklog || kind === 'note') return [];
-    const [, month, dom] = splitDay(currentDay.value);
-    const weekday = new Date(app.now).getDay();
-    return [
-      { kind: 'daily' },
-      { kind: 'weekly', weekday },
-      { kind: 'monthly', dayOfMonth: dom },
-      { kind: 'yearly', month, dayOfMonth: dom },
-      undefined,
-    ];
-  });
   // Kategoria jest zawsze do wyboru, więc menu nigdy nie jest puste.
   const hasMenu = true;
 
@@ -239,6 +213,31 @@
         <span class="bm-mark">{MARK[t.type]}</span>{t.label}
       </button>
     {/each}
+    <div class="bm-sep"></div>
+
+    {#if canSchedule}
+      <button
+        role="menuitem"
+        class:sel={!hasWhen}
+        onclick={() => {
+          menu = false;
+          scheduleItem(item.id, null);
+        }}
+      >
+        <span class="bm-mark">→</span>Bez daty
+      </button>
+      <button
+        role="menuitem"
+        onclick={() => {
+          menu = false;
+          ui.datePrompt = { itemId: item.id, x: menuX, y: menuY };
+        }}
+      >
+        <span class="bm-mark">{rule ? '○' : '…'}</span>Wybierz datę…
+      </button>
+      <div class="bm-sep"></div>
+    {/if}
+
     <!-- Jedna pozycja, jedna kategoria: ta sama na liście i na siatce. -->
     <button
       role="menuitem"
@@ -249,33 +248,5 @@
     >
       <span class="bm-mark">#</span>Kategoria…
     </button>
-    <div class="bm-sep"></div>
-
-    {#each DATES as d, i (i)}
-      <button
-        role="menuitem"
-        onclick={() => {
-          menu = false;
-          if (d === 'pick') ui.datePrompt = { itemId: item.id, x: menuX, y: menuY };
-          else scheduleItem(item.id, d.day);
-        }}
-      >
-        <span class="bm-mark">{d === 'pick' ? '…' : '→'}</span>{d === 'pick' ? 'wybierz datę…' : d.label}
-      </button>
-    {/each}
-    {#if DATES.length}<div class="bm-sep"></div>{/if}
-
-    {#each REPEATS as r, i (i)}
-      <button
-        role="menuitem"
-        class:sel={r === undefined ? !rule : JSON.stringify(r) === JSON.stringify(rule)}
-        onclick={() => {
-          menu = false;
-          setRepeat(item.id, r);
-        }}
-      >
-        <span class="bm-mark">{r ? '○' : '·'}</span>{r ? describeRepeat(r) : 'bez powtarzania'}
-      </button>
-    {/each}
   </div>
 {/if}

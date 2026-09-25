@@ -37,6 +37,7 @@ problemy usunąć z założenia, nie łatać.
 | Wzorzec pasuje | O świcie **kopia** przychodzi do dziś; wzorzec zostaje w backlogu |
 | Wzorzec odhaczony w backlogu | Wykonana kopia w dziś; wzorzec zostaje |
 | Otwarta poprzednia kopia | Wzorzec **nie przysyła nowej kopii**, dopóki poprzednia jest otwarta |
+| Koniec serii | Po ostatnim wystąpieniu (`COUNT`, `UNTIL`) **wzorzec znika**; kopie zostają |
 | Zajęty slot | Przejście jest **odmawiane** |
 | Odmowa przyjścia o świcie | Pozycja zostaje w backlogu z datą i **ponawia o kolejnym świcie** |
 | Upływ slotu | Nie zmienia stanu; wykonanie oznacza wyłącznie użytkownik |
@@ -143,8 +144,9 @@ Graf nie przesądzał kilku szczegółów. Przyjęte rozstrzygnięcia, do zmiany
 
 1. **Spór o slot o świcie.** Najpierw przychodzą pozycje z datą, potem kopie wzorców: data
    jest mocniejszym zobowiązaniem niż wzorzec. W obrębie grupy decyduje kolejność pozycji.
-2. **Pierwsze wystąpienie nowego wzorca** liczy się od jutra, bo dzisiejszy świt już minął.
-   Wzorzec pasujący do dziś nie przysyła więc kopii dziś.
+2. **Pierwsze wystąpienie nowego wzorca** to pierwsza pasująca data od podanego początku
+   serii, ale najwcześniej jutro, bo dzisiejszy świt już minął. Wzorzec pasujący do dziś nie
+   przysyła więc kopii dziś.
 3. **Odhaczenie wzorca w backlogu** przesuwa jego następne wystąpienie za odhaczone. Jeśli
    wystąpienie było zaległe, następne liczy się od jutra.
 4. **Notatką** staje się tylko otwarte zadanie bez czasu, zgodnie z grafem. Zadanie z czasem
@@ -156,6 +158,12 @@ Graf nie przesądzał kilku szczegółów. Przyjęte rozstrzygnięcia, do zmiany
    i tak na nim ląduje. Wykonane stoją więc w tablicy w kolejności odhaczenia i w tej
    kolejności lista dnia pokazuje je na górze. Czasu wykonania się nie zapisuje. Cofnięcie
    odhaczenia zostawia pozycję tam, gdzie stoi.
+7. **Reguły iCal.** Wzorzec to reguła RRULE (podzbiór z `src/lib/rrule.ts`) i `next` —
+   najbliższe wystąpienie, zarazem kotwica serii. `COUNT` to liczba wystąpień pozostałych od
+   `next`. Każda data, którą wzorzec mija — wysłana, pominięta przez otwartą kopię albo
+   przeskoczona przy odhaczeniu zaległego — zużywa jedno. Zajęty slot nie zużywa: wystąpienie
+   czeka. Seria bez kolejnego wystąpienia zabiera wzorzec z backlogu. Reguła bez żadnego
+   wystąpienia od jutra jest odmawiana (`bad-rule`).
 
 ## 6. Jedna otwarta kopia wzorca
 

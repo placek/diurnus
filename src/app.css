@@ -589,6 +589,41 @@ kbd{
 .dp-time{display:flex;align-items:center;gap:6px}
 .dp-time select{flex:1;min-width:0;font-variant-numeric:tabular-nums}
 .dp-time select:disabled{opacity:.45}
+/* Powtarzanie: „własne…" i podgląd reguły. */
+/* Okienko terminu stoi tam, gdzie kliknięto, przycięte do widoku w komponencie —
+   bez centrującego przesunięcia .card, które przy wyższym okienku wypychało je
+   poza ekran. */
+.date-prompt.card{width:280px;max-height:calc(100vh - 16px);overflow-y:auto;transform:none;bottom:auto}
+.dp-custom{
+  display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;
+  background:color-mix(in srgb,var(--fg) 4%,transparent);
+  font:400 13px var(--sans);color:var(--fg-dim);
+}
+.dp-custom select,.dp-custom input:not([type="radio"]){
+  font:500 14px var(--sans);color:var(--fg);background:var(--bg);
+  border:1px solid var(--line-2);border-radius:7px;padding:4px 6px;
+}
+.dp-custom :disabled{opacity:.45}
+.dp-row{display:flex;align-items:center;gap:6px}
+.dp-row select{flex:1;min-width:0}
+.dp-num{width:56px;font-variant-numeric:tabular-nums}
+.dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dp-day{
+  height:28px;border:1px solid var(--line-2);border-radius:7px;background:transparent;
+  font:600 12px var(--sans);color:var(--fg-dim);cursor:pointer;
+}
+.dp-day.sel{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.dp-end{display:flex;flex-direction:column;gap:5px}
+.dp-end label{display:flex;align-items:center;gap:6px;color:var(--fg)}
+.dp-end input[type="date"]{flex:1;min-width:0}
+.dp-preview{
+  display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:8px;
+  border:1px dashed var(--line-2);font:400 13px var(--sans);color:var(--fg-dim);
+}
+.dp-desc{font:600 14px var(--sans);color:var(--fg)}
+.dp-next{font-variant-numeric:tabular-nums}
+.dp-err{color:var(--red)}
+.dp-rrule{font:500 11px ui-monospace,monospace;color:var(--fg-faint);overflow-wrap:anywhere}
 .bm-sep{height:1px;margin:4px 6px;background:var(--line-2)}
 .dy-notify{
   display:flex;align-items:center;gap:8px;margin:0 0 4px;

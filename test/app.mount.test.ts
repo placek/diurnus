@@ -84,7 +84,7 @@ test('wybór kategorii bez podkategorii tworzy blok i utrwala go', async () => {
 
   // Blok to zadanie dziś ze slotem: jeden rekord, z kategorią jako daną.
   const saved = JSON.parse(localStorage.getItem('diurnus.v1') ?? '{}');
-  expect(saved.v).toBe(6);
+  expect(saved.v).toBe(7);
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].state).toEqual({ tag: 'today-task', done: false, slot: 32 });
   expect(saved.items[0].cat).toBe('move');

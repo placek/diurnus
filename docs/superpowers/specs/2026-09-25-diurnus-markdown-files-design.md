@@ -35,7 +35,7 @@ postać kanoniczną, a jej odczyt daje ten sam stan.
 | Kategorie | `#tag`, gdzie tag to slug kategorii; nieznany tag to błąd |
 | Ustawienia | `.diurnus.toml`: kategorie i doba. Parser potrzebuje godzin doby, żeby sprawdzić sloty |
 | Walidacja | Po odczycie działa kontrola niezmienników maszyny; stanu, którego aplikacja nie umie pokazać, nie da się wczytać |
-| Wzorce | Po polsku, tak jak pokazuje je aplikacja |
+| Wzorce | Reguła iCal (RRULE) w postaci kanonicznej; dawne polskie wzorce nadal się czytają |
 
 ## 3. Linia pozycji
 
@@ -49,7 +49,7 @@ Jedna pozycja to jedna linia. Człony stoją zawsze w tej kolejności, każdy op
 |---|---|---|
 | znacznik | `[ ]` / `[x]` / brak | otwarte zadanie / wykonane / notatka |
 | data | `RRRR-MM-DD` | tylko backlog: termin, a przy wzorcu — najbliższe wystąpienie |
-| wzorzec | `{codziennie}` itd. | tylko backlog; zawsze razem z datą |
+| wzorzec | `{FREQ=…}` | tylko backlog; reguła RRULE, zawsze razem z datą |
 | czas | `GG:MM` na pełnym kwadransie | slot 30 minut |
 | tag | `#slug` | kategoria |
 | tekst | reszta linii | treść; może być pusta |
@@ -60,12 +60,32 @@ to `*` albo `* [ ]`.
 
 ### Wzorce
 
-| Zapis | Wzorzec |
+Wzorzec to reguła iCal (RFC 5545 RRULE) w klamrach, w podzbiorze z dokładnością do dnia:
+
+| Część | Znaczenie |
 |---|---|
-| `{codziennie}` | codziennie |
-| `{co poniedziałek}` … `{co niedzielę}` | co tydzień |
-| `{3. każdego miesiąca}` | co miesiąc |
-| `{co rok 24 wrz}` | co rok |
+| `FREQ` | `DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY` — bez częstotliwości godzinowych |
+| `INTERVAL` | co ile okresów; 1 się nie zapisuje |
+| `BYDAY` | dni tygodnia; przy `MONTHLY` i `YEARLY` z numerem: `2TU`, `-1FR` |
+| `BYMONTHDAY` | dni miesiąca, także od końca: `-1` to ostatni |
+| `BYMONTH` | miesiące 1–12 |
+| `BYSETPOS` | wybór spośród dni okresu, np. ostatni dzień powszedni |
+| `COUNT` / `UNTIL` | koniec serii: ile wystąpień **zostało** od daty w linii / ostatni dzień `RRRRMMDD` |
+| `WKST` | początek tygodnia; `MO` się nie zapisuje |
+
+Przykłady: `{FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE}`, `{FREQ=MONTHLY;BYDAY=-1FR}`,
+`{FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1}`, `{FREQ=DAILY;COUNT=7}`.
+
+- **Data w linii** to najbliższe wystąpienie i kotwica serii (DTSTART). Pora dnia to osobny
+  człon `GG:MM`, nie część reguły.
+- **Zapis kanoniczny:** części w stałej kolejności (`FREQ`, `INTERVAL`, `BYMONTH`,
+  `BYMONTHDAY`, `BYDAY`, `BYSETPOS`, `WKST`, `COUNT`, `UNTIL`), listy posortowane bez
+  powtórzeń, a to, co reguła bierze z daty (dzień tygodnia, dzień miesiąca), zapisane wprost.
+- **Odczyt:** data, która do reguły nie pasuje, jest początkiem serii — liczy się pierwsze
+  pasujące wystąpienie od niej. Reguła bez żadnego wystąpienia, nieobsługiwana część
+  (`BYHOUR`, `BYWEEKNO`…) albo `COUNT` razem z `UNTIL` to błąd linii.
+- **Pliki sprzed RRULE:** `{codziennie}`, `{co poniedziałek}`, `{3. każdego miesiąca}`,
+  `{co rok 24 wrz}` czytają się jako reguły o tych samych datach; zapis jest zawsze RRULE.
 
 ### Ucieczka tekstu
 
@@ -111,7 +131,7 @@ cicho zamienić zadania ze slotem w zadanie bez niego.
 ```markdown
 # Backlog
 
-* [ ] 2026-09-26 {codziennie} 14:00 #dom Podlać kwiaty ^p1
+* [ ] 2026-09-26 {FREQ=DAILY} 14:00 #dom Podlać kwiaty ^p1
 * [ ] 2026-10-01 09:00 #praca Spotkanie
 * [ ] 2026-10-03 Dentysta
 * [ ] Kiedyś, bez daty
