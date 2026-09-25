@@ -44,6 +44,17 @@
         <Icon name={PANE_ICON[ui.pane]} fallback="≡" />
       </button>
     {/if}
+    <!-- Kod źródłowy: zwykły link w nowej karcie, żeby nie zamykać dnia. -->
+    <a
+      class="ib"
+      href="https://github.com/placek/diurnus"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Kod na GitHubie"
+      title="Kod na GitHubie"
+    >
+      <Icon name="github" fallback="GH" />
+    </a>
     <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">
       <Icon name="question" fallback="?" />
     </button>

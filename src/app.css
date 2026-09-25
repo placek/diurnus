@@ -78,6 +78,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   display:grid;place-items:center;cursor:pointer;font-size:13px;
 }
 .ib:hover{background:var(--line);color:var(--fg)}
+a.ib{text-decoration:none}
 /* Data nie jest przyciskiem: nie ma dokąd prowadzić, więc nie udaje, że ma. */
 #date{
   font:600 20px var(--sans);white-space:nowrap;color:var(--fg);

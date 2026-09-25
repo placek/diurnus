@@ -126,3 +126,19 @@ test('data nie jest przyciskiem ani niczym klikalnym', () => {
 test('narzędzia mają po lewej dystans równoważący', () => {
   expect(htmlToday).toContain('class="hdr-side"');
 });
+
+test('link do kodu na GitHubie stoi tuż przed pomocą i otwiera się w nowej karcie', () => {
+  const link = /<a[^>]*href="https:\/\/github\.com\/placek\/diurnus"[^>]*>/.exec(htmlToday)?.[0] ?? '';
+  expect(link).toContain('target="_blank"');
+  expect(link).toContain('rel="noopener noreferrer"');
+  expect(link).toContain('aria-label="Kod na GitHubie"');
+  const tools = /<div class="tools hdr-side">([\s\S]*)<\/div>/.exec(htmlToday)?.[1] ?? '';
+  const labels = [...tools.matchAll(/aria-label="([^"]+)"/g)].map((m) => m[1]);
+  expect(labels.slice(-4)).toEqual(['Kod na GitHubie', 'Pomoc', 'Motyw', 'Ustawienia']);
+  // Ikona istnieje w zestawie — nie litera zastępcza.
+  expect(htmlToday).not.toMatch(/class="ic ltr"[^>]*>GH</);
+});
+
+test('link do GitHuba jest też na szerokim ekranie', () => {
+  expect(htmlWide).toContain('href="https://github.com/placek/diurnus"');
+});
