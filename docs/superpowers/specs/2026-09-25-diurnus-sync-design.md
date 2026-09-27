@@ -157,6 +157,20 @@ w `localStorage` (`diurnus.sync`), obok stanu.
 repozytorium jest **prywatne** — publiczne dostaje wyraźne ostrzeżenie, bo dziennik byłby
 widoczny dla każdego.
 
+**Repozytorium prywatne** działa jak każde inne, bo każde żądanie niesie token — adapter nigdy
+nie czyta niczego anonimowo:
+
+- **`404` nie znaczy tylko „nie ma".** Przed tokenem bez dostępu GitHub ukrywa prywatne
+  repozytorium odpowiedzią `404`, a nie `403`. „Połącz" mówi więc „Repozytorium nie istnieje
+  albo token nie ma do niego dostępu" i podpowiada, żeby sprawdzić, czy token obejmuje to
+  repozytorium.
+- **Repozytorium organizacji** wymaga, żeby organizacja dopuszczała tokeny *fine-grained*;
+  może też wymagać zatwierdzenia tokenu przez administratora. Do czasu zatwierdzenia żądania
+  kończą się `403` albo `404` — „Połącz" wspomina o tym, gdy właściciel nie jest kontem
+  użytkownika. Repozytorium na własnym koncie tego kroku nie ma.
+- **Surowe linki** (`raw.githubusercontent.com`) do plików prywatnych wymagają osobnego
+  uwierzytelnienia — adapter ich nie używa; treść bierze z API, które działa z tokenem.
+
 ### Operacje
 
 Wszystkie żądania idą do `https://api.github.com` z `Authorization: Bearer <token>`
