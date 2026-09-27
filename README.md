@@ -127,7 +127,9 @@ make dev             # http://localhost:5173/
   [specyfikacji](docs/superpowers/specs/2026-09-25-diurnus-state-machine-design.md). Obok:
   odczyty dla widoku, arytmetyka doby, migracje schematu, skróty klawiszowe, kopia zapasowa
   i `rrule.ts` — wzorce powtarzania jako reguły iCal (RFC 5545 RRULE, podzbiór z dokładnością
-  do dnia). Testowana zwykłym `import`.
+  do dnia), a w `sync/` — synchronizacja dziennika z zewnętrznym magazynem
+  ([projekt](docs/superpowers/specs/2026-09-25-diurnus-sync-design.md)). Testowana zwykłym
+  `import`.
 - `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach. Stan pozycji
   zmienia się wyłącznie zdarzeniami maszyny wysłanymi przez `dispatch()`.
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
