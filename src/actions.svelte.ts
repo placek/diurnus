@@ -258,6 +258,17 @@ export function mergeDescUp(id: string): void {
   ui.focusCaret = at;
 }
 
+/**
+ * „Opis" z menu znacznika — droga na ekranie dotykowym, gdzie nie ma
+ * Shift+Enter: zakłada opis, jeśli go nie ma, i stawia karetkę na jego końcu.
+ */
+export function openDesc(id: string): void {
+  const item = find(id);
+  if (!item) return;
+  if (item.desc === undefined) commit(() => (data(item).desc = ''));
+  ui.focusDesc = { id, at: -1 };
+}
+
 /** Wyjście z opisu: bez końcowych pustych linii; pusty opis znika. */
 export function tidyDesc(id: string): void {
   const item = find(id);

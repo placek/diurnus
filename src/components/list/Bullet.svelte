@@ -6,6 +6,7 @@
     moveToBacklog,
     moveToToday,
     openCategoryMenu,
+    openDesc,
     scheduleItem,
     setItemType,
     toggleDone,
@@ -110,12 +111,43 @@
     return idx;
   }
 
+  /* ── Przytrzymanie palcem ──
+     Na ekranie dotykowym menu otwiera przytrzymanie. Nie zdajemy się na
+     `contextmenu` przeglądarki: znacznik przechwytuje wskaźnik do
+     przeciągania, a wtedy Android potrafi go nie wysłać. */
+  const HOLD_MS = 500;
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+  /** kiedy przytrzymanie otworzyło menu — spóźniony `contextmenu` go nie zamyka */
+  let heldAt = 0;
+
+  function cancelHold() {
+    clearTimeout(holdTimer);
+    holdTimer = undefined;
+  }
+
+  function openMenuAt(x: number, y: number) {
+    menuX = x;
+    menuY = y;
+    menu = true;
+  }
+
   function onPointerDown(e: PointerEvent) {
     if (e.button !== 0) return; // prawy przycisk należy do menu
     startX = e.clientX;
     startY = e.clientY;
     dragging = false;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    cancelHold();
+    if (e.pointerType === 'touch' && hasMenu) {
+      const x = e.clientX;
+      const y = e.clientY;
+      holdTimer = setTimeout(() => {
+        holdTimer = undefined;
+        heldAt = Date.now();
+        suppressClick = true; // puszczenie palca po przytrzymaniu to nie klik
+        openMenuAt(x, y);
+      }, HOLD_MS);
+    }
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -124,6 +156,7 @@
 
     if (!dragging) {
       if (Math.hypot(e.clientX - startX, e.clientY - startY) < THRESHOLD) return;
+      cancelHold();
       dragging = true;
       menu = false;
     }
@@ -143,6 +176,7 @@
   }
 
   function onPointerUp(e: PointerEvent) {
+    cancelHold();
     const el = e.currentTarget as HTMLElement;
     if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
     if (!dragging) return;
@@ -167,9 +201,11 @@
     else moveToToday(drag.id);
   }
 
-  function onClick() {
+  function onClick(e: MouseEvent) {
     if (suppressClick) {
       suppressClick = false;
+      // Klik po puszczeniu palca nie może dojść do nasłuchu, który zamyka menu.
+      e.stopPropagation();
       return;
     }
     // W backlogu kliknięcie to „zrobione" i przeniesienie do dziś; w dziś
@@ -200,9 +236,11 @@
   oncontextmenu={(e) => {
     if (!hasMenu) return;
     e.preventDefault();
-    menuX = e.clientX;
-    menuY = e.clientY;
-    menu = !menu;
+    // Przytrzymanie już otworzyło menu; `contextmenu` z tego samego gestu nic nie zmienia.
+    if (Date.now() - heldAt < 1500) return;
+    cancelHold();
+    if (menu) menu = false;
+    else openMenuAt(e.clientX, e.clientY);
   }}>{MARK[kind]}</button
 >
 
@@ -238,6 +276,16 @@
       <div class="bm-sep"></div>
     {/if}
 
+    <!-- Na telefonie nie ma Shift+Enter — opis otwiera się stąd. -->
+    <button
+      role="menuitem"
+      onclick={() => {
+        menu = false;
+        openDesc(item.id);
+      }}
+    >
+      <span class="bm-mark">¶</span>Opis
+    </button>
     <!-- Jedna pozycja, jedna kategoria: ta sama na liście i na siatce. -->
     <button
       role="menuitem"

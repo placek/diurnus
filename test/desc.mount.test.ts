@@ -255,3 +255,112 @@ test('opis trafia do pliku dnia pod pozycją', async () => {
   const files = renderFiles(JSON.parse(JSON.stringify(app.S)));
   expect(files[`${TODAY}.md`]).toContain('* [ ] 09:00 Czytanie\n      rozdział 3\n\n      cytat\n');
 });
+
+/* ───────────── Ekran dotykowy: bez Shift+Enter ───────────── */
+
+/** Telefon: szeroki układ testów zostaje, ale wskaźnik jest „gruby". */
+function touchScreen() {
+  const wide = window.matchMedia;
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (q: string) =>
+      q.includes('pointer: coarse')
+        ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} }
+        : wide(q),
+  });
+}
+
+test('klawisz ↵ klawiatury ekranowej: pola pozycji proszą o Enter, nie o „Dalej"', async () => {
+  seed([task('a'), backlog('k')]);
+  await mountApp();
+  const fields = [
+    title('a'),
+    title('k'),
+    document.querySelector('#list [aria-label="Nowa pozycja"]')!,
+    document.querySelector('#backlog [aria-label="Nowa pozycja backlogu"]')!,
+  ];
+  for (const f of fields) expect(f.getAttribute('enterkeyhint')).toBe('enter');
+});
+
+test('„Opis" w menu znacznika zakłada opis i stawia w nim karetkę', async () => {
+  seed([task('a', null, { text: 'A' }), backlog('k', null, { text: 'K', desc: 'jest' })]);
+  const { app, flush } = await mountApp();
+  const openMenu = (id: string) => {
+    row(id)
+      .querySelector('.bullet')!
+      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    flush();
+    [...document.querySelectorAll<HTMLButtonElement>('.bullet-menu button')]
+      .find((b) => b.textContent?.includes('Opis'))!
+      .click();
+    flush();
+  };
+  openMenu('a');
+  expect(item(app, 'a')!.desc).toBe('');
+  expect(document.activeElement).toBe(area('a'));
+
+  // Istniejący opis: karetka na końcu, treść bez zmian.
+  openMenu('k');
+  expect(item(app, 'k')!.desc).toBe('jest');
+  expect(document.activeElement).toBe(area('k'));
+  expect(area('k')!.selectionStart).toBe(4);
+});
+
+test('na ekranie dotykowym ↵ w opisie dodaje linię zamiast nowej pozycji', async () => {
+  touchScreen();
+  seed([task('a', null, { text: 'A', desc: 'x' })]);
+  const { app, flush } = await mountApp();
+  title('a').focus();
+  flush();
+  caret(area('a')!, 1);
+  expect(key(area('a')!, 'Enter')).toBe(false);
+  flush();
+  expect(app.S.items).toHaveLength(1);
+  // W tytule ↵ nadal dodaje pozycję.
+  caret(title('a'), 1);
+  key(title('a'), 'Enter');
+  flush();
+  expect(app.S.items).toHaveLength(2);
+});
+
+test('przytrzymanie znacznika palcem otwiera menu; krótkie dotknięcie nadal odhacza', async () => {
+  seed([task('a', null, { text: 'A' })]);
+  const { app, flush } = await mountApp();
+  const { vi } = await import('vitest');
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+  try {
+    const b = row('a').querySelector<HTMLElement>('.bullet')!;
+    const touchEv = (type: string) =>
+      b.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, pointerId: 1, pointerType: 'touch', button: 0 }),
+      );
+    touchEv('pointerdown');
+    vi.advanceTimersByTime(500);
+    flush();
+    expect(document.querySelector('.bullet-menu')).not.toBeNull();
+    touchEv('pointerup');
+    b.click(); // przeglądarka wysyła klik po puszczeniu palca
+    // Spóźniony contextmenu z tego samego gestu nie zamyka menu.
+    b.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    flush();
+    expect(document.querySelector('.bullet-menu')).not.toBeNull();
+    expect(app.S.items[0]!.state).toMatchObject({ done: false });
+
+    [...document.querySelectorAll<HTMLButtonElement>('.bullet-menu button')]
+      .find((x) => x.textContent?.includes('Opis'))!
+      .click();
+    flush();
+    expect(document.activeElement).toBe(area('a'));
+
+    // Krótkie dotknięcie: odhacza, menu się nie otwiera.
+    touchEv('pointerdown');
+    vi.advanceTimersByTime(200);
+    touchEv('pointerup');
+    b.click();
+    flush();
+    expect(document.querySelector('.bullet-menu')).toBeNull();
+    expect(app.S.items[0]!.state).toMatchObject({ done: true });
+  } finally {
+    vi.useRealTimers();
+  }
+});

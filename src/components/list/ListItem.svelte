@@ -133,6 +133,7 @@
   <input
     bind:this={el}
     class="item-text"
+    enterkeyhint="enter"
     value={item.text}
     maxlength="200"
     placeholder={cat ? cat.name : ''}

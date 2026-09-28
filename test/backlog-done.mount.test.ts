@@ -102,7 +102,7 @@ const openMenu = (flush: () => void) => {
   return [...document.querySelectorAll<HTMLElement>('.bullet-menu button')];
 };
 
-test('menu pozycji backlogu: typy | bez daty, wybierz datę… | kategoria', async () => {
+test('menu pozycji backlogu: typy | bez daty, wybierz datę… | opis, kategoria', async () => {
   seed([backlog('a')]);
   const { flush } = await mountApp();
   openMenu(flush);
@@ -116,11 +116,12 @@ test('menu pozycji backlogu: typy | bez daty, wybierz datę… | kategoria', asy
     '→Bez daty',
     '…Wybierz datę…',
     '—',
+    '¶Opis',
     '#Kategoria…',
   ]);
 });
 
-test('menu pozycji dzisiejszej: typy | kategoria, bez terminów', async () => {
+test('menu pozycji dzisiejszej: typy | opis, kategoria, bez terminów', async () => {
   seed([task('a')]);
   const { flush } = await mountApp();
   const bullet = document.querySelector<HTMLElement>('#list .item[data-id] .bullet')!;
@@ -129,7 +130,7 @@ test('menu pozycji dzisiejszej: typy | kategoria, bez terminów', async () => {
   const seq = [...document.querySelector('.bullet-menu')!.children].map((el) =>
     el.classList.contains('bm-sep') ? '—' : el.textContent?.trim(),
   );
-  expect(seq).toEqual(['·Zadanie', '×Wykonane', '–Notatka', '—', '#Kategoria…']);
+  expect(seq).toEqual(['·Zadanie', '×Wykonane', '–Notatka', '—', '¶Opis', '#Kategoria…']);
 });
 
 test('„Bez daty" zdejmuje wzorzec', async () => {
