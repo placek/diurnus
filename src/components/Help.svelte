@@ -180,8 +180,9 @@
     </dd>
     <dt>Dane</dt>
     <dd>
-      wszystko żyje wyłącznie w tej przeglądarce. Jedynym zabezpieczeniem jest dziennik pobrany
-      jako pliki markdown w archiwum ZIP; jego wczytanie zastępuje bieżący stan
+      wszystko żyje w tej przeglądarce. Zabezpieczeniem jest dziennik pobrany jako pliki
+      markdown w archiwum ZIP (jego wczytanie zastępuje bieżący stan) albo synchronizacja
+      z prywatnym repozytorium GitHub — wtedy ikona chmury w nagłówku pokazuje jej stan
     </dd>
     <dt>Motyw</dt>
     <dd>przycisk w nagłówku: automatyczny, jasny, ciemny</dd>

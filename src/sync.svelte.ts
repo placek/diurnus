@@ -1,11 +1,11 @@
-import { app, onStateChange, replaceState } from './state.svelte';
+import { app, onStateChange, replaceState, ui } from './state.svelte';
 import { parseFiles, renderFiles } from './lib/md/files';
 import type { FileError, Files } from './lib/md/files';
 import { readJSON, writeJSON } from './lib/persist';
-import { emptySync } from './lib/sync/engine';
-import type { Conflict, SyncState } from './lib/sync/engine';
-import { GitHubStore } from './lib/sync/github';
-import type { GitHubConfig } from './lib/sync/github';
+import { emptySync, planFirst, sendMine, takeRemote } from './lib/sync/engine';
+import type { Accept, Conflict, FirstPlan, SyncState } from './lib/sync/engine';
+import { GitHubStore, checkRepo, parseRepo } from './lib/sync/github';
+import type { GitHubConfig, RepoCheck } from './lib/sync/github';
 import { PULL_EVERY, SyncRunner, initialStatus } from './lib/sync/runner';
 import type { SyncStatus } from './lib/sync/runner';
 import type { Store } from './lib/sync/store';
@@ -26,7 +26,11 @@ export const SYNC_KEY = 'diurnus.sync';
 /** Powrót do karty sprawdza magazyn najwyżej raz na tyle. */
 export const CHECK_GAP = 10_000;
 
-export type StoreConfig = { kind: 'github' } & GitHubConfig;
+export type StoreConfig = {
+  kind: 'github';
+  /** data wygaśnięcia tokenu (RRRR-MM-DD), jeśli GitHub ją podał */
+  expires?: string;
+} & GitHubConfig;
 
 export interface SyncSaved {
   config: StoreConfig | null;
@@ -52,24 +56,44 @@ const where = (e: FileError) => (e.file ? `${e.file}${e.line !== null ? `:${e.li
 
 const current = (): Files => renderFiles($state.snapshot(app.S) as State);
 
+/** Dokumenty dają się przyjąć, gdy `parseFiles` je czyta; błędy jako `plik:linia: powód`. */
+const accept: Accept = (files) => {
+  const p = parseFiles(files);
+  return p.ok ? true : p.errors.map((e) => `${where(e)}${e.message}`);
+};
+
+/** Stan z dokumentów, które `accept` przyjął. */
+function apply(files: Files): void {
+  const p = parseFiles(files);
+  if (p.ok) replaceState(p.state);
+}
+
 let runner: SyncRunner | null = null;
+/** Zatrzymanie bieżącego przebiegu; `null` — synchronizacja nie jest uruchomiona. */
+let stopRun: (() => void) | null = null;
 
 /** Uruchamia synchronizację według zapisanej konfiguracji. Zwraca zatrzymanie. */
 export function startSync(): () => void {
-  let stopRun = run(loadSaved().config);
+  stopRun = run(loadSaved().config);
   // Inna karta połączyła albo rozłączyła magazyn.
   const onStorage = (e: StorageEvent) => {
     if (e.key !== SYNC_KEY) return;
-    const cfg = loadSaved().config;
-    if (JSON.stringify(cfg) === configKey) return;
-    stopRun();
-    stopRun = run(cfg);
+    if (JSON.stringify(loadSaved().config) === configKey) return;
+    restartSync();
   };
   addEventListener('storage', onStorage);
   return () => {
     removeEventListener('storage', onStorage);
-    stopRun();
+    stopRun?.();
+    stopRun = null;
   };
+}
+
+/** Ponowne uruchomienie po zmianie konfiguracji (połączenie, rozłączenie, nowy token). */
+function restartSync(): void {
+  if (!stopRun) return; // aplikacja nie wystartowała synchronizacji (np. w testach bez App)
+  stopRun();
+  stopRun = run(loadSaved().config);
 }
 
 /** Konfiguracja, na której działa bieżący runner — do rozpoznania zmian. */
@@ -119,14 +143,8 @@ function drive(cfg: StoreConfig): () => void {
   const r = new SyncRunner({
     store: makeStore(cfg),
     files: current,
-    accept: (files) => {
-      const p = parseFiles(files);
-      return p.ok ? true : p.errors.map((e) => `${where(e)}${e.message}`);
-    },
-    apply: (files) => {
-      const p = parseFiles(files);
-      if (p.ok) replaceState(p.state);
-    },
+    accept,
+    apply,
     load: () => loadSaved().state,
     save: (state) => {
       const saved = loadSaved();
@@ -137,8 +155,12 @@ function drive(cfg: StoreConfig): () => void {
     onStatus: (s) => {
       sync.status = s;
     },
-    notify: (msg) => {
-      app.toast = { msg, undoable: false };
+    notify: (e) => {
+      const msg =
+        e.kind === 'conflict'
+          ? `Konflikt: ${e.names.join(', ')} — została wersja z repozytorium`
+          : `Nie wczytano zmian z repozytorium: ${e.names.join(', ')}`;
+      app.toast = { msg, undoable: false, action: { label: 'Pokaż', run: showSync } };
     },
   });
   runner = r;
@@ -175,9 +197,149 @@ function drive(cfg: StoreConfig): () => void {
   };
 }
 
+/** Ustawienia → Dane, gdzie jest sekcja synchronizacji. */
+export function showSync(): void {
+  ui.settings = 'data';
+}
+
+/** „Synchronizuj teraz": sprawdzenie od razu, bez czekania na ponowienie. */
+export function syncNow(): void {
+  runner?.retry();
+}
+
+/* ───────────── Połączenie ───────────── */
+
+export interface ConnectForm {
+  /** `właściciel/nazwa` albo adres repozytorium */
+  repo: string;
+  /** pusta — domyślna gałąź repozytorium */
+  branch: string;
+  /** katalog w repozytorium; pusty — korzeń */
+  dir: string;
+  token: string;
+}
+
+export type Prepared =
+  | { ok: true; cfg: StoreConfig; check: Extract<RepoCheck, { ok: true }> }
+  | { ok: false; message: string };
+
+function checkMessage(c: Extract<RepoCheck, { ok: false }>): string {
+  switch (c.reason) {
+    case 'missing':
+      return (
+        'Repozytorium nie istnieje albo token nie ma do niego dostępu. Sprawdź, czy token ' +
+        'obejmuje to repozytorium (a przy repozytorium organizacji — czy organizacja go zatwierdziła).'
+      );
+    case 'auth':
+      return 'GitHub nie przyjął tokenu — jest błędny, wygasł albo nie ma uprawnień';
+    case 'rate-limit':
+      return 'Limit zapytań GitHuba — spróbuj za chwilę';
+    case 'offline':
+      return 'Brak połączenia z GitHubem';
+    case 'other':
+      return c.message;
+  }
+}
+
+/** Sprawdzenie formularza i repozytorium: czy token je widzi i może w nim pisać. */
+export async function prepare(form: ConnectForm): Promise<Prepared> {
+  const r = parseRepo(form.repo);
+  if (!r) return { ok: false, message: 'Podaj repozytorium jako właściciel/nazwa' };
+  const token = form.token.trim();
+  if (!token) return { ok: false, message: 'Podaj token' };
+  const check = await checkRepo({ ...r, token });
+  if (!check.ok) return { ok: false, message: checkMessage(check) };
+  if (!check.canWrite)
+    return {
+      ok: false,
+      message: 'Token może tylko czytać — nadaj mu uprawnienie Contents: Read and write',
+    };
+  const cfg: StoreConfig = {
+    kind: 'github',
+    ...r,
+    branch: form.branch.trim() || check.defaultBranch,
+    dir: form.dir.trim().replace(/^\/+|\/+$/g, ''),
+    token,
+    ...(check.expires ? { expires: check.expires } : {}),
+  };
+  return { ok: true, cfg, check };
+}
+
+/** Co jest w magazynie i co z tym zrobić przy pierwszym połączeniu. */
+export function planConnect(cfg: StoreConfig): Promise<FirstPlan> {
+  return planFirst(makeStore(cfg), current());
+}
+
+/**
+ * Pierwsze połączenie: „pull" — dziennik z magazynu zastępuje lokalny,
+ * „push" — magazyn staje się kopią tej przeglądarki. Po sukcesie konfiguracja
+ * i uzgodnienie trafiają do pamięci, a synchronizacja rusza. Zwraca błędy albo `null`.
+ */
+export async function finishConnect(
+  cfg: StoreConfig,
+  plan: FirstPlan,
+  choice: 'pull' | 'push',
+): Promise<string[] | null> {
+  const out =
+    choice === 'pull'
+      ? takeRemote(plan.snapshot, accept)
+      : await sendMine(makeStore(cfg), current(), plan.snapshot, accept);
+  if (out.error) return [out.error.message];
+  if (out.rejected) return out.rejected.errors;
+  // Uzgodnienie przed stanem — jak w runnerze.
+  writeJSON(localStorage, SYNC_KEY, { config: cfg, state: out.state });
+  if (out.changed) apply(out.files);
+  restartSync();
+  return null;
+}
+
+/** Rozłączenie: token i uzgodnienie znikają z przeglądarki; dane zostają po obu stronach. */
+export function disconnect(): void {
+  writeJSON(localStorage, SYNC_KEY, { config: null, state: emptySync() });
+  restartSync();
+}
+
+/** Nowy token dla tego samego repozytorium — uzgodnienie zostaje. Zwraca błąd albo `null`. */
+export async function changeToken(token: string): Promise<string | null> {
+  const saved = loadSaved();
+  if (!saved.config) return 'Synchronizacja nie jest połączona';
+  const t = token.trim();
+  if (!t) return 'Podaj token';
+  const check = await checkRepo({ owner: saved.config.owner, repo: saved.config.repo, token: t });
+  if (!check.ok) return checkMessage(check);
+  if (!check.canWrite)
+    return 'Token może tylko czytać — nadaj mu uprawnienie Contents: Read and write';
+  const { expires: _old, ...rest } = saved.config;
+  const config: StoreConfig = {
+    ...rest,
+    token: t,
+    ...(check.expires ? { expires: check.expires } : {}),
+  };
+  writeJSON(localStorage, SYNC_KEY, { ...saved, config });
+  restartSync();
+  return null;
+}
+
 /** „Nadpisz moją wersją" dla konfliktu z listy stanu. */
 export function overwriteMine(c: Conflict): Promise<void> {
   return runner ? runner.overwrite($state.snapshot(c) as Conflict) : Promise.resolve();
+}
+
+/**
+ * „Nadpisz moją wersją" dla odrzuconych zmian z magazynu: lokalna treść tych
+ * dokumentów idzie do magazynu na odrzuconej wersji i blokada znika.
+ */
+export async function overwriteRejected(): Promise<void> {
+  const r = runner;
+  if (!r) return;
+  const files = current();
+  for (const [name, version] of Object.entries(loadSaved().state.blocked))
+    await r.overwrite({
+      name,
+      // Treść magazynu nie jest tu potrzebna — liczy się wersja, na której piszemy.
+      remote: version === '' ? null : { body: '', version },
+      mine: files[name] ?? null,
+    });
 }
 
 /** Konflikt przyjęty do wiadomości — zostaje wersja z magazynu. */

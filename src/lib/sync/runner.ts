@@ -61,6 +61,9 @@ export const initialStatus = (phase: Phase = 'idle'): SyncStatus => ({
   rejected: null,
 });
 
+export type SyncNotice =
+  { kind: 'conflict'; names: string[] } | { kind: 'rejected'; names: string[]; errors: string[] };
+
 export interface RunnerDeps {
   store: Store;
   /** dokumenty bieżącego stanu (`renderFiles`) */
@@ -73,8 +76,8 @@ export interface RunnerDeps {
   load(): SyncState;
   save(st: SyncState): void;
   onStatus(s: SyncStatus): void;
-  /** krótki komunikat dla użytkownika (konflikt, odrzucone zmiany) */
-  notify?(msg: string): void;
+  /** coś, o czym użytkownik powinien wiedzieć (konflikt, odrzucone zmiany) */
+  notify?(e: SyncNotice): void;
   now?(): number;
 }
 
@@ -136,7 +139,13 @@ export class SyncRunner {
 
   /** Sieć wróciła: odstęp po błędzie przestaje obowiązywać. Limit — nie. */
   online(): void {
-    if (this.stopped || this.halted || this.status.phase === 'rate-limit') return;
+    if (this.status.phase === 'rate-limit') return;
+    this.retry();
+  }
+
+  /** „Synchronizuj teraz": sprawdzenie od razu, bez czekania na odstęp po błędzie. */
+  retry(): void {
+    if (this.stopped || this.halted) return;
     clearTimeout(this.retryTimer);
     this.holdUntil = 0;
     this.wantPull = true;
@@ -337,14 +346,8 @@ export class SyncRunner {
       rejected,
     });
 
-    if (conflicts.length)
-      this.deps.notify?.(
-        `Zmienione też gdzie indziej — została wersja z magazynu: ${[...names].join(', ')}`,
-      );
-    if (out.rejected)
-      this.deps.notify?.(
-        `Nie wczytano zmian z magazynu: ${out.rejected.errors[0] ?? out.rejected.names.join(', ')}`,
-      );
+    if (conflicts.length) this.deps.notify?.({ kind: 'conflict', names: [...names] });
+    if (out.rejected) this.deps.notify?.({ kind: 'rejected', ...out.rejected });
   }
 }
 

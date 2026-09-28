@@ -33,6 +33,8 @@ const DEFAULT_PREFS: Prefs = { theme: 'auto', seenHelp: false, notify: false };
 export interface Toast {
   msg: string;
   undoable: boolean;
+  /** przycisk w komunikacie, np. „Pokaż" przy konflikcie synchronizacji */
+  action?: { label: string; run: () => void };
 }
 
 export const app = $state({

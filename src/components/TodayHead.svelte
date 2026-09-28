@@ -21,6 +21,18 @@
     return fmtDate.format(new Date(y, m - 1, d));
   });
 
+  // Wąski telefon: skrót „pon., 28 wrz" — pełna nazwa nie mieści się obok narzędzi.
+  const fmtShort = new Intl.DateTimeFormat('pl-PL', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  const short = $derived.by(() => {
+    const [y, m, d] = splitDay(currentDay.value);
+    return fmtShort.format(new Date(y, m - 1, d));
+  });
+
   const clock = $derived.by(() => {
     const d = new Date(app.now);
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -30,7 +42,7 @@
 </script>
 
 <div class="hdr-when">
-  <span id="date">{label}</span>
+  <span id="date"><span class="d-long">{label}</span><span class="d-short">{short}</span></span>
   <span id="clock" aria-label="Godzina">{clock}</span>
 </div>
 <TokenPips {stats} />

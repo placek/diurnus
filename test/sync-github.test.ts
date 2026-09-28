@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { GitHubStore, checkRepo, fromBase64, toBase64 } from '../src/lib/sync/github';
+import { GitHubStore, checkRepo, fromBase64, parseRepo, toBase64 } from '../src/lib/sync/github';
 import type { GitHubConfig } from '../src/lib/sync/github';
 import { MemoryStore } from '../src/lib/sync/memory';
 import { StoreError } from '../src/lib/sync/store';
@@ -246,6 +246,37 @@ describe('GitHubStore', () => {
 
 /* ───────────── Sprawdzenie repozytorium ───────────── */
 
+describe('parseRepo', () => {
+  test('właściciel/nazwa albo adres z github.com', () => {
+    const want = { owner: 'ola', repo: 'diurnus-data' };
+    for (const s of [
+      'ola/diurnus-data',
+      ' ola/diurnus-data ',
+      'https://github.com/ola/diurnus-data',
+      'github.com/ola/diurnus-data/',
+      'https://github.com/ola/diurnus-data.git',
+      'git@github.com:ola/diurnus-data.git',
+      'https://github.com/ola/diurnus-data/tree/main/dziennik',
+      'https://www.github.com/ola/diurnus-data?tab=readme',
+    ])
+      expect(parseRepo(s), s).toEqual(want);
+    expect(parseRepo('ola/my.repo_1')).toEqual({ owner: 'ola', repo: 'my.repo_1' });
+  });
+
+  test('bez właściciela albo nazwy — nic', () => {
+    for (const s of [
+      '',
+      'diurnus-data',
+      'ola/',
+      '/diurnus-data',
+      'ola/..',
+      'https://gitlab.com/ola/x',
+      '-ola/x',
+    ])
+      expect(parseRepo(s), s).toBeNull();
+  });
+});
+
 describe('checkRepo', () => {
   test('prywatne z prawem zapisu — w porządku; publiczne, tylko do odczytu, organizacja — widać', async () => {
     const gh = new FakeGitHub();
@@ -255,7 +286,10 @@ describe('checkRepo', () => {
       canWrite: true,
       defaultBranch: 'main',
       organization: false,
+      expires: null,
     });
+    gh.tokenExpires = '2026-12-01 00:00:00 UTC';
+    expect(await checkRepo(cfg(gh), gh.fetch)).toMatchObject({ expires: '2026-12-01' });
     gh.isPrivate = false;
     gh.readOnly = true;
     gh.organization = true;
