@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { ui } from '../state.svelte';
+  import { app, ui } from '../state.svelte';
+  import { showSync, sync } from '../sync.svelte';
+  import { describeStatus } from '../lib/sync/describe';
   import Icon from './Icon.svelte';
   import TodayHead from './TodayHead.svelte';
 
@@ -19,6 +21,20 @@
     backlog: 'Backlog — przełącz na siatkę',
   } as const;
   const nextPane = () => PANE_ORDER[(PANE_ORDER.indexOf(ui.pane) + 1) % PANE_ORDER.length]!;
+
+  // Synchronizacja: ikonka tylko przy połączonym magazynie, kropka — gdy coś jest nie tak.
+  const syncText = $derived(sync.status ? describeStatus(sync.status, app.now) : null);
+  const syncMark = $derived(
+    !syncText
+      ? ''
+      : syncText.tone === 'error'
+        ? 'error'
+        : syncText.attention || syncText.tone === 'warn'
+          ? 'warn'
+          : syncText.tone === 'busy'
+            ? 'busy'
+            : '',
+  );
 </script>
 
 <header id="top">
@@ -42,6 +58,16 @@
         title={PANE_TITLE[ui.pane]}
       >
         <Icon name={PANE_ICON[ui.pane]} fallback="≡" />
+      </button>
+    {/if}
+    {#if syncText}
+      <button
+        class="ib sync-ind {syncMark}"
+        onclick={showSync}
+        aria-label="Synchronizacja: {syncText.text}"
+        title={syncText.text}
+      >
+        <Icon name="cloud" fallback="☁" />
       </button>
     {/if}
     <!-- Kod źródłowy: zwykły link w nowej karcie, żeby nie zamykać dnia. -->

@@ -5,7 +5,9 @@
   import { parseFiles, renderFiles } from '../../lib/md/files';
   import type { FileError } from '../../lib/md/files';
   import type { State } from '../../lib/types';
+  import { sync } from '../../sync.svelte';
   import Icon from '../Icon.svelte';
+  import SyncSection from './SyncSection.svelte';
 
   let fileInput = $state<HTMLInputElement | null>(null);
   /** Powody odrzucenia ostatniego wczytania — po jednym na linię pliku. */
@@ -37,7 +39,10 @@
     try {
       files = renderFiles($state.snapshot(app.S) as State);
     } catch (err) {
-      app.toast = { msg: err instanceof Error ? err.message : 'Nie udało się zapisać', undoable: false };
+      app.toast = {
+        msg: err instanceof Error ? err.message : 'Nie udało się zapisać',
+        undoable: false,
+      };
       return;
     }
     const name = `diurnus-${app.S.today}.zip`;
@@ -49,7 +54,10 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     const n = Object.keys(files).length;
-    app.toast = { msg: `Zapisano ${name} — ${n} ${pl(n, 'plik', 'pliki', 'plików')}`, undoable: false };
+    app.toast = {
+      msg: `Zapisano ${name} — ${n} ${pl(n, 'plik', 'pliki', 'plików')}`,
+      undoable: false,
+    };
   }
 
   /** Wczytanie zastępuje wszystko, więc pyta wprost — „Cofnij" byłby kłamstwem. */
@@ -99,14 +107,23 @@
 </script>
 
 <div class="ce-list">
+  <SyncSection />
+
   <p class="hint">
     W pamięci przeglądarki: <b>{count}</b>
-    {pl(count, 'pozycja', 'pozycje', 'pozycji')} z <b>{days}</b> {pl(days, 'dnia', 'dni', 'dni')}.
+    {pl(count, 'pozycja', 'pozycje', 'pozycji')} z <b>{days}</b>
+    {pl(days, 'dnia', 'dni', 'dni')}.
   </p>
-  <p class="hint">
-    Dane żyją wyłącznie w tej przeglądarce. Wyczyszczenie danych witryny kasuje je bezpowrotnie —
-    pobrany dziennik to jedyne zabezpieczenie.
-  </p>
+  {#if sync.status}
+    <p class="hint">
+      Dziennik ma kopię w repozytorium, a jego historia zostaje w historii zmian repozytorium.
+    </p>
+  {:else}
+    <p class="hint">
+      Dane żyją wyłącznie w tej przeglądarce. Wyczyszczenie danych witryny kasuje je bezpowrotnie —
+      pobrany dziennik albo synchronizacja to jedyne zabezpieczenie.
+    </p>
+  {/if}
 
   <button class="btn ce-add" onclick={download}>
     <Icon name="download" fallback="↓" />Pobierz dziennik (Markdown)

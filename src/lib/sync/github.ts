@@ -216,6 +216,23 @@ export class GitHubStore implements Store {
 
 /* ───────────── Sprawdzenie przy „Połącz" ───────────── */
 
+/**
+ * Repozytorium z tego, co wpisał użytkownik: `właściciel/nazwa` albo adres
+ * repozytorium na github.com (także skopiowany z paska adresu czy do klonowania).
+ */
+export function parseRepo(input: string): { owner: string; repo: string } | null {
+  const s = input
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+    .replace(/^git@github\.com:/i, '')
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '')
+    .replace(/\.git$/i, '');
+  const m = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100})(?:\/.*)?$/.exec(s);
+  if (!m || m[2] === '.' || m[2] === '..') return null;
+  return { owner: m[1]!, repo: m[2]! };
+}
+
 export type RepoCheck =
   | {
       ok: true;
@@ -224,6 +241,8 @@ export type RepoCheck =
       defaultBranch: string;
       /** właściciel to organizacja — może wymagać zatwierdzenia tokenu */
       organization: boolean;
+      /** data wygaśnięcia tokenu (RRRR-MM-DD), jeśli GitHub ją podał */
+      expires: string | null;
     }
   | {
       ok: false;
@@ -274,11 +293,16 @@ export async function checkRepo(
     permissions?: { push?: boolean };
     owner?: { type?: string };
   };
+  // Nagłówek z datą wygaśnięcia tokenu fine-grained: „2026-12-01 00:00:00 UTC".
+  const exp = /^\d{4}-\d{2}-\d{2}/.exec(
+    res.headers.get('github-authentication-token-expiration') ?? '',
+  );
   return {
     ok: true,
     private: r.private,
     canWrite: !!r.permissions?.push,
     defaultBranch: r.default_branch,
     organization: r.owner?.type === 'Organization',
+    expires: exp ? exp[0] : null,
   };
 }

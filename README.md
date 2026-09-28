@@ -2,7 +2,8 @@
 
 Planer jednego dnia: doba podzielona na 15-minutowe kwanty, dzienny log w duchu bullet
 journal i backlog na wszystko, co nie jest na dziś. Działa w przeglądarce, bez konta
-i bez serwera — **[github.com/placek/diurnus](https://github.com/placek/diurnus)**.
+i bez serwera; dziennik może też synchronizować się z własnym prywatnym repozytorium
+GitHub — **[github.com/placek/diurnus](https://github.com/placek/diurnus)**.
 
 Aplikacja pokazuje **wyłącznie dziś**. Cała aktywna część dnia mieści się w jednym oknie bez
 przewijania, każdy blok czasu jednym kliknięciem oznacza się jako wykonany, a upływ czasu
@@ -78,10 +79,24 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 
 ### Dane
 
-**Wyłącznie w `localStorage` tej przeglądarki** (`diurnus.v1`, `diurnus.prefs`). Nie ma
-serwera ani synchronizacji między urządzeniami. Wyczyszczenie danych witryny kasuje wszystko
-bezpowrotnie — **dziennik pobrany z zakładki „Dane" w ustawieniach jest jedynym
-zabezpieczeniem**.
+**W `localStorage` tej przeglądarki** (`diurnus.v1`, `diurnus.prefs`). Aplikacja nie ma
+własnego serwera. Wyczyszczenie danych witryny kasuje wszystko bezpowrotnie — chyba że
+dziennik jest pobrany z zakładki „Dane" albo synchronizowany.
+
+**Synchronizacja z GitHubem** (Ustawienia → Dane → Synchronizacja) trzyma kopię dziennika
+w **prywatnym repozytorium** i łączy urządzenia:
+
+- Potrzebne jest repozytorium (może być puste) i token *fine-grained* ograniczony do niego,
+  z uprawnieniem *Contents: Read and write*. Token zostaje wyłącznie w przeglądarce.
+- Zmiany idą do repozytorium 2 s po edycji; zmiany z innych urządzeń przychodzą przy starcie,
+  przy powrocie do karty i co 5 minut. Bez sieci wszystko działa i czeka na powrót połączenia.
+- Przy pierwszym połączeniu, gdy dziennik jest po obu stronach, aplikacja pyta, który zostaje.
+- Konflikt (ten sam dokument zmieniony tu i gdzie indziej) wygrywa repozytorium; przegraną
+  wersję przywraca „Nadpisz moją wersją".
+- Każda wersja każdego dnia zostaje w historii repozytorium. Ikona chmury w pasku pokazuje
+  stan i prowadzi do ustawień.
+
+Szczegóły: [projekt synchronizacji](docs/superpowers/specs/2026-09-25-diurnus-sync-design.md).
 
 Dziennik to archiwum ZIP ze zwykłymi plikami markdown, czytelnymi i edytowalnymi w dowolnym
 edytorze:

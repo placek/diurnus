@@ -21,6 +21,8 @@ export class FakeGitHub {
   failWith: number | null = null;
   /** Drzewo „obcięte" przez GitHuba (ponad 100 000 wpisów). */
   truncated = false;
+  /** Nagłówek z datą wygaśnięcia tokenu, jak przy tokenach fine-grained. */
+  tokenExpires: string | null = null;
 
   private files = new Map<string, { body: string; sha: string; raw?: Uint8Array }>();
   private rev = 0;
@@ -130,12 +132,16 @@ export class FakeGitHub {
     const rest = p.slice(root.length);
 
     if (rest === '' && method === 'GET')
-      return this.json(200, {
-        private: this.isPrivate,
-        default_branch: this.defaultBranch,
-        permissions: { pull: true, push: !this.readOnly },
-        owner: { login: this.owner, type: this.organization ? 'Organization' : 'User' },
-      });
+      return this.json(
+        200,
+        {
+          private: this.isPrivate,
+          default_branch: this.defaultBranch,
+          permissions: { pull: true, push: !this.readOnly },
+          owner: { login: this.owner, type: this.organization ? 'Organization' : 'User' },
+        },
+        this.tokenExpires ? { 'github-authentication-token-expiration': this.tokenExpires } : {},
+      );
 
     const tree = /^\/git\/trees\/(.+)$/.exec(rest);
     if (tree && method === 'GET') {

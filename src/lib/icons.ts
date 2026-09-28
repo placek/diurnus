@@ -16,6 +16,7 @@ import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck';
 import { faChild } from '@fortawesome/free-solid-svg-icons/faChild';
 import { faChurch } from '@fortawesome/free-solid-svg-icons/faChurch';
 import { faCircle } from '@fortawesome/free-solid-svg-icons/faCircle';
+import { faCloud } from '@fortawesome/free-solid-svg-icons/faCloud';
 import { faCircleHalfStroke } from '@fortawesome/free-solid-svg-icons/faCircleHalfStroke';
 import { faCode } from '@fortawesome/free-solid-svg-icons/faCode';
 import { faCross } from '@fortawesome/free-solid-svg-icons/faCross';
@@ -44,6 +45,7 @@ import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone';
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faRotateLeft } from '@fortawesome/free-solid-svg-icons/faRotateLeft';
+import { faRotate } from '@fortawesome/free-solid-svg-icons/faRotate';
 import { faSeedling } from '@fortawesome/free-solid-svg-icons/faSeedling';
 import { faStar } from '@fortawesome/free-solid-svg-icons/faStar';
 import { faSun } from '@fortawesome/free-solid-svg-icons/faSun';
@@ -56,7 +58,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark';
 
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
-const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChild, faChurch, faCircle, faCircleHalfStroke, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGear, faGithub, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faLaptopCode, faLayerGroup, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faPlus, faQuestion, faRotateLeft, faSeedling, faStar, faSun, faTableCells, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
+const DEFS: IconDefinition[] = [faArrowUp, faBed, faBicycle, faBookBible, faBookOpen, faBrain, faBriefcase, faBroom, faCar, faCartShopping, faCheck, faChild, faChurch, faCircle, faCircleHalfStroke, faCloud, faCode, faCross, faDownload, faDumbbell, faEnvelope, faFilm, faGamepad, faGear, faGithub, faGraduationCap, faGuitar, faHammer, faHandsPraying, faHeart, faHouse, faLaptopCode, faLayerGroup, faListCheck, faMoon, faMountain, faMugHot, faMusic, faPenNib, faPersonRunning, faPhone, faPlus, faQuestion, faRotateLeft, faRotate, faSeedling, faStar, faSun, faTableCells, faTrashCan, faUpload, faUsers, faUtensils, faXmark];
 
 /** nazwa kebab-case → [szerokość, wysokość, ścieżka SVG] */
 export const ICON_PATHS: Record<string, [number, number, string]> = Object.fromEntries(

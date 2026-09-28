@@ -167,6 +167,28 @@ Zakładka „Dane" dostaje sekcję **Synchronizacja**: wybór magazynu („Tylko
 12:40", „brak połączenia — zmiany czekają", błąd). Konfiguracja i `base` leżą
 w `localStorage` (`diurnus.sync`), obok stanu.
 
+W aplikacji (`src/components/settings/SyncSection.svelte`, logika w `src/sync.svelte.ts`):
+
+- **Połącz.** Pola: repozytorium (`właściciel/nazwa` albo adres z github.com), token, a pod
+  „Gałąź i katalog" — gałąź (domyślnie domyślna gałąź repozytorium) i katalog. „Połącz"
+  sprawdza repozytorium (§5): brak dostępu, token tylko do odczytu, zły token i brak sieci
+  kończą się komunikatem i niczego nie zapisują; publiczne repozytorium czeka na
+  „Połącz mimo to". Potem pierwsze połączenie według tabeli wyżej — pytanie pokazuje liczbę
+  pozycji i zakres dni po obu stronach. Konfiguracja trafia do pamięci dopiero po udanej
+  pierwszej wymianie.
+- **Połączono.** Repozytorium i gałąź, stan, data wygaśnięcia tokenu (gdy GitHub ją podaje
+  w nagłówku `github-authentication-token-expiration`), „Synchronizuj teraz", „Zmień token"
+  (to samo repozytorium, uzgodnienie zostaje) i „Rozłącz" (token i uzgodnienie znikają
+  z przeglądarki; dziennik zostaje po obu stronach).
+- **Konflikt** — dokument, który wygrał z repozytorium, z „Nadpisz moją wersją" i „Zostaw".
+  **Odrzucone zmiany** — błędy `plik:linia: powód` i „Nadpisz moją wersją", które zapisuje
+  lokalną treść na odrzuconej wersji i zdejmuje blokadę.
+- **Token bez dostępu** — pole nowego tokenu od razu.
+- **Pasek.** Przy połączonym magazynie ikona chmury obok linku do GitHuba; kropka: niebieska —
+  trwa synchronizacja, żółta — brak sieci, limit, konflikt albo odrzucone zmiany, czerwona —
+  token albo inny błąd. Klik otwiera Ustawienia → Dane. Komunikat o konflikcie i odrzuconych
+  zmianach ma przycisk „Pokaż" prowadzący w to samo miejsce.
+
 ## 5. Adapter GitHub (pierwszy)
 
 ### Przygotowanie (raz, przez użytkownika)

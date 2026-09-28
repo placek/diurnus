@@ -81,12 +81,18 @@ test('nagłówek nie pokazuje już licznika w postaci n/32', () => {
 });
 
 test('data jest pełna: dzień tygodnia, liczba i nazwa miesiąca', () => {
-  const label = /id="date"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
+  const label = /class="d-long"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
   expect(label).toMatch(/^(poniedziałek|wtorek|środa|czwartek|piątek|sobota|niedziela), \d{1,2} \p{L}+$/u);
 });
 
+test('na telefon jest też skrót daty: „pon., 28 wrz"', () => {
+  const short = /class="d-short"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
+  expect(short).toMatch(/^\p{L}+\.?, \d{1,2} \p{L}+\.?$/u);
+  expect(short.length).toBeLessThan(16);
+});
+
 test('wersaliki są zadaniem CSS, nie treści — czytnik słyszy naturalny zapis', () => {
-  const label = /id="date"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
+  const label = /class="d-long"[^>]*>([^<]+)</.exec(htmlToday)?.[1]?.trim() ?? '';
   expect(label).toBe(label.toLocaleLowerCase('pl-PL'));
 });
 

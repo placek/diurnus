@@ -71,7 +71,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:5px;
 }
-.hdr-when{display:flex;align-items:baseline;gap:10px}
+.hdr-when{display:flex;align-items:baseline;gap:10px;max-width:100%;min-width:0}
+#date{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#clock{flex:none}
+.d-short{display:none}
 /* Obie strony mają tę samą szerokość bazową, więc środek nie ucieka. */
 .tools,
 .hdr-side{flex:0 0 auto;min-width:120px;display:flex;align-items:center;gap:2px}
@@ -345,6 +348,8 @@ kbd{
   box-shadow:var(--shadow);transition:opacity .2s,translate .2s;
 }
 #toast.show{opacity:1;translate:0 0;pointer-events:auto}
+/* Dłuższy komunikat (np. konflikt synchronizacji) łamie się zamiast uciekać za ekran. */
+#toast{max-width:calc(100vw - 24px);width:max-content;white-space:normal;border-radius:18px}
 #toast button{border:0;background:none;padding:0;cursor:pointer;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
 /* Radial: drugi pierścień */
@@ -422,6 +427,42 @@ kbd{
 }
 .import-errors ul{margin:6px 0 0;padding-left:18px;font-family:var(--mono);font-size:12px}
 .import-errors p{margin:4px 0 0}
+.hint{margin:0 0 10px;font:400 14px/1.45 var(--sans);color:var(--fg-dim)}
+
+/* Ustawienia → Dane → Synchronizacja */
+.sync{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;padding:0 0 14px;border-bottom:1px solid var(--line-2)}
+.sync-h{margin:0;font:600 16px var(--sans);color:var(--fg)}
+.sync .hint{margin:0}
+.sync-kind{display:flex;flex-wrap:wrap;gap:6px 16px;font:500 15px var(--sans);color:var(--fg)}
+.sync-kind label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.sync-steps{padding-left:20px}
+.sync-steps li+li{margin-top:3px}
+.sync-more summary{cursor:pointer;font:400 13px var(--sans);color:var(--fg-dim);margin-bottom:6px}
+.sync-more .dp-field+.dp-field{margin-top:6px}
+.sync-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.sync-go{align-self:flex-start}
+.sync-repo{display:flex;align-items:center;gap:7px;margin:0;font:600 15px var(--sans)}
+.sync-repo a{color:var(--fg)}
+.sync a{color:var(--blue)}
+.sync-meta{font:400 13px var(--mono);color:var(--fg-dim)}
+.sync-status{margin:0;font:500 14px var(--sans);color:var(--fg-dim)}
+.sync-status::before{content:'';display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:50%;background:var(--green);vertical-align:1px}
+.sync-status.busy::before{background:var(--blue)}
+.sync-status.warn::before{background:var(--yellow)}
+.sync-status.error::before{background:var(--red)}
+.sync-conflict,.sync-ask{
+  display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:9px;
+  background:color-mix(in srgb,var(--yellow) 14%,transparent);font:400 14px/1.45 var(--sans);color:var(--fg);
+}
+.sync-conflict p,.sync-ask p,.sync-ask ul{margin:0}
+.sync-ask ul{padding-left:18px}
+.sync .btn{padding:7px 11px;font-size:15px}
+/* Ikonka synchronizacji w pasku: kropka mówi, czy coś wymaga uwagi. */
+.ib.sync-ind{position:relative}
+.sync-ind::after{content:'';position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:50%;background:transparent}
+.sync-ind.busy::after{background:var(--blue)}
+.sync-ind.warn::after{background:var(--yellow)}
+.sync-ind.error::after{background:var(--red)}
 
 /* Ustawienia: zakładki + dzień */
 .tabs{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--bg)}
@@ -470,6 +511,7 @@ kbd{
   #date{font-size:16px}
   #clock{font-size:16px}
   .hdr-side{min-width:0}
+  #top .ib{width:28px}
   .hour{padding:0 2px}
   .hour .h{font-size:13px}
   .hour .bn{display:none}
@@ -480,6 +522,13 @@ kbd{
   .count .pl{display:none}
   .legend{grid-template-columns:repeat(2,1fr)}
 }
+/* Telefon: data skrócona, a na najwęższych bez zegara — obok sześciu narzędzi
+   pełna nazwa dnia i miesiąca wjeżdżała pod ikony. */
+@media (max-width:479px){
+  .d-long{display:none}
+  .d-short{display:inline}
+}
+@media (max-width:359px){ #clock{display:none} }
 @media (hover:none) and (pointer:coarse){ .keys .kb{display:none} }
 @media (max-height:620px){
   .blk{margin-top:2px;margin-bottom:2px}

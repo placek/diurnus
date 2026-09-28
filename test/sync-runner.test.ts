@@ -108,7 +108,7 @@ async function rig(
     load: () => r.st,
     save: (s) => (r.st = s),
     onStatus: (s) => (r.status = s),
-    notify: (m) => r.notes.push(m),
+    notify: (m) => r.notes.push(JSON.stringify(m)),
   });
   store.calls.list = store.calls.read = store.calls.write = store.calls.remove = 0;
   return r;

@@ -18,6 +18,15 @@
 <div id="toast" class:show={visible}>
   {#if app.toast}
     <span>{app.toast.msg}</span>
+    {#if app.toast.action}
+      {@const action = app.toast.action}
+      <button
+        onclick={() => {
+          action.run();
+          visible = false;
+        }}>{action.label}</button
+      >
+    {/if}
     {#if app.toast.undoable}
       <button
         onclick={() => {
