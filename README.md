@@ -20,8 +20,7 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
   albo prawy przycisk edytuje.
 - **Przesuwanie.** Blok przeciąga się myszą albo `Shift` + strzałki / `HJKL`, i to wyłącznie
   na wolne miejsce w obrębie dnia; zajęte miejsce jest odmową z wyjaśnieniem.
-- **Kolor mówi o czasie:** plan, trwa (z odliczaniem), minęło, wykonane. Pasek postępu pod
-  datą pokazuje, ile doby już rozdysponowano — wykonane i zaplanowane, w kolorach kategorii.
+- **Kolor mówi o czasie:** plan, trwa (z odliczaniem), minęło, wykonane.
 - **Klawiatura.** Strzałki / `hjkl` prowadzą kursor, `Enter` działa jak klik, cyfry nadają
   kategorię, `E` edytuje, `Del` usuwa.
 - **Powiadomienia** kwadrans przed blokiem i na jego starcie (opcjonalne, przy otwartej karcie).

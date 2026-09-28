@@ -35,3 +35,6 @@ export function catOrder(cats: readonly Category[]): Map<string, number> {
   }
   return m;
 }
+
+/** Kolor zadania bez kategorii — przygaszony, żeby nie udawał kategorii. */
+export const NO_CAT_COLOR = 'fg-faint';

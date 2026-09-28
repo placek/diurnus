@@ -42,7 +42,7 @@
        ekranu, a nie środkiem tego, co zostało. -->
   <div class="hdr-side" aria-hidden="true"></div>
 
-  <!-- Na szerokim ekranie data i pasek postępu stoją w nagłówku sekcji dziś,
+  <!-- Na szerokim ekranie data i zegar stoją w nagłówku sekcji dziś,
        która zachodzi na ten pasek; tu zostaje pusty środek. Na wąskim widać
        jeden panel naraz, więc nagłówek dnia zostaje tutaj. -->
   <div class="hdr-center">
