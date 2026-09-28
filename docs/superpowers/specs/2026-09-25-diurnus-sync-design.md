@@ -136,6 +136,30 @@ nie ma — magazyn staje się kopią tego urządzenia.
   dostępu" — dane lokalne są nietknięte.
 - **Limit** (`rate-limit`): czekanie do czasu podanego przez magazyn.
 
+### Zegar w aplikacji
+
+`src/lib/sync/runner.ts` decyduje, kiedy wołać silnik; `src/sync.svelte.ts` podpina go do stanu
+i przeglądarki.
+
+- **Jedna operacja naraz.** Prośby, które przyjdą w trakcie (edycja, powrót do karty), idą
+  następną turą. Tura to pobranie (jeśli ktoś o nie prosił), a potem wysłanie tego, co czeka.
+- **Zmiana stanu w trakcie operacji.** Dokumenty z magazynu wchodzą na stan bieżący, nie na ten
+  sprzed operacji; lokalna edycja tego samego dokumentu przegrywa jak każdy konflikt. Gdy
+  dokument z magazynu nie składa się z bieżącym stanem, nic nie wchodzi, a następne pobranie
+  ocenia go od nowa.
+- **Uzgodnienie czytane świeżo** z `diurnus.sync` przed każdą operacją i zapisywane przed
+  zastąpieniem stanu — zastąpienie od razu pyta, co czeka na wysłanie.
+- **Powrót do karty** (`focus`, `visibilitychange`) sprawdza magazyn najwyżej raz na 10 s;
+  schowanie karty wysyła od razu to, co czeka.
+- **Karty jednej przeglądarki.** Synchronizuje jedna karta naraz — ta, która ma zamek Web Locks
+  `diurnus.sync`; pozostałe dostają jej zmiany przez zdarzenie `storage` i tą samą drogą
+  oddają swoje. Zamknięcie karty zwalnia zamek, a przejmuje go następna. Bez Web Locks
+  synchronizuje każda karta; zapis treści, która już jest w magazynie, silnik uznaje za zgodę,
+  nie konflikt.
+- **Stan do pokazania:** faza (`idle`, `busy`, `standby` — synchronizuje inna karta,
+  `offline`, `auth`, `rate-limit`, `other`), czas ostatniej udanej synchronizacji, czy zmiany
+  czekają, termin następnej próby, konflikty do „Nadpisz moją wersją" i odrzucone zmiany.
+
 ### Ustawienia
 
 Zakładka „Dane" dostaje sekcję **Synchronizacja**: wybór magazynu („Tylko ta przeglądarka",

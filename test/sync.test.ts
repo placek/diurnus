@@ -197,6 +197,16 @@ describe('konflikty: wygrywa magazyn, „Nadpisz moją wersją" przywraca swoją
     expect(r.state.docs).not.toHaveProperty(DAY);
   });
 
+  test('zapis tego samego, co już jest w magazynie, to zgoda, nie konflikt', async () => {
+    const { store, state } = await synced();
+    store.put(DAY, mine);
+    const r = await push(store, { ...base, [DAY]: mine }, state, ok);
+    expect(r.conflicts).toEqual([]);
+    expect(r.changed).toBe(false);
+    expect(r.state.docs[DAY]!.version).toBe((await store.read(DAY))!.version);
+    expect(pending(r.files, r.state)).toBe(false);
+  });
+
   test('nadpisanie, które znów przegrywa, daje nowy konflikt', async () => {
     const { store, state } = await synced();
     store.put(DAY, theirs);

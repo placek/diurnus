@@ -132,6 +132,8 @@ make dev             # http://localhost:5173/
   `import`.
 - `src/state.svelte.ts`, `src/actions.svelte.ts` — stan oparty na runach. Stan pozycji
   zmienia się wyłącznie zdarzeniami maszyny wysłanymi przez `dispatch()`.
+  `src/sync.svelte.ts` podpina zegar synchronizacji do stanu i przeglądarki (działa tylko
+  z połączonym magazynem).
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
 - `src/components/list/` — dzienny log w duchu bullet journal (panel środkowy).
 - `src/components/backlog/` — backlog: wszystko, co nie należy do dziś.

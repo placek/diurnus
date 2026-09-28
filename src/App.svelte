@@ -1,5 +1,6 @@
 <script lang="ts">
   import { activeLayer, app, closeAll, currentDay, savePrefs, startClock, startCrossTabSync, ui, undo, win } from './state.svelte';
+  import { startSync } from './sync.svelte';
   import { dueNotifications, notifyKey } from './lib/notify';
   import {
     actAt,
@@ -51,6 +52,8 @@
 
   $effect(() => startClock());
   $effect(() => startCrossTabSync());
+  // Synchronizacja z magazynem — tylko gdy jest połączony (Ustawienia → Dane).
+  $effect(() => startSync());
 
   // Motyw: 'auto' zostawia decyzję medium query, więc atrybut jest usuwany,
   // a nie ustawiany na zgadywaną wartość.

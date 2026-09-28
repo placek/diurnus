@@ -105,7 +105,22 @@ export const currentDay = {
   },
 };
 
-export const save = () => writeJSON(localStorage, KEY, $state.snapshot(app.S));
+/** Kto chce wiedzieć o każdej zmianie stanu — synchronizacja. */
+const changeListeners = new Set<() => void>();
+
+/** Powiadamia o każdym zapisie stanu, także tym z innej karty. Zwraca wyrejestrowanie. */
+export function onStateChange(fn: () => void): () => void {
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
+}
+
+const changed = () => changeListeners.forEach((fn) => fn());
+
+export const save = () => {
+  const ok = writeJSON(localStorage, KEY, $state.snapshot(app.S));
+  changed();
+  return ok;
+};
 export const savePrefs = () => writeJSON(localStorage, PREF, $state.snapshot(app.prefs));
 
 // Widoczne okno doby, wyliczane ze stanu.
@@ -270,6 +285,7 @@ export function startCrossTabSync(): () => void {
   const onStorage = (e: StorageEvent) => {
     if (e.key !== KEY || e.newValue === null) return;
     app.S = normalize(JSON.parse(e.newValue) as unknown);
+    changed();
   };
   addEventListener('storage', onStorage);
   return () => removeEventListener('storage', onStorage);
