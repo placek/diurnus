@@ -170,6 +170,11 @@ export async function push(
       delete st.docs[name];
       return;
     }
+    // Ktoś (druga karta, drugie urządzenie) zapisał już dokładnie to samo.
+    if (mine !== null && r.conflict?.body === mine) {
+      st.docs[name] = { version: r.conflict.version, hash: contentHash(mine) };
+      return;
+    }
     remote[name] = r.conflict;
     conflicts.push({ name, remote: r.conflict, mine });
   };
