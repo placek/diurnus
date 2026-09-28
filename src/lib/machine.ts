@@ -58,6 +58,8 @@ export interface Item {
   readonly from?: string;
   /** Dane, nie stan: maszyna ich nie czyta, tylko przenosi — także na kopie. */
   readonly cat?: string;
+  /** Opis pod tytułem, wiele linii (`\n`); jak kategoria — dana przenoszona na kopie. */
+  readonly desc?: string;
   readonly created?: number;
 }
 
@@ -153,8 +155,11 @@ const slotOf = (i: Item): Slot | null => (i.state.tag === 'today-task' ? i.state
 
 /* ───────────── Przejścia ───────────── */
 
-/** Kopia wzorca dziedziczy jego kategorię. */
-const catOf = (i: Item): { cat?: string } => (i.cat !== undefined ? { cat: i.cat } : {});
+/** Kopia wzorca dziedziczy jego kategorię i opis. */
+const catOf = (i: Item): { cat?: string; desc?: string } => ({
+  ...(i.cat !== undefined ? { cat: i.cat } : {}),
+  ...(i.desc !== undefined ? { desc: i.desc } : {}),
+});
 
 const put = (m: Machine, id: string, state: ItemState): Machine => ({
   ...m,

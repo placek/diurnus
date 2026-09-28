@@ -9,6 +9,11 @@ import { TAG } from './slug';
  *
  *   * [znacznik] [data] [{wzorzec}] [GG:MM] [#tag] tekst [^id]
  *
+ * Pod nią może stać opis: linie wcięte tak, żeby zaczynały się pod tekstem za
+ * znacznikiem — 6 spacji pod `* [ ] `, 2 pod `* ` notatki. To zwykła
+ * kontynuacja elementu listy w Markdownie. Pusta linia w środku opisu zostaje
+ * pusta (bez spacji); opis nie kończy się pustą linią.
+ *
  * Linia nie wie, w którym pliku stoi — co wolno gdzie, sprawdza plik.
  */
 
@@ -21,6 +26,19 @@ export interface Line {
   tag?: string;
   text: string;
   id?: string;
+  /** linie opisu pod pozycją, już bez wcięcia */
+  desc?: string[];
+}
+
+/** Wcięcie opisu: pod tekstem za znacznikiem. */
+export const descIndent = (marker: Line['marker']) => (marker === 'note' ? 2 : 6);
+
+/** Opis jako linie: bez końcowych pustych, linie z samych spacji — puste. */
+export function descLines(desc: string | undefined): string[] {
+  if (desc === undefined) return [];
+  const lines = desc.split('\n').map((l) => (l.trim() === '' ? '' : l.replace(/\s+$/, '')));
+  while (lines.length && lines.at(-1) === '') lines.pop();
+  return lines;
 }
 
 const MARKER = { open: '[ ]', done: '[x]' } as const;
@@ -55,7 +73,12 @@ export function renderLine(l: Line): string {
   if (l.tag !== undefined) parts.push(`#${l.tag}`);
   if (l.text) parts.push(escapeText(l.text));
   if (l.id !== undefined) parts.push(`^${l.id}`);
-  return parts.join(' ');
+  const pad = ' '.repeat(descIndent(l.marker));
+  const desc = (l.desc ?? []).map((d) => {
+    if (/\r/.test(d)) throw new Error('Linia opisu nie może mieć znaku powrotu karetki');
+    return d === '' ? '' : pad + d;
+  });
+  return [parts.join(' '), ...desc].join('\n');
 }
 
 export function isRealDate(s: string): boolean {

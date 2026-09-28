@@ -30,6 +30,10 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
 
 - **Bullet journal:** zadanie `·`, wykonane `×`, notatka `–`. Pisze się od razu w pustym
   wierszu; `Enter` dodaje kolejny, `Tab` zmienia znacznik, `⌫` na pustym usuwa.
+- **Opis** pod dowolną pozycją, na liście dnia i w backlogu: `Shift`+`Enter` schodzi linię
+  niżej, do opisu, a w opisie dodaje kolejną linię. Opis nie ma limitu; poza edycją widać jego
+  dwie pierwsze linie. Blok na siatce pokazuje go w podpowiedzi, a arkusz edycji pozwala go
+  zmienić.
 - **Jeden rekord.** Zadanie z godziną na liście to ten sam blok, co na siatce — ten sam tekst,
   kategoria i znacznik.
 - **Kolejność:** na górze wykonane, w kolejności odhaczania; pod nimi zadania z godziną
@@ -106,11 +110,12 @@ edytorze:
 
 * [x] 10:30 #praca Raport
 * [ ] 09:00 #nauka Czytanie
+      rozdział 3, notatki na marginesie
 * [ ] Kupić chleb
 * Notatka z rozmowy
 ```
 
-`RRRR-MM-DD.md` na dziś i każdy miniony dzień, `BACKLOG.md` (z regułami w klamrach, np.
+Opis pozycji to linie wcięte pod jej tekstem. `RRRR-MM-DD.md` na dziś i każdy miniony dzień, `BACKLOG.md` (z regułami w klamrach, np.
 `{FREQ=WEEKLY;BYDAY=MO}`) oraz ustawienia `.diurnus.toml`. Format opisuje
 [specyfikacja](docs/superpowers/specs/2026-09-25-diurnus-markdown-files-design.md). Wczytać
 można to archiwum, te pliki zaznaczone razem albo starszą kopię JSON; plik, którego nie da

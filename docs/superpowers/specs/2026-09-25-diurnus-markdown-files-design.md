@@ -97,6 +97,31 @@ Przykłady: `{FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE}`, `{FREQ=MONTHLY;BYDAY=-1FR}`,
 
 Reguła jest szersza, niż ściśle trzeba — `\3 rzeczy` — ale jest prosta i nie ma wyjątków.
 
+### Opis
+
+Pod linią pozycji może stać opis — dowolnie wiele linii, wciętych tak, żeby zaczynały się pod
+tekstem za znacznikiem: 6 spacji pod `* [ ] ` i `* [x] `, 2 pod `* ` notatki. W Markdownie to
+zwykła kontynuacja elementu listy, więc GitHub pokazuje opis jako część pozycji.
+
+```markdown
+* [ ] 09:00 #nauka Czytanie
+      rozdział 3, notatki na marginesie
+
+      potem streszczenie
+* Notatka z rozmowy
+  szczegóły rozmowy
+```
+
+- Każda wcięta linia należy do opisu pozycji nad nią. Odczyt zdejmuje wcięcie do normy (6 albo
+  2 znaki); co wcięte głębiej, zostaje w tekście opisu. Mniejsze wcięcie też jest opisem.
+- Pusta linia między liniami opisu należy do opisu i jest zapisywana bez spacji. Pusta linia
+  przed kolejną pozycją albo na końcu pliku do opisu nie należy — opis nie kończy się pustą
+  linią.
+- Wcięta linia bez pozycji nad nią to błąd. Opis pozycji, której linia jest błędna, nie daje
+  dodatkowych błędów.
+- Tekst opisu nie ma ucieczek ani członów: `* `, `#` czy `09:00` na początku linii opisu to
+  zwykły tekst. Kopia wzorca dziedziczy opis tak jak kategorię.
+
 ### Czas i data
 
 Czas to `GG:MM` z minutą 00, 15, 30 albo 45. Coś, co wygląda na czas albo datę, ale nim nie

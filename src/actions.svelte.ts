@@ -1,4 +1,4 @@
-import { app, commit, currentDay, dispatch, ui, uid, win } from './state.svelte';
+import { app, commit, currentDay, dispatch, save, ui, uid, win } from './state.svelte';
 import { kids, topCats } from './lib/categories';
 import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
 import type { Event, Item, Refusal, WhenInput } from './lib/machine';
@@ -17,7 +17,7 @@ const find = (id: string): Item | undefined => app.S.items.find((i) => i.id === 
 
 /** Pola danych, które aplikacja zmienia wprost. Maszyna trzyma je jako
  *  tylko do odczytu, bo sama ich nie zmienia; stan nadal idzie przez zdarzenia. */
-type ItemData = { text: string; cat?: string };
+type ItemData = { text: string; cat?: string; desc?: string };
 const data = (i: Item) => i as unknown as ItemData;
 
 /** Komunikat odmowy przy zajmowaniu slotu, z godziną i zakresem dnia. */
@@ -214,6 +214,61 @@ export function setItemCategory(id: string, catId: string | null): void {
 export function setItemText(id: string, text: string): void {
   const item = find(id);
   if (item) data(item).text = text;
+}
+
+/* ───────────── Opis pozycji ───────────── */
+
+/** Opis zmienia się jak tekst: bez migawki (robi ją `pushHistory()` przy pierwszym znaku). */
+export function setItemDesc(id: string, desc: string): void {
+  const item = find(id);
+  if (item) data(item).desc = desc;
+}
+
+/**
+ * Shift+Enter w tytule: jak nowa linia w edytorze — tekst za karetką schodzi
+ * do nowej, pierwszej linii opisu, a karetka idzie na jej początek.
+ */
+export function splitToDesc(id: string, at: number): void {
+  const item = find(id);
+  if (!item) return;
+  const head = item.text.slice(0, at);
+  const tail = item.text.slice(at);
+  commit(() => {
+    data(item).text = head;
+    data(item).desc = item.desc !== undefined ? `${tail}\n${item.desc}` : tail;
+  });
+  ui.focusDesc = { id, at: 0 };
+}
+
+/**
+ * Backspace na początku opisu: jego pierwsza linia dołącza do tytułu, jak
+ * złączenie linii w edytorze. Opis bez linii znika.
+ */
+export function mergeDescUp(id: string): void {
+  const item = find(id);
+  if (!item || item.desc === undefined) return;
+  const [first = '', ...rest] = item.desc.split('\n');
+  const at = item.text.length;
+  commit(() => {
+    data(item).text = item.text + first;
+    if (rest.length) data(item).desc = rest.join('\n');
+    else delete data(item).desc;
+  });
+  ui.focusItem = id;
+  ui.focusCaret = at;
+}
+
+/** Wyjście z opisu: bez końcowych pustych linii; pusty opis znika. */
+export function tidyDesc(id: string): void {
+  const item = find(id);
+  if (!item || item.desc === undefined) return;
+  const lines = item.desc.split('\n');
+  while (lines.length && lines.at(-1)!.trim() === '') lines.pop();
+  const next = lines.join('\n');
+  if (next !== '' && next === item.desc) return;
+  if (next === '') delete data(item).desc;
+  else data(item).desc = next;
+  save();
 }
 
 /** Przestawienie pozycji swobodnej dziś; `toIndex` to miejsce w liście BEZ niej. */

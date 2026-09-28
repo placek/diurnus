@@ -98,6 +98,16 @@
     <dd class="kb">
       w pustej pozycji usuwa ją; na brzegu tekstu przechodzą do sąsiedniej; wyjście z pola
     </dd>
+    <dt class="kb"><kbd>Shift</kbd> <kbd>Enter</kbd></dt>
+    <dd class="kb">
+      linia niżej — do opisu pozycji; w opisie kolejna linia. <kbd>Enter</kbd> w opisie dodaje
+      nową pozycję, <kbd>⌫</kbd> na jego początku łączy pierwszą linię z tytułem
+    </dd>
+    <dt>Opis</dt>
+    <dd>
+      poza edycją widać dwie pierwsze linie; klik rozwija całość. Na siatce opis jest
+      w podpowiedzi bloku i w arkuszu edycji
+    </dd>
     <dt>Klik w znacznik</dt>
     <dd>zadanie ↔ wykonane</dd>
     <dt>Prawy przycisk na znaczniku</dt>
@@ -128,7 +138,7 @@
     <dt>Pisanie w pustym wierszu</dt>
     <dd>nowa pozycja bez terminu</dd>
     <dt class="kb"><kbd>Enter</kbd> <kbd>⌫</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Esc</kbd></dt>
-    <dd class="kb">jak w notatkach; znacznik zmienia się tylko z menu</dd>
+    <dd class="kb">jak w notatkach, także opis pod <kbd>Shift</kbd> <kbd>Enter</kbd>; znacznik zmienia się tylko z menu</dd>
     <dt>Klik w znacznik</dt>
     <dd>
       zrobione — trafia do dziś jako wykonane, z godziną, jeśli ją miało. Wzorzec zostaje
