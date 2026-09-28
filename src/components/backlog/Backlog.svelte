@@ -28,6 +28,7 @@
     <span class="bullet t-task" aria-hidden="true">·</span>
     <input
       class="item-text"
+      enterkeyhint="enter"
       value={draft}
       maxlength="200"
       autocomplete="off"

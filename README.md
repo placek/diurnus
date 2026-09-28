@@ -31,8 +31,9 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
 - **Bullet journal:** zadanie `·`, wykonane `×`, notatka `–`. Pisze się od razu w pustym
   wierszu; `Enter` dodaje kolejny, `Tab` zmienia znacznik, `⌫` na pustym usuwa.
 - **Opis** pod dowolną pozycją, na liście dnia i w backlogu: `Shift`+`Enter` schodzi linię
-  niżej, do opisu, a w opisie dodaje kolejną linię. Opis nie ma limitu; poza edycją widać jego
-  dwie pierwsze linie. Blok na siatce pokazuje go w podpowiedzi, a arkusz edycji pozwala go
+  niżej, do opisu, a w opisie dodaje kolejną linię. Na telefonie, bez `Shift`+`Enter`, opis
+  otwiera „Opis" w menu znacznika (przytrzymanie), a ↵ w opisie dodaje linię. Opis nie ma limitu;
+  poza edycją widać jego dwie pierwsze linie. Blok na siatce pokazuje go w podpowiedzi, a arkusz edycji pozwala go
   zmienić.
 - **Jeden rekord.** Zadanie z godziną na liście to ten sam blok, co na siatce — ten sam tekst,
   kategoria i znacznik.

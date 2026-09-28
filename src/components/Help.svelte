@@ -105,13 +105,14 @@
     </dd>
     <dt>Opis</dt>
     <dd>
-      poza edycją widać dwie pierwsze linie; klik rozwija całość. Na siatce opis jest
+      poza edycją widać dwie pierwsze linie; klik rozwija całość. Na telefonie opis otwiera
+      „Opis" w menu znacznika (przytrzymanie), a ↵ w opisie dodaje linię. Na siatce opis jest
       w podpowiedzi bloku i w arkuszu edycji
     </dd>
     <dt>Klik w znacznik</dt>
     <dd>zadanie ↔ wykonane</dd>
-    <dt>Prawy przycisk na znaczniku</dt>
-    <dd>typ pozycji i kategoria</dd>
+    <dt>Prawy przycisk albo przytrzymanie znacznika</dt>
+    <dd>typ pozycji, opis i kategoria</dd>
     <dt>Kolejność</dt>
     <dd>
       na górze wykonane, w kolejności odhaczania — odhaczone dołącza na koniec wykonanych. Pod
@@ -144,9 +145,9 @@
       zrobione — trafia do dziś jako wykonane, z godziną, jeśli ją miało. Wzorzec zostaje
       w backlogu i przeskakuje na następne wystąpienie
     </dd>
-    <dt>Prawy przycisk na znaczniku</dt>
+    <dt>Prawy przycisk albo przytrzymanie znacznika</dt>
     <dd>
-      typ, „Bez daty", „Wybierz datę…" i kategoria. Notatka nie ma terminu
+      typ, „Bez daty", „Wybierz datę…", „Opis" i kategoria. Notatka nie ma terminu
     </dd>
     <dt>Wybierz datę…</dt>
     <dd>

@@ -31,6 +31,9 @@
   const text = $derived(item.desc ?? '');
   const editing = $derived(open || want !== null);
 
+  /** Ekran dotykowy bez precyzyjnego wskaźnika — klawiatura ekranowa. */
+  const touch = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
   function grow() {
     if (!el) return;
     el.style.height = 'auto';
@@ -64,8 +67,10 @@
     const at = t.selectionStart ?? 0;
     const collapsed = t.selectionStart === t.selectionEnd;
 
-    // Shift+Enter zostaje polu: nowa linia opisu.
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Shift+Enter zostaje polu: nowa linia opisu. Na ekranie dotykowym
+    // klawiatura nie ma Shift+Enter, więc tam ↵ w opisie też dodaje linię —
+    // następna pozycja zaczyna się w pustym wierszu pod listą.
+    if (e.key === 'Enter' && !e.shiftKey && !touch()) {
       e.preventDefault();
       onEnter();
       return;
@@ -98,6 +103,7 @@
     class="item-desc"
     value={text}
     rows="1"
+    enterkeyhint="enter"
     aria-label="Opis"
     spellcheck="false"
     oninput={(e) => {
