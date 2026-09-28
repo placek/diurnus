@@ -1,9 +1,8 @@
 <script lang="ts">
   import { app, currentDay, ui } from '../state.svelte';
-  import { colorOf, iconOf, pathOf } from '../lib/categories';
+  import { NO_CAT_COLOR, colorOf, iconOf, pathOf } from '../lib/categories';
   import { SLOT_LEN } from '../lib/machine';
   import type { Item } from '../lib/machine';
-  import { NO_CAT_COLOR } from '../lib/stats';
   import { fmtQ, pad, qTime } from '../lib/time';
   import type { Segment } from '../lib/segments';
   import { categoryOf, isDone, itemTone, slotOf } from '../lib/view';

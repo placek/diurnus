@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { mountApp, resetDom, seed, task } from './helpers';
 
 // Szeroki ekran: sekcja dziś zachodzi na pasek u góry i niesie nagłówek dnia
-// (data, zegar, pasek postępu). Wąski: jeden panel naraz, więc nagłówek dnia
+// (data i zegar). Wąski: jeden panel naraz, więc nagłówek dnia
 // zostaje w pasku, widoczny przy każdym panelu.
 
 // W jsdom import.meta.url nie jest adresem pliku, więc ścieżka idzie od katalogu projektu.
@@ -20,7 +20,8 @@ test('szeroki ekran: nagłówek dnia stoi na górze sekcji dziś, nie w pasku', 
   expect(head).not.toBeNull();
   expect(head.querySelector('#date')).not.toBeNull();
   expect(head.querySelector('#clock')).not.toBeNull();
-  expect(head.querySelector('#pips')).not.toBeNull();
+  // Paska postępu nie ma — tylko data i zegar.
+  expect(document.querySelector('#pips, .pip')).toBeNull();
   expect(document.querySelector('#top #date')).toBeNull();
   expect(document.querySelectorAll('#date')).toHaveLength(1);
   // Nagłówek nie przewija się z listą: pozycje są w osobnym, przewijalnym ciele.

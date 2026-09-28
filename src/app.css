@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
   padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));
   border-bottom:1px solid var(--line-2);
 }
-/* Data i zegar na górze, pasek postępu pod nimi — oba wyśrodkowane. */
+/* Data i zegar, wyśrodkowane. */
 .hdr-center{
   flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:5px;
@@ -96,11 +96,6 @@ a.ib{text-decoration:none}
 }
 
 .tokens{width:100%;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px;cursor:default}
-.pips{flex:1;min-width:0;max-width:440px;height:10px;display:flex;gap:3px}
-.pip{flex:1;min-width:2px;display:flex;gap:1px}
-.pip b{flex:1;border-radius:2px;background:var(--line-2)}
-.pip b.d{background:var(--c)}
-.pip b.p{background:color-mix(in srgb,var(--c) 32%,transparent)}
 
 /* ───────────── Grid: 16 rows × (label + 4 quanta) ───────────── */
 #grid{
@@ -522,9 +517,6 @@ kbd{
   .hour .h{font-size:13px}
   .hour .bn{display:none}
   .blk{margin:3px 2px;padding:0 6px;gap:5px;font-size:12px}
-  #top{position:relative}
-  .pips{position:absolute;left:0;right:0;bottom:-1px;height:3px;max-width:none;gap:1px}
-  .pip b{border-radius:0}
   .count .pl{display:none}
   .legend{grid-template-columns:repeat(2,1fr)}
 }

@@ -63,15 +63,17 @@ beforeAll(async () => {
   htmlWide = render(Header).body;
 });
 
-test('na szerokim ekranie pasek nie niesie daty, zegara ani paska postępu — tylko narzędzia', () => {
+test('na szerokim ekranie pasek nie niesie daty ani zegara — tylko narzędzia', () => {
   expect(htmlWide).not.toContain('id="date"');
   expect(htmlWide).not.toContain('id="clock"');
-  expect(htmlWide).not.toContain('id="pips"');
   expect(htmlWide).toContain('aria-label="Ustawienia"');
 });
 
-test('pasek ma jeden pip na każde pół godziny widocznego okna', () => {
-  expect(htmlToday.match(/class="pip"/g)).toHaveLength(32); // 16 h × 2
+test('paska postępu nie ma — ani na wąskim, ani na szerokim ekranie', () => {
+  for (const html of [htmlToday, htmlWide]) {
+    expect(html).not.toContain('id="pips"');
+    expect(html).not.toContain('class="pip"');
+  }
 });
 
 test('nagłówek nie pokazuje już licznika w postaci n/32', () => {
@@ -115,13 +117,12 @@ test('nie ma już przycisku sugestii z zeszłego tygodnia', () => {
   expect(htmlToday).not.toContain('Sugestie');
 });
 
-test('data i zegar stoją w środkowej kolumnie, nad paskiem postępu', () => {
+test('data i zegar stoją w środkowej kolumnie', () => {
   const center = /<div class="hdr-center">([\s\S]*?)<div class="tools/.exec(htmlToday)?.[1] ?? '';
   expect(center).toContain('id="date"');
   expect(center).toContain('id="clock"');
-  expect(center).toContain('id="pips"');
-  // Kolejność w źródle jest kolejnością na ekranie: data, potem pasek.
-  expect(center.indexOf('id="date"')).toBeLessThan(center.indexOf('id="pips"'));
+  // Kolejność w źródle jest kolejnością na ekranie: data, potem zegar.
+  expect(center.indexOf('id="date"')).toBeLessThan(center.indexOf('id="clock"'));
 });
 
 test('data nie jest przyciskiem ani niczym klikalnym', () => {

@@ -1,10 +1,9 @@
 <script lang="ts">
   import { app, closeAll, commit, currentDay, dispatch, ui, uid } from '../state.svelte';
   import { removeItem } from '../actions.svelte';
-  import { catOf, colorOf, iconOf, kids, rootOf, topCats } from '../lib/categories';
+  import { NO_CAT_COLOR, catOf, colorOf, iconOf, kids, rootOf, topCats } from '../lib/categories';
   import { SLOT_LEN } from '../lib/machine';
   import type { Event, Item } from '../lib/machine';
-  import { NO_CAT_COLOR } from '../lib/stats';
   import { fmtQ } from '../lib/time';
   import { isDone, itemTone, slotOf } from '../lib/view';
   import Icon from './Icon.svelte';

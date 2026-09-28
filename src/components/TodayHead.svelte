@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { app, win, currentDay } from '../state.svelte';
-  import { tokenStats } from '../lib/stats';
+  import { app, currentDay } from '../state.svelte';
   import { pad, splitDay } from '../lib/time';
-  import TokenPips from './TokenPips.svelte';
 
-  // Nagłówek dnia: data, zegar i pasek postępu. Na szerokim ekranie stoi na
+  // Nagłówek dnia: data i zegar. Na szerokim ekranie stoi na
   // górze sekcji dziś, na wąskim — w pasku u góry, żeby był widoczny przy
   // każdym panelu.
 
@@ -37,12 +35,9 @@
     const d = new Date(app.now);
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
-
-  const stats = $derived(tokenStats(app.S.items, app.S.cats, win.q0, win.q1));
 </script>
 
 <div class="hdr-when">
   <span id="date"><span class="d-long">{label}</span><span class="d-short">{short}</span></span>
   <span id="clock" aria-label="Godzina">{clock}</span>
 </div>
-<TokenPips {stats} />
