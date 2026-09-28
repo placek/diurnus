@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, currentDay, pushHistory, save, ui } from '../../state.svelte';
-  import { addItemAfter, deleteItem, setItemText } from '../../actions.svelte';
+  import { addItemAfter, deleteItem, setItemText, splitToDesc } from '../../actions.svelte';
   import { describeRule } from '../../lib/rrule';
   import { colorOf, iconOf } from '../../lib/categories';
   import Icon from '../Icon.svelte';
@@ -8,6 +8,7 @@
   import type { Item } from '../../lib/types';
   import { backlogList, categoryOf, itemTone, kindOf, soonOf, whenOf } from '../../lib/view';
   import Bullet from '../list/Bullet.svelte';
+  import ItemDesc from '../list/ItemDesc.svelte';
 
   interface Props {
     item: Item;
@@ -17,12 +18,16 @@
 
   let el = $state<HTMLInputElement | null>(null);
   let dirty = false;
+  /** fokus jest w tym wierszu (w tytule albo w opisie) — opis w całości */
+  let rowFocus = $state(false);
 
   $effect(() => {
     if (ui.focusItem === item.id && el) {
+      const at = Math.min(ui.focusCaret ?? el.value.length, el.value.length);
       el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
+      el.setSelectionRange(at, at);
       ui.focusItem = null;
+      ui.focusCaret = null;
     }
   });
 
@@ -65,11 +70,25 @@
   // Termin w najbliższych dniach: słowo „jutro", „za 3 dni"… w barwie od czerwieni do żółci.
   const soon = $derived(soonOf(item, currentDay.value));
 
+  /** Sąsiad w górę trafia w koniec swojego opisu, jeśli go ma — jak w edytorze. */
+  function focusSibling(offset: -1 | 1) {
+    const target = siblings[index + offset];
+    if (!target) return;
+    if (offset === -1 && target.desc !== undefined) ui.focusDesc = { id: target.id, at: -1 };
+    else ui.focusItem = target.id;
+  }
+
   function onKeydown(e: KeyboardEvent) {
     const input = e.currentTarget as HTMLInputElement;
     const at = input.selectionStart ?? 0;
     const collapsed = input.selectionStart === input.selectionEnd;
 
+    // Shift+Enter: nowa linia pod tytułem — w opisie.
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      splitToDesc(item.id, at);
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       addItemAfter(item.id);
@@ -82,12 +101,17 @@
     }
     if (e.key === 'ArrowUp' && at === 0 && collapsed && index > 0) {
       e.preventDefault();
-      ui.focusItem = siblings[index - 1]!.id;
+      focusSibling(-1);
+      return;
+    }
+    if (e.key === 'ArrowDown' && at === input.value.length && collapsed && item.desc !== undefined) {
+      e.preventDefault();
+      ui.focusDesc = { id: item.id, at: 0 };
       return;
     }
     if (e.key === 'ArrowDown' && at === input.value.length && collapsed && index < siblings.length - 1) {
       e.preventDefault();
-      ui.focusItem = siblings[index + 1]!.id;
+      focusSibling(1);
       return;
     }
     if (e.key === 'Escape') {
@@ -102,8 +126,15 @@
   class:is-linked={timed}
   class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}
+  class:has-desc={item.desc !== undefined}
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}
+  onfocusin={() => (rowFocus = true)}
+  onfocusout={(e) => {
+    // Przejście między tytułem a opisem tej samej pozycji nie zwija opisu.
+    const to = e.relatedTarget as Node | null;
+    if (!to || !(e.currentTarget as HTMLElement).contains(to)) rowFocus = false;
+  }}
 >
   <Bullet {item} />
   <input
@@ -130,4 +161,10 @@
   {#if cat}<span class="item-cat" title={cat.name}
       ><Icon name={iconOf(app.S.cats, cat)} fallback={cat.name[0] ?? '?'} /></span
     >{/if}
+  <ItemDesc
+    {item}
+    open={rowFocus}
+    onEnter={() => addItemAfter(item.id)}
+    onDown={() => focusSibling(1)}
+  />
 </div>

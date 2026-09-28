@@ -685,6 +685,22 @@ test('kategoria jest daną pozycji: utworzenie ją nadaje, kopie wzorca ją dzie
   expect(m.items.find((i) => i.id === 'a@2026-09-27')!.cat).toBe('learn');
 });
 
+test('opis też jest daną: przejścia go nie ruszają, kopie wzorca go dziedziczą', () => {
+  let m = run(machine(), { type: 'create', id: 'a', text: 'A', place: 'backlog' });
+  m = { ...m, items: m.items.map((i) => ({ ...i, desc: 'krok 1\nkrok 2' })) };
+  m = run(
+    m,
+    { type: 'setWhen', id: 'a', when: recIn() },
+    { type: 'markDone', id: 'a', copyId: 'done' },
+    { type: 'advance', to: '2026-09-27' },
+  );
+  expect(m.items.find((i) => i.id === 'a')!.desc).toBe('krok 1\nkrok 2');
+  expect(m.items.find((i) => i.id === 'done')!.desc).toBe('krok 1\nkrok 2');
+  expect(m.items.find((i) => i.id === 'a@2026-09-27')!.desc).toBe('krok 1\nkrok 2');
+  m = run(m, { type: 'toNote', id: 'a@2026-09-27' }, { type: 'move', id: 'a@2026-09-27', to: 'backlog' });
+  expect(m.items.find((i) => i.id === 'a@2026-09-27')!.desc).toBe('krok 1\nkrok 2');
+});
+
 describe('reguły iCal we wzorcach', () => {
   const R = (s: Partial<RRule> & Pick<RRule, 'freq'>): RRule => ({ interval: 1, ...s });
   const pattern = (m: Machine) => m.items.find((i) => i.id === 'a');

@@ -23,9 +23,14 @@
   const slot = $derived(item ? slotOf(item) : null);
 
   let title = $state('');
+  let desc = $state('');
   $effect(() => {
     title = item?.text ?? '';
+    desc = item?.desc ?? '';
   });
+
+  /** Opis bez końcowych pustych linii; pusty — brak opisu. */
+  const tidy = (d: string) => d.replace(/\s+$/, '');
 
   const CHIP = { done: 'wykonane', active: 'teraz', missed: 'minęło', incoming: 'plan', note: 'notatka' };
   const chip = $derived(item ? CHIP[itemTone(item, currentDay.value, app.now)] : '');
@@ -42,16 +47,26 @@
     const i = item;
     if (!i) return;
     const nextTitle = title.trim();
+    const nextDesc = tidy(desc);
     const catChanged = (i.cat ?? '') !== edit.cat;
+    const descChanged = nextDesc !== (i.desc ?? '');
     const events: Event[] = [];
     if (patch.done === true) events.push({ type: 'markDone', id: i.id, copyId: uid() });
     if (patch.done === false) events.push({ type: 'markOpen', id: i.id });
     const withData = (items: Item[]) =>
-      items.map((x) =>
-        x.id === i.id ? { ...x, text: nextTitle, ...(edit.cat ? { cat: edit.cat } : {}) } : x,
-      );
+      items.map((x) => {
+        if (x.id !== i.id) return x;
+        const { desc: _old, ...rest } = x;
+        return {
+          ...rest,
+          text: nextTitle,
+          ...(edit.cat ? { cat: edit.cat } : {}),
+          ...(nextDesc ? { desc: nextDesc } : {}),
+        };
+      });
     if (events.length) dispatch(events, { after: withData });
-    else if (catChanged || nextTitle !== i.text) commit(() => (app.S.items = withData(app.S.items)));
+    else if (catChanged || descChanged || nextTitle !== i.text)
+      commit(() => (app.S.items = withData(app.S.items)));
     closeAll();
   }
 </script>
@@ -69,6 +84,7 @@
     </div>
 
     <input id="ttl" maxlength="60" autocomplete="off" placeholder={cur?.name ?? 'Bez kategorii'} bind:value={title} />
+    <textarea id="sheet-desc" rows="3" placeholder="Opis" aria-label="Opis" bind:value={desc}></textarea>
 
     <div id="sheetcats">
       <div class="cats">

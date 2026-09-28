@@ -72,7 +72,8 @@
   const label = $derived(item.text || cat?.name || 'Bez kategorii');
   const tip = $derived(
     `${fmtQ(day, slot)}–${fmtQ(day, endQ)}  ${cat ? pathOf(app.S.cats, cat) : 'Bez kategorii'}` +
-      `${item.text ? ': ' + item.text : ''} (${TONE_LABEL[tone]})`,
+      `${item.text ? ': ' + item.text : ''} (${TONE_LABEL[tone]})` +
+      (item.desc?.trim() ? `\n\n${item.desc.trim()}` : ''),
   );
 
   const iconName = $derived(cat ? iconOf(app.S.cats, cat) : '');

@@ -101,7 +101,7 @@
     const target = e.target as HTMLElement | null;
     const action = keyAction(e.key, {
       layer: activeLayer(),
-      inInput: !!target?.matches?.('input'),
+      inInput: !!target?.matches?.('input, textarea'),
       menuHasLevel: !!ui.menu?.level,
       cursorVisible: ui.cursor.visible,
       shift: e.shiftKey,

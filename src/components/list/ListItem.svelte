@@ -1,12 +1,13 @@
 <script lang="ts">
   import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
-  import { addItemAfter, cycleItemType, deleteItem, setItemText } from '../../actions.svelte';
+  import { addItemAfter, cycleItemType, deleteItem, setItemText, splitToDesc } from '../../actions.svelte';
   import { colorOf, iconOf } from '../../lib/categories';
   import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
   import { categoryOf, itemTone, kindOf, slotOf, todayList } from '../../lib/view';
   import Bullet from './Bullet.svelte';
+  import ItemDesc from './ItemDesc.svelte';
 
   interface Props {
     item: Item;
@@ -17,14 +18,18 @@
   let el = $state<HTMLInputElement | null>(null);
   /** czy w tej pozycji padł już znak od ostatniego wejścia w nią */
   let dirty = false;
+  /** fokus jest w tym wierszu (w tytule albo w opisie) — opis w całości */
+  let rowFocus = $state(false);
 
   // Fokus jest stanem widokowym: mutator mówi, KTÓRA pozycja ma go dostać,
   // a przeniesienie go jest deklaracją tutaj — nie grzebaniem w DOM z mutatora.
   $effect(() => {
     if (ui.focusItem === item.id && el) {
+      const at = Math.min(ui.focusCaret ?? el.value.length, el.value.length);
       el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
+      el.setSelectionRange(at, at);
       ui.focusItem = null;
+      ui.focusCaret = null;
     }
   });
 
@@ -40,9 +45,12 @@
   const siblings = $derived(todayList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
+  /** Sąsiad w górę trafia w koniec swojego opisu, jeśli go ma — jak w edytorze. */
   function focusSibling(offset: -1 | 1) {
     const target = siblings[index + offset];
-    if (target) ui.focusItem = target.id;
+    if (!target) return;
+    if (offset === -1 && target.desc !== undefined) ui.focusDesc = { id: target.id, at: -1 };
+    else ui.focusItem = target.id;
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -50,6 +58,12 @@
     const at = input.selectionStart ?? 0;
     const collapsed = input.selectionStart === input.selectionEnd;
 
+    // Shift+Enter: nowa linia pod tytułem — w opisie.
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      splitToDesc(item.id, at);
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       addItemAfter(item.id);
@@ -77,6 +91,12 @@
       focusSibling(-1);
       return;
     }
+    // Z końca tytułu w dół: najpierw opis, jeśli jest.
+    if (e.key === 'ArrowDown' && at === input.value.length && collapsed && item.desc !== undefined) {
+      e.preventDefault();
+      ui.focusDesc = { id: item.id, at: 0 };
+      return;
+    }
     if (
       e.key === 'ArrowDown' &&
       at === input.value.length &&
@@ -99,8 +119,15 @@
   class:is-linked={slot !== null}
   class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}
+  class:has-desc={item.desc !== undefined}
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}
+  onfocusin={() => (rowFocus = true)}
+  onfocusout={(e) => {
+    // Przejście między tytułem a opisem tej samej pozycji nie zwija opisu.
+    const to = e.relatedTarget as Node | null;
+    if (!to || !(e.currentTarget as HTMLElement).contains(to)) rowFocus = false;
+  }}
 >
   <Bullet {item} />
   <input
@@ -130,4 +157,10 @@
   {#if cat}<span class="item-cat" title={cat.name}
       ><Icon name={iconOf(app.S.cats, cat)} fallback={cat.name[0] ?? '?'} /></span
     >{/if}
+  <ItemDesc
+    {item}
+    open={rowFocus}
+    onEnter={() => addItemAfter(item.id)}
+    onDown={() => focusSibling(1)}
+  />
 </div>

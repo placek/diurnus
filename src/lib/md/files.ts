@@ -6,7 +6,7 @@ import type { DayHours, Item, ItemState } from '../machine';
 import type { State } from '../types';
 import { backlogList, todayList } from '../view';
 import { parseConfig, renderConfig } from './config';
-import { parseLine, renderLine } from './line';
+import { descIndent, descLines, parseLine, renderLine } from './line';
 import type { Line } from './line';
 import { tagsFor } from './slug';
 
@@ -37,7 +37,12 @@ export type ParseResult = { ok: true; state: State } | { ok: false; errors: File
 function lineOf(i: Item, tags: Map<string, string>): Line {
   const s = i.state;
   const tag = i.cat !== undefined ? tags.get(i.cat) : undefined;
-  const base = { text: i.text, ...(tag !== undefined ? { tag } : {}) };
+  const desc = descLines(i.desc);
+  const base = {
+    text: i.text,
+    ...(tag !== undefined ? { tag } : {}),
+    ...(desc.length ? { desc } : {}),
+  };
   // Kopia wzorca niesie identyfikator wzorca; sam wzorzec — własny.
   const from = i.from !== undefined ? { id: i.from } : {};
   switch (s.tag) {
@@ -175,9 +180,34 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
     return [];
   }
   const items: Item[] = [];
+  /** Pozycja, pod którą mogą stać linie opisu, i jej wcięcie; `null` — przerwa po błędzie. */
+  let last: { item: Item; indent: number; desc: string[]; blanks: number } | null = null;
+  let broken = false;
+  const close = () => {
+    if (last?.desc.length) {
+      const i = items.indexOf(last.item);
+      items[i] = { ...last.item, desc: last.desc.join('\n') };
+    }
+    last = null;
+  };
   lines.slice(1).forEach((src, n) => {
     const no = n + 2;
-    if (src.trim() === '') return;
+    if (src.trim() === '') {
+      if (last) last.blanks++;
+      return;
+    }
+    // Wcięta linia to opis pozycji nad nią.
+    if (/^[ \t]/.test(src)) {
+      if (broken) return; // opis pozycji, której nie przyjęto — błąd już zgłoszony
+      if (!last) return err(no, 'wcięta linia opisu bez pozycji nad nią');
+      const cut = /^[ \t]*/.exec(src)![0].length;
+      const body = src.slice(Math.min(cut, last.indent)).replace(/\s+$/, '');
+      for (; last.blanks > 0; last.blanks--) last.desc.push('');
+      last.desc.push(body);
+      return;
+    }
+    close();
+    broken = true;
     const p = parseLine(src);
     if (!p.ok) return err(no, p.error);
     const l = p.line;
@@ -189,14 +219,18 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
       if (cat === undefined) return err(no, `nieznany tag „#${l.tag}" — nie ma go w ${CONFIG}`);
     }
     const isPattern = st.state.tag === 'backlog-task' && st.state.when?.type === 'recurring';
-    items.push({
+    const item: Item = {
       id: isPattern && l.id !== undefined ? l.id : `${ctx.name}:${no}`,
       text: l.text,
       state: st.state,
       ...(cat !== undefined ? { cat } : {}),
       ...(!isPattern && l.id !== undefined ? { from: l.id } : {}),
-    });
+    };
+    items.push(item);
+    broken = false;
+    last = { item, indent: descIndent(l.marker), desc: [], blanks: 0 };
   });
+  close();
   return items;
 }
 

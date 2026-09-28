@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { parseLine, renderLine } from '../src/lib/md/line';
+import { descLines, parseLine, renderLine } from '../src/lib/md/line';
 import type { Line } from '../src/lib/md/line';
 import { parsePattern, patternWord } from '../src/lib/md/pattern';
 import { slugify, tagsFor } from '../src/lib/md/slug';
@@ -552,6 +552,20 @@ const TEXTS = [
   'środek #tag',
 ];
 
+const DESCS = [
+  'jedna linia',
+  'dwie\nlinie',
+  'z pustą\n\nw środku',
+  '  własne wcięcie',
+  '* wygląda jak pozycja',
+  '# nagłówek',
+  'z końcową pustą\n',
+  'tab\tw środku',
+  '\tod tabulatora',
+  '\\ukośnik ^x',
+  '\npusta na początku',
+];
+
 /** Stan zbudowany wyłącznie przejściami maszyny — takie stany aplikacja naprawdę ma. */
 function randomState(seed: number): State {
   const r = rng(seed);
@@ -605,6 +619,9 @@ function randomState(seed: number): State {
     ]);
     const res = step(m, e, hours);
     if (res.ok) m = res.machine;
+    // Opis to dana, nie stan — nadawany wprost, jak w aplikacji; kopie dziedziczą go przez maszynę.
+    if (r() < 0.15)
+      m = { ...m, items: m.items.map((i) => (i.id === id ? { ...i, desc: pick(DESCS) } : i)) };
   }
   return { ...base, today: m.today, items: [...m.items] };
 }
@@ -618,6 +635,7 @@ function project(s: State) {
       state: i.state,
       text: i.text,
       tag: i.cat !== undefined ? tags.get(i.cat) : undefined,
+      desc: descLines(i.desc).join('\n') || undefined,
       link: isPattern ? `pattern:${i.id}` : i.from !== undefined ? `copy:${i.from}` : undefined,
     };
   };
@@ -651,5 +669,70 @@ describe('obieg losowych stanów maszyny', () => {
       items.some((i) => i.state.tag === 'backlog-task' && i.state.when?.type === 'recurring'),
     ).toBe(true);
     expect(items.some((i) => i.text.startsWith('\\'))).toBe(true);
+    expect(items.some((i) => i.desc?.includes('\n\n'))).toBe(true);
+    expect(items.some((i) => i.desc !== undefined && i.from !== undefined)).toBe(true);
+  });
+});
+
+describe('opis pozycji', () => {
+  const day = (body: string) => ({
+    [CONFIG]: SPEC_CONFIG,
+    [dayFile(TODAY)]: `# ${TODAY}\n\n${body}`,
+  });
+
+  test('wcięty pod tekstem za znacznikiem: 6 spacji pod zadaniem, 2 pod notatką', () => {
+    expect(
+      renderLine({
+        marker: 'open',
+        slot: 36,
+        tag: 'nauka',
+        text: 'Czytanie',
+        desc: ['rozdział 3', 'streszczenie'],
+      }),
+    ).toBe('* [ ] 09:00 #nauka Czytanie\n      rozdział 3\n      streszczenie');
+    expect(renderLine({ marker: 'note', text: 'Rozmowa', desc: ['szczegóły'] })).toBe(
+      '* Rozmowa\n  szczegóły',
+    );
+    // Pusta linia w środku opisu jest pusta — bez spacji na końcu.
+    expect(renderLine({ marker: 'done', text: 'A', desc: ['x', '', 'y'] })).toBe(
+      '* [x] A\n      x\n\n      y',
+    );
+  });
+
+  test('opis w pliku dnia i backlogu wraca do stanu; wcięcie ponad normę zostaje w tekście', () => {
+    const s = parsed({
+      ...day(
+        `* [ ] 09:00 #nauka Czytanie\n      rozdział 3\n\n        cytat\n* Notatka\n  szczegóły\n* [ ] Bez opisu\n`,
+      ),
+      [BACKLOG]: `# Backlog\n\n* [ ] 2026-10-01 Dentysta\n      zabrać kartę\n`,
+    });
+    const by = (t: string) => s.items.find((i) => i.text === t)!;
+    expect(by('Czytanie').desc).toBe('rozdział 3\n\n  cytat');
+    expect(by('Notatka').desc).toBe('szczegóły');
+    expect(by('Bez opisu').desc).toBeUndefined();
+    expect(by('Dentysta').desc).toBe('zabrać kartę');
+  });
+
+  test('wcięcie mniejsze niż norma też jest opisem; pusta linia przed kolejną pozycją nie należy do opisu', () => {
+    const s = parsed(day(`* [ ] A\n  krótko wcięte\n\n* [ ] B\n`));
+    expect(s.items.find((i) => i.text === 'A')!.desc).toBe('krótko wcięte');
+  });
+
+  test('wcięta linia bez pozycji nad nią to błąd z numerem linii', () => {
+    expect(errorsOf(day(`      sierota\n* [ ] A\n`))).toEqual([
+      { file: dayFile(TODAY), line: 3, message: 'wcięta linia opisu bez pozycji nad nią' },
+    ]);
+  });
+
+  test('opis popsutej pozycji nie dokłada błędów ani nie przykleja się do poprzedniej', () => {
+    const errs = errorsOf(day(`* [ ] A\n* [ ] 09:07 zła\n      opis złej\n`));
+    expect(errs).toHaveLength(1);
+    expect(errs[0]!.line).toBe(4);
+  });
+
+  test('kanoniczny zapis: bez końcowych pustych linii i linii z samych spacji', () => {
+    expect(descLines('a\n   \nb  \n\n')).toEqual(['a', '', 'b']);
+    expect(descLines('')).toEqual([]);
+    expect(descLines(undefined)).toEqual([]);
   });
 });
