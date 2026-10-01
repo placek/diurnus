@@ -77,8 +77,8 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 - **Kategorie** (`C`): nazwa, ikona, kolor, kolejność, podkategorie.
 - **Dzień** (`D`): zakres godzin, pory dnia, powiadomienia i motyw — systemowy, jasny albo
   ciemny.
-- **Układ** na trzy panele albo — na wąskim ekranie — jeden panel naraz, z przełącznikiem po
-  lewej od daty.
+- **Układ** na trzy panele albo — na wąskim ekranie — jeden panel naraz, na start lista dnia,
+  z przełącznikiem po lewej od daty.
 - **Cofanie** każdej zmiany: „Cofnij" w komunikacie albo `Ctrl`+`Z`.
 - **Pomoc** pod `?` opisuje każdą interakcję; w jej nagłówku jest link do tego repozytorium.
   Pasek ma po prawej tylko ustawienia i pomoc (oraz chmurę synchronizacji, gdy jest włączona).

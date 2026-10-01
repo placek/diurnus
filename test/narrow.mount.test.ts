@@ -29,10 +29,11 @@ async function mountApp() {
 
 const toggle = () => document.querySelector<HTMLElement>('[aria-label="Przełącz panel"]');
 
-test('na wąskim ekranie widać tylko siatkę', async () => {
+test('na wąskim ekranie na start widać tylko listę dnia', async () => {
   await mountApp();
-  expect(document.querySelector('#grid')).not.toBeNull();
-  expect(document.querySelector('#list')).toBeNull();
+  expect(document.querySelector('#list')).not.toBeNull();
+  expect(document.querySelector('#grid')).toBeNull();
+  expect(document.querySelector('#backlog')).toBeNull();
 });
 
 test('przełącznik panelu pojawia się tylko na wąskim ekranie', async () => {
@@ -40,15 +41,11 @@ test('przełącznik panelu pojawia się tylko na wąskim ekranie', async () => {
   expect(toggle()).not.toBeNull();
 });
 
-test('przełącznik przechodzi cyklicznie przez trzy panele', async () => {
+test('na start widać listę dnia; przełącznik przechodzi cyklicznie przez trzy panele', async () => {
   const flush = await mountApp();
   const visible = () =>
     ['grid', 'list', 'backlog'].filter((id) => document.querySelector(`#${id}`) !== null);
 
-  expect(visible()).toEqual(['grid']);
-
-  toggle()!.click();
-  flush();
   expect(visible()).toEqual(['list']);
 
   toggle()!.click();
@@ -58,6 +55,10 @@ test('przełącznik przechodzi cyklicznie przez trzy panele', async () => {
   toggle()!.click();
   flush();
   expect(visible()).toEqual(['grid']);
+
+  toggle()!.click();
+  flush();
+  expect(visible()).toEqual(['list']);
 });
 
 test('na szerokim ekranie widać wszystkie trzy panele', async () => {

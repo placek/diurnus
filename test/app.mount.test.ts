@@ -12,11 +12,12 @@ beforeEach(() => {
   document.body.innerHTML = '';
   document.head.innerHTML = '<meta name="theme-color" content="#282828">';
   delete document.documentElement.dataset.theme;
-  // jsdom nie implementuje matchMedia; aplikacja pyta o preferowany motyw.
+  // jsdom nie implementuje matchMedia; aplikacja pyta o preferowany motyw i o szerokość.
+  // Szeroki ekran: siatka jest widoczna (na wąskim na start widać listę dnia).
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: (query: string) => ({
-      matches: false,
+      matches: query.includes('min-width'),
       media: query,
       addEventListener() {},
       removeEventListener() {},
