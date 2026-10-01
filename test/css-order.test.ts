@@ -112,3 +112,11 @@ test('okienko terminu nie dziedziczy centrującego przesunięcia .card', () => {
   // wysokości wypychało wyższe okienko (z powtarzaniem) poza ekran.
   expect(css).toMatch(/\.date-prompt\.card\{[^}]*transform:none/);
 });
+
+test('znacznik wykonanego jest zawsze szary — bez koloru kategorii i bez zieleni', () => {
+  const linked = css.indexOf('.item.is-linked .bullet{');
+  const done = css.indexOf('.item.is-linked .bullet.t-done');
+  expect(done).toBeGreaterThan(linked);
+  expect(css).toMatch(/\.item \.bullet\.t-done,\s*\.item\.is-linked \.bullet\.t-done\{color:var\(--fg-dim\)\}/);
+  expect(css).not.toMatch(/\.bullet\.t-done\{color:var\(--green\)\}/);
+});

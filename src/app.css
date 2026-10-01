@@ -552,7 +552,6 @@ kbd{
   font:600 17px var(--sans);line-height:1;
 }
 .bullet:hover{background:var(--line)}
-.bullet.t-done{color:var(--green)}
 /* `fixed`, żeby wyjść poza przewijane panele, które je obcinały.
    max-height ratuje długie menu na niskich ekranach. */
 .bullet-menu{
@@ -606,6 +605,10 @@ textarea.item-desc:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);
   margin:1px 0 1px 37px;                   /* wyrównanie do tekstu, nie do znacznika */
 }
 .item.is-linked .bullet{color:var(--c,var(--fg-dim))}
+/* Wykonane ma zawsze szary znacznik — bez względu na kategorię i godzinę. Reguła stoi
+   po regule pozycji powiązanej, bo ma tę samą szczegółowość i decyduje kolejność. */
+.item .bullet.t-done,
+.item.is-linked .bullet.t-done{color:var(--fg-dim)}
 .item.is-linked .item-text{color:var(--fg)}
 
 /* Jeden schemat barw tekstu na obu listach. Reguły stoją PO regule pozycji
