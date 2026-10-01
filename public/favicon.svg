@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14 -14 148 148">
+  <!-- Logo Diurnus: kartka kalendarza z kółkami, siatką, kropką i literą D.
+       Kolory gruvbox: jasny motyw systemu albo ciemny. -->
+  <style>
+    .bg { fill: #fbf1c7 }
+    .fg { color: #79740e }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #282828 }
+      .fg { color: #b8bb26 }
+    }
+  </style>
+  <defs>
+    <!-- Przerwa wokół brzuszka D: wycina siatkę tylko na zewnątrz litery. -->
+    <mask id="gap" maskUnits="userSpaceOnUse" x="-14" y="-14" width="148" height="148">
+      <rect x="-14" y="-14" width="148" height="148" fill="#fff" />
+      <path d="M52 16C80 16 90 36 90 65S80 114 52 114" fill="none" stroke="#000" stroke-width="20" />
+      <path d="M-14 -14H52V16C80 16 90 36 90 65S80 114 52 114V134H-14Z" fill="#fff" />
+    </mask>
+  </defs>
+  <rect class="bg" x="-14" y="-14" width="148" height="148" rx="22" />
+  <g class="fg" mask="url(#gap)" fill="currentColor" stroke="currentColor">
+    <!-- kółka -->
+    <rect x="22" y="0" width="8" height="30" stroke="none" />
+    <rect x="88" y="0" width="8" height="30" stroke="none" />
+    <!-- rama -->
+    <rect x="4" y="16" width="112" height="98" fill="none" stroke-width="8" />
+    <!-- siatka -->
+    <path d="M0 42H120M0 88H120M100 64H116M58 16V42M58 88V114M31 42V114" fill="none" stroke-width="4" />
+    <!-- kropka: dziś -->
+    <circle cx="58" cy="65" r="12" stroke="none" />
+  </g>
+  <!-- litera D -->
+  <path class="fg" d="M52 16C80 16 90 36 90 65S80 114 52 114" fill="none" stroke="currentColor" stroke-width="9" />
+</svg>

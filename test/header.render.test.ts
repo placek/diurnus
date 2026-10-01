@@ -141,7 +141,10 @@ test('po lewej strona równoważąca; na wąskim ekranie stoi na niej przełącz
   const lead = (html: string) =>
     /<div class="hdr-side hdr-lead">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? '';
   expect(lead(htmlToday)).toContain('aria-label="Przełącz panel"');
-  expect(lead(htmlWide)).not.toContain('aria-label');
+  expect(lead(htmlWide)).not.toContain('Przełącz panel');
+  // Logo stoi po lewej na obu układach, przed przełącznikiem.
+  for (const html of [htmlToday, htmlWide]) expect(lead(html)).toContain('aria-label="Diurnus"');
+  expect(lead(htmlToday).indexOf('Diurnus')).toBeLessThan(lead(htmlToday).indexOf('Przełącz panel'));
   // Przełącznik stoi przed datą, nie wśród narzędzi.
   expect(htmlToday.indexOf('Przełącz panel')).toBeLessThan(htmlToday.indexOf('id="date"'));
   const tools = /<div class="tools hdr-side">([\s\S]*)<\/div>/.exec(htmlToday)?.[1] ?? '';
