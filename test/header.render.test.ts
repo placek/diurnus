@@ -108,9 +108,16 @@ test('nagłówek nie ma już strzałek nawigacji po dniach', () => {
   expect(htmlToday).not.toContain('Następny dzień');
 });
 
-test('narzędzia stoją w kolejności: pomoc, motyw, ustawienia (czyli od prawej: ustawienia, motyw, pomoc)', () => {
-  const order = [...htmlToday.matchAll(/aria-label="(Pomoc|Motyw|Ustawienia)"/g)].map((m) => m[1]);
-  expect(order).toEqual(['Pomoc', 'Motyw', 'Ustawienia']);
+test('po prawej tylko ustawienia i pomoc (chmura przed nimi, gdy jest synchronizacja)', () => {
+  for (const html of [htmlToday, htmlWide]) {
+    const tools = /<div class="tools hdr-side">([\s\S]*)<\/div>/.exec(html)?.[1] ?? '';
+    const labels = [...tools.matchAll(/aria-label="([^"]+)"/g)].map((m) => m[1]);
+    expect(labels).toEqual(['Ustawienia', 'Pomoc']);
+  }
+  // Motyw jest w ustawieniach, a link do kodu — w pomocy.
+  expect(htmlToday).not.toContain('aria-label="Motyw"');
+  expect(htmlToday).not.toContain('github.com/placek/diurnus');
+  expect(htmlWide).not.toContain('github.com/placek/diurnus');
 });
 
 test('nie ma już przycisku sugestii z zeszłego tygodnia', () => {
@@ -130,22 +137,13 @@ test('data nie jest przyciskiem ani niczym klikalnym', () => {
   expect(htmlToday).not.toMatch(/<button[^>]*id="date"/);
 });
 
-test('narzędzia mają po lewej dystans równoważący', () => {
-  expect(htmlToday).toContain('class="hdr-side"');
-});
-
-test('link do kodu na GitHubie stoi tuż przed pomocą i otwiera się w nowej karcie', () => {
-  const link = /<a[^>]*href="https:\/\/github\.com\/placek\/diurnus"[^>]*>/.exec(htmlToday)?.[0] ?? '';
-  expect(link).toContain('target="_blank"');
-  expect(link).toContain('rel="noopener noreferrer"');
-  expect(link).toContain('aria-label="Kod na GitHubie"');
+test('po lewej strona równoważąca; na wąskim ekranie stoi na niej przełącznik panelu', () => {
+  const lead = (html: string) =>
+    /<div class="hdr-side hdr-lead">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? '';
+  expect(lead(htmlToday)).toContain('aria-label="Przełącz panel"');
+  expect(lead(htmlWide)).not.toContain('aria-label');
+  // Przełącznik stoi przed datą, nie wśród narzędzi.
+  expect(htmlToday.indexOf('Przełącz panel')).toBeLessThan(htmlToday.indexOf('id="date"'));
   const tools = /<div class="tools hdr-side">([\s\S]*)<\/div>/.exec(htmlToday)?.[1] ?? '';
-  const labels = [...tools.matchAll(/aria-label="([^"]+)"/g)].map((m) => m[1]);
-  expect(labels.slice(-4)).toEqual(['Kod na GitHubie', 'Pomoc', 'Motyw', 'Ustawienia']);
-  // Ikona istnieje w zestawie — nie litera zastępcza.
-  expect(htmlToday).not.toMatch(/class="ic ltr"[^>]*>GH</);
-});
-
-test('link do GitHuba jest też na szerokim ekranie', () => {
-  expect(htmlWide).toContain('href="https://github.com/placek/diurnus"');
+  expect(tools).not.toContain('Przełącz panel');
 });

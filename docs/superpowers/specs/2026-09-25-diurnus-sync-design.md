@@ -184,10 +184,11 @@ W aplikacji (`src/components/settings/SyncSection.svelte`, logika w `src/sync.sv
   **Odrzucone zmiany** — błędy `plik:linia: powód` i „Nadpisz moją wersją", które zapisuje
   lokalną treść na odrzuconej wersji i zdejmuje blokadę.
 - **Token bez dostępu** — pole nowego tokenu od razu.
-- **Pasek.** Przy połączonym magazynie ikona chmury obok linku do GitHuba; kropka: niebieska —
-  trwa synchronizacja, żółta — brak sieci, limit, konflikt albo odrzucone zmiany, czerwona —
-  token albo inny błąd. Klik otwiera Ustawienia → Dane. Komunikat o konflikcie i odrzuconych
-  zmianach ma przycisk „Pokaż" prowadzący w to samo miejsce.
+- **Pasek.** Przy połączonym magazynie chmura przed ustawieniami i pomocą — tylko wskaźnik
+  stanu, nie przycisk; kropka: niebieska — trwa synchronizacja, żółta — brak sieci, limit,
+  konflikt albo odrzucone zmiany, czerwona — token albo inny błąd. Opis stanu jest w podpowiedzi.
+  Komunikat o konflikcie i odrzuconych zmianach ma przycisk „Pokaż", który otwiera
+  Ustawienia → Dane.
 
 ## 5. Adapter GitHub (pierwszy)
 

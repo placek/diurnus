@@ -1,5 +1,6 @@
 <script lang="ts">
   import { app, closeAll, win } from '../state.svelte';
+  import Icon from './Icon.svelte';
   import { topCats } from '../lib/categories';
   import { pad } from '../lib/time';
 
@@ -11,7 +12,21 @@
 <div id="scrim" class="strong" onclick={closeAll} role="presentation"></div>
 
 <div id="helpbox" class="card">
-  <h2>Diurnus</h2>
+  <div class="sh-head help-head">
+    <h2>Diurnus</h2>
+    <!-- Kod źródłowy: zwykły link w nowej karcie, żeby nie zamykać dnia. -->
+    <a
+      class="help-gh"
+      href="https://github.com/placek/diurnus"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Kod na GitHubie"
+      title="Kod na GitHubie"
+    >
+      <Icon name="github" fallback="GH" />github.com/placek/diurnus
+    </a>
+    <button class="ib" onclick={closeAll} aria-label="Zamknij"><Icon name="xmark" fallback="×" /></button>
+  </div>
   <p>
     Dzień od {pad(win.startH)} do {pad(win.endH)} to {slots}
     {plural(slots)} po 30 minut. Kliknij pole, wybierz kategorię — powstaje zadanie na tę godzinę.
@@ -29,7 +44,7 @@
   <p>
     Ekran dzieli się na trzy panele: dzisiejsza siatka, dzisiejsze notatki i backlog — wszystko,
     co zaplanowane na później albo jeszcze bez terminu. Na wąskim ekranie widać jeden panel naraz;
-    przełącza je przycisk w nagłówku.
+    przełącza je przycisk po lewej od daty.
   </p>
 
   <h3>Siatka</h3>
@@ -193,10 +208,11 @@
     <dd>
       wszystko żyje w tej przeglądarce. Zabezpieczeniem jest dziennik pobrany jako pliki
       markdown w archiwum ZIP (jego wczytanie zastępuje bieżący stan) albo synchronizacja
-      z prywatnym repozytorium GitHub — wtedy ikona chmury w nagłówku pokazuje jej stan
+      z prywatnym repozytorium GitHub — wtedy chmura w nagłówku pokazuje jej stan (kropka:
+      niebieska — trwa, żółta — uwaga, czerwona — błąd); szczegóły w Ustawienia → Dane
     </dd>
     <dt>Motyw</dt>
-    <dd>przycisk w nagłówku: automatyczny, jasny, ciemny</dd>
+    <dd>Ustawienia → Dzień: systemowy, jasny albo ciemny</dd>
     <dt>Cofanie</dt>
     <dd>
       „Cofnij" w komunikacie <span class="kb">albo <kbd>Ctrl</kbd> <kbd>Z</kbd></span> — cofa
