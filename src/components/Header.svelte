@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, ui } from '../state.svelte';
-  import { showSync, sync } from '../sync.svelte';
+  import { sync } from '../sync.svelte';
   import { describeStatus } from '../lib/sync/describe';
   import Icon from './Icon.svelte';
   import TodayHead from './TodayHead.svelte';
@@ -8,10 +8,9 @@
   interface Props {
     onSettings?: () => void;
     onHelp?: () => void;
-    onTheme?: () => void;
   }
 
-  const { onSettings, onHelp, onTheme }: Props = $props();
+  const { onSettings, onHelp }: Props = $props();
 
   const PANE_ORDER = ['grid', 'list', 'backlog'] as const;
   const PANE_ICON = { grid: 'table-cells', list: 'list-check', backlog: 'layer-group' } as const;
@@ -38,18 +37,9 @@
 </script>
 
 <header id="top">
-  <!-- Lewy dystans równoważy narzędzia po prawej, żeby środek był środkiem
-       ekranu, a nie środkiem tego, co zostało. -->
-  <div class="hdr-side" aria-hidden="true"></div>
-
-  <!-- Na szerokim ekranie data i zegar stoją w nagłówku sekcji dziś,
-       która zachodzi na ten pasek; tu zostaje pusty środek. Na wąskim widać
-       jeden panel naraz, więc nagłówek dnia zostaje tutaj. -->
-  <div class="hdr-center">
-    {#if ui.narrow}<TodayHead />{/if}
-  </div>
-
-  <div class="tools hdr-side">
+  <!-- Lewa strona równoważy narzędzia po prawej, żeby środek był środkiem
+       ekranu. Na wąskim ekranie stoi tu przełącznik panelu — po lewej od daty. -->
+  <div class="hdr-side hdr-lead">
     {#if ui.narrow}
       <button
         class="ib"
@@ -60,33 +50,27 @@
         <Icon name={PANE_ICON[ui.pane]} fallback="≡" />
       </button>
     {/if}
+  </div>
+
+  <!-- Na szerokim ekranie data i zegar stoją w nagłówku sekcji dziś,
+       która zachodzi na ten pasek; tu zostaje pusty środek. Na wąskim widać
+       jeden panel naraz, więc nagłówek dnia zostaje tutaj. -->
+  <div class="hdr-center">
+    {#if ui.narrow}<TodayHead />{/if}
+  </div>
+
+  <div class="tools hdr-side">
+    <!-- Chmura tylko mówi, jak idzie synchronizacja; zarządza się nią w ustawieniach. -->
     {#if syncText}
-      <button
+      <span
         class="ib sync-ind {syncMark}"
-        onclick={showSync}
+        role="status"
         aria-label="Synchronizacja: {syncText.text}"
         title={syncText.text}
       >
         <Icon name="cloud" fallback="☁" />
-      </button>
+      </span>
     {/if}
-    <!-- Kod źródłowy: zwykły link w nowej karcie, żeby nie zamykać dnia. -->
-    <a
-      class="ib"
-      href="https://github.com/placek/diurnus"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Kod na GitHubie"
-      title="Kod na GitHubie"
-    >
-      <Icon name="github" fallback="GH" />
-    </a>
-    <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">
-      <Icon name="question" fallback="?" />
-    </button>
-    <button class="ib" onclick={onTheme} aria-label="Motyw" title="Motyw">
-      <Icon name="circle-half-stroke" fallback="◐" />
-    </button>
     <button
       class="ib"
       onclick={onSettings}
@@ -94,6 +78,9 @@
       title="Ustawienia: kategorie C, dzień D"
     >
       <Icon name="gear" fallback="⚙" />
+    </button>
+    <button class="ib" onclick={onHelp} aria-label="Pomoc" title="Pomoc  ?">
+      <Icon name="question" fallback="?" />
     </button>
   </div>
 </header>

@@ -75,11 +75,13 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 ### Ustawienia i reszta
 
 - **Kategorie** (`C`): nazwa, ikona, kolor, kolejność, podkategorie.
-- **Dzień** (`D`): zakres godzin, pory dnia, powiadomienia.
-- **Motyw** automatyczny, jasny albo ciemny; układ na trzy panele albo — na wąskim ekranie —
-  jeden panel naraz.
+- **Dzień** (`D`): zakres godzin, pory dnia, powiadomienia i motyw — systemowy, jasny albo
+  ciemny.
+- **Układ** na trzy panele albo — na wąskim ekranie — jeden panel naraz, z przełącznikiem po
+  lewej od daty.
 - **Cofanie** każdej zmiany: „Cofnij" w komunikacie albo `Ctrl`+`Z`.
-- **Pomoc** pod `?` opisuje każdą interakcję; ikona GitHuba obok prowadzi do tego repozytorium.
+- **Pomoc** pod `?` opisuje każdą interakcję; w jej nagłówku jest link do tego repozytorium.
+  Pasek ma po prawej tylko ustawienia i pomoc (oraz chmurę synchronizacji, gdy jest włączona).
 
 ### Dane
 
@@ -97,8 +99,8 @@ w **prywatnym repozytorium** i łączy urządzenia:
 - Przy pierwszym połączeniu, gdy dziennik jest po obu stronach, aplikacja pyta, który zostaje.
 - Konflikt (ten sam dokument zmieniony tu i gdzie indziej) wygrywa repozytorium; przegraną
   wersję przywraca „Nadpisz moją wersją".
-- Każda wersja każdego dnia zostaje w historii repozytorium. Ikona chmury w pasku pokazuje
-  stan i prowadzi do ustawień.
+- Każda wersja każdego dnia zostaje w historii repozytorium. Chmura w pasku pokazuje stan
+  synchronizacji; zarządza się nią w ustawieniach.
 
 Szczegóły: [projekt synchronizacji](docs/superpowers/specs/2026-09-25-diurnus-sync-design.md).
 

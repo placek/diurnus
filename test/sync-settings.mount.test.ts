@@ -331,14 +331,17 @@ test('„Rozłącz": token znika z przeglądarki, dane zostają po obu stronach'
   expect(gh.log.length).toBe(n);
 });
 
-test('ikonka w pasku otwiera ustawienia danych', async () => {
+test('chmura w pasku tylko pokazuje stan — klik niczego nie otwiera', async () => {
   seed([task('a')]);
   const env = await start();
   await fillAndConnect(env);
   env.ui.settings = null;
   env.flush();
-  (cloud() as HTMLButtonElement).click();
+  const c = cloud() as HTMLElement;
+  expect(c.tagName).toBe('SPAN');
+  expect(c.getAttribute('role')).toBe('status');
+  expect(c.getAttribute('aria-label')).toMatch(/^Synchronizacja: /);
+  c.click();
   env.flush();
-  expect(env.ui.settings).toBe('data');
-  expect(cloud()!.getAttribute('aria-label')).toMatch(/^Synchronizacja: /);
+  expect(env.ui.settings).toBeNull();
 });

@@ -1,6 +1,16 @@
 <script lang="ts">
   import { COLORS, DEFAULT_DAY, uid } from '../../lib/model';
   import { app, savePrefs } from '../../state.svelte';
+  import { THEME_LABEL } from '../../lib/theme';
+  import type { Prefs } from '../../lib/types';
+
+  // Motyw działa od razu, jak powiadomienia — to preferencja tej przeglądarki,
+  // nie część dnia, więc nie czeka na „Zapisz".
+  const THEMES: Prefs['theme'][] = ['auto', 'light', 'dark'];
+  function setTheme(t: Prefs['theme']) {
+    app.prefs.theme = t;
+    savePrefs();
+  }
 
   /** Zgoda pytana dopiero przy włączaniu — nieproszony monit ludzie blokują. */
   async function requestNotify(want: boolean, el: HTMLInputElement) {
@@ -176,3 +186,19 @@
 <button class="linkbtn" onclick={() => setDay(structuredClone(DEFAULT_DAY) as DaySettings)}>
   Przywróć domyślne 06–22
 </button>
+
+<div class="dy-h dy-theme-h">Motyw</div>
+<div class="dy-theme" role="radiogroup" aria-label="Motyw">
+  {#each THEMES as t (t)}
+    <label>
+      <input
+        type="radio"
+        name="theme"
+        value={t}
+        checked={app.prefs.theme === t}
+        onchange={() => setTheme(t)}
+      />
+      {THEME_LABEL[t][0]!.toUpperCase() + THEME_LABEL[t].slice(1)}
+    </label>
+  {/each}
+</div>

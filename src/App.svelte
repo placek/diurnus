@@ -15,7 +15,7 @@
   import { kids, topCats } from './lib/categories';
   import { clampCursor, keyAction } from './lib/keys';
   import { SLOT_LEN } from './lib/machine';
-  import { nextTheme, themeColor } from './lib/theme';
+  import { themeColor } from './lib/theme';
   import { nowQ, pad, qTime } from './lib/time';
   import { activeNow, categoryOf, occ, slotOf } from './lib/view';
   import Panes from './components/Panes.svelte';
@@ -92,10 +92,6 @@
     }
   });
 
-  function cycleTheme() {
-    app.prefs.theme = nextTheme(app.prefs.theme);
-    savePrefs();
-  }
 
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
@@ -195,7 +191,6 @@
 <svelte:window onkeydown={onKeydown} onresize={() => ui.menu && closeMenu()} />
 
 <Header
-  onTheme={cycleTheme}
   onHelp={() => (ui.help = true)}
   onSettings={() => (ui.settings = 'cats')}
 />
