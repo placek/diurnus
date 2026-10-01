@@ -159,6 +159,9 @@ make dev             # http://localhost:5173/
 - `src/components/` — render i podpięcie zdarzeń. Nic tu nie liczy.
 - `src/components/list/` — dzienny log w duchu bullet journal (panel środkowy).
 - `src/components/backlog/` — backlog: wszystko, co nie należy do dziś.
+- `public/` — logo jako favicon: `favicon.svg` w barwach gruvbox (jasne albo ciemne według
+  motywu systemu) i PNG zastępcze (`favicon-32.png`, `apple-touch-icon.png`). W pasku to samo
+  logo rysuje `src/components/Logo.svelte` w zieleni bieżącego motywu.
 
 Jeśli komponent zaczyna liczyć, logika należy do `src/lib/`.
 

@@ -3,6 +3,7 @@
   import { sync } from '../sync.svelte';
   import { describeStatus } from '../lib/sync/describe';
   import Icon from './Icon.svelte';
+  import Logo from './Logo.svelte';
   import TodayHead from './TodayHead.svelte';
 
   interface Props {
@@ -38,8 +39,9 @@
 
 <header id="top">
   <!-- Lewa strona równoważy narzędzia po prawej, żeby środek był środkiem
-       ekranu. Na wąskim ekranie stoi tu przełącznik panelu — po lewej od daty. -->
+       ekranu: logo, a na wąskim ekranie także przełącznik panelu — po lewej od daty. -->
   <div class="hdr-side hdr-lead">
+    <span class="hdr-logo"><Logo /></span>
     {#if ui.narrow}
       <button
         class="ib"

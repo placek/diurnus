@@ -335,7 +335,9 @@ a.ib{text-decoration:none}
 .help-gh:hover{color:var(--fg);text-decoration:underline}
 .help-head .ib{align-self:center}
 .sync-ind{cursor:default}
-.hdr-lead{justify-content:flex-start}
+.hdr-lead{justify-content:flex-start;gap:6px}
+.hdr-logo{display:grid;place-items:center;width:32px;height:32px;color:var(--green);flex:none}
+.hdr-logo .logo{display:block}
 #helpbox p{margin:0 0 14px;color:var(--fg-dim);font-size:14px;line-height:1.45}
 .legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
 .legend .blk{margin:0;height:28px;border-radius:7px;--c:var(--blue);font-size:12px;cursor:default}
