@@ -61,8 +61,9 @@ export const ui = $state({
   hover: null as string | null,
   cursor: { q: 0, visible: false },
   menu: null as MenuState | null,
-  /** widoczny panel na wąskim ekranie; na szerokim widać oba */
-  pane: 'grid' as 'grid' | 'list' | 'backlog',
+  /** widoczny panel na wąskim ekranie; na szerokim widać wszystkie. Na start lista
+   *  dnia — na telefonie to ona, nie siatka, jest pierwszym, czego się szuka. */
+  pane: 'list' as 'grid' | 'list' | 'backlog',
   /** czy ekran jest za wąski na dwa panele — ustawia Panes.svelte */
   narrow: false,
   /** pozycja listy, która ma dostać fokus po operacji strukturalnej */

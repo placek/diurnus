@@ -43,8 +43,8 @@
 
   <p>
     Ekran dzieli się na trzy panele: dzisiejsza siatka, dzisiejsze notatki i backlog — wszystko,
-    co zaplanowane na później albo jeszcze bez terminu. Na wąskim ekranie widać jeden panel naraz;
-    przełącza je przycisk po lewej od daty.
+    co zaplanowane na później albo jeszcze bez terminu. Na wąskim ekranie widać jeden panel naraz —
+    na start lista dnia; przełącza je przycisk po lewej od daty.
   </p>
 
   <h3>Siatka</h3>
