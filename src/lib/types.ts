@@ -8,6 +8,8 @@ export interface Category {
   color?: string; // tylko kategorie główne; podkategorie dziedziczą
   parent: string | null;
   archived?: boolean;
+  /** projekt: pozycje backlogu z tą kategorią (albo jej podkategoriami) stoją we własnej sekcji */
+  project?: boolean;
   /** slug w plikach markdown (`#tag`); brak — wyliczany z nazwy */
   tag?: string;
 }

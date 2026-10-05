@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, closeAll, commit, ui } from '../../state.svelte';
-  import { buildCats, duplicateBandStart } from '../../lib/settings';
+  import { buildCats, duplicateBandStart, duplicateProject } from '../../lib/settings';
   import { slotFits } from '../../lib/machine';
   import { fmtQ } from '../../lib/time';
   import { slotOf, timedToday } from '../../lib/view';
@@ -25,6 +25,12 @@
   const originalIds = new Set(app.S.cats.map((c) => c.id));
 
   function save() {
+    const dup = duplicateProject(draft);
+    if (dup) {
+      app.toast = { msg: `Dwa projekty nazywają się „${dup}"`, undoable: false };
+      ui.settings = 'cats';
+      return;
+    }
     const used = new Set(app.S.items.flatMap((i) => (i.cat ? [i.cat] : [])));
     const cats = buildCats(draft, originalIds, used, app.S.cats);
     if (!cats) {

@@ -51,6 +51,10 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
   wcześniej albo odłożyć zadanie z dziś do backlogu.
 - **Termin i powtarzanie** nadaje „Wybierz datę…" w menu znacznika: dzień, godzina
   i powtarzanie.
+- **Projekty.** Kategoria albo podkategoria oznaczona w ustawieniach jako „projekt" zbiera swoje
+  pozycje backlogu we własnej sekcji pod resztą, z nagłówkiem i licznikiem. Pusty wiersz sekcji
+  dodaje pozycję od razu do projektu, a `Enter` w pozycji projektu — następną w tym samym.
+  W `BACKLOG.md` sekcja to nagłówek `## Nazwa projektu`.
 
 ### Powtarzanie
 

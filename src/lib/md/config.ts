@@ -33,6 +33,7 @@ export function renderConfig(cfg: Config): string {
     if (c.icon) out.push(`icon = ${str(c.icon)}`);
     if (c.parent) out.push(`parent = ${str(tags.get(c.parent) ?? c.parent)}`);
     else out.push(`color = ${str(c.color ?? 'yellow')}`);
+    if (c.project) out.push('project = true');
     if (c.archived) out.push('archived = true');
   }
   return out.join('\n') + '\n';
@@ -103,7 +104,7 @@ export function parseConfig(text: string): ConfigResult {
     list.forEach((c: unknown, n) => {
       const where = `[[categories]] nr ${n + 1}`;
       if (!isObj(c)) return errors.push(`${where}: to nie jest tabela`);
-      onlyKeys(c, ['tag', 'name', 'icon', 'color', 'parent', 'archived'], where, errors);
+      onlyKeys(c, ['tag', 'name', 'icon', 'color', 'parent', 'project', 'archived'], where, errors);
       const tag = c['tag'];
       if (typeof tag !== 'string' || !TAG.test(tag)) errors.push(`${where}: tag musi być slugiem`);
       else if (tags.has(tag)) errors.push(`${where}: tag „${tag}" się powtarza`);
@@ -113,6 +114,8 @@ export function parseConfig(text: string): ConfigResult {
         errors.push(`${where}: icon to napis`);
       if (c['archived'] !== undefined && c['archived'] !== true)
         errors.push(`${where}: archived może mieć tylko wartość true`);
+      if (c['project'] !== undefined && c['project'] !== true)
+        errors.push(`${where}: project może mieć tylko wartość true`);
       const parent = c['parent'];
       if (parent === undefined) {
         if (!(COLORS as readonly string[]).includes(c['color'] as string))
@@ -126,9 +129,18 @@ export function parseConfig(text: string): ConfigResult {
         icon: typeof c['icon'] === 'string' ? c['icon'] : null,
         parent: typeof parent === 'string' ? parent : null,
         ...(parent === undefined ? { color: String(c['color']) } : {}),
+        ...(c['project'] === true ? { project: true } : {}),
         ...(c['archived'] === true ? { archived: true } : {}),
       });
     });
+    // Nagłówek projektu w BACKLOG.md to jego nazwa, więc nazwy projektów nie mogą się powtarzać.
+    const names = new Set<string>();
+    for (const c of cats) {
+      if (!c.project || c.archived) continue;
+      const key = c.name.trim().toLowerCase();
+      if (names.has(key)) errors.push(`projekt „${c.name.trim()}" występuje dwa razy`);
+      names.add(key);
+    }
     // Rodzic musi istnieć i być kategorią główną.
     for (const c of cats) {
       if (!c.parent) continue;

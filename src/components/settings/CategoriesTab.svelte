@@ -60,6 +60,9 @@
       </button>
       <input class="ce-name" bind:value={t.name} placeholder="Nazwa kategorii" maxlength="32" />
       <button class="ce-sw" onclick={() => togglePanel(t.id, 'color')} title="Kolor" aria-label="Kolor"></button>
+      <label class="ce-proj" title="Projekt: pozycje tej kategorii mają w backlogu własną sekcję">
+        <input type="checkbox" bind:checked={t.project} />projekt
+      </label>
       <button class="ib" onclick={() => setDraft(moveUp(draft, t.id))} title="Przesuń wyżej" aria-label="Przesuń wyżej">
         <Icon name="arrow-up" fallback="↑" />
       </button>
@@ -93,6 +96,9 @@
           <Icon name={k.icon ?? t.icon ?? 'circle'} fallback={(k.name || '?')[0] ?? '?'} />
         </button>
         <input class="ce-name" bind:value={k.name} placeholder="Nazwa podkategorii" maxlength="32" />
+        <label class="ce-proj" title="Projekt: pozycje tej podkategorii mają w backlogu własną sekcję">
+          <input type="checkbox" bind:checked={k.project} />projekt
+        </label>
         <button class="ib" onclick={() => setDraft(moveUp(draft, k.id))} title="Przesuń wyżej" aria-label="Przesuń wyżej">
           <Icon name="arrow-up" fallback="↑" />
         </button>

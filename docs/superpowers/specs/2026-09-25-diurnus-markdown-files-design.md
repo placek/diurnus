@@ -170,6 +170,36 @@ cicho zamienić zadania ze slotem w zadanie bez niego.
   z pozycji w pliku; wzorzec bez daty — datę najbliższego wystąpienia po dniu dzisiejszym.
 - Czas pozycji backlogu musi mieścić się w dniu z ustawień.
 
+#### Projekty
+
+Kategoria (albo podkategoria) z `project = true` w `.diurnus.toml` to **projekt**: jej
+pozycje backlogu — także te z jej podkategorii — stoją we własnej sekcji pod pozycjami spoza
+projektów.
+
+```markdown
+# Backlog
+
+* [ ] 2026-10-07 Dentysta
+* [ ] Kiedyś, bez daty
+
+## Diurnus
+
+* [ ] 2026-10-10 Wydanie 1.0
+* [ ] #diurnus-sync Adapter Dropbox
+* Notatka do projektu
+```
+
+- Sekcja to nagłówek `## Nazwa projektu`. Linia pod nim bez tagu należy do projektu; tag stoi
+  tylko przy podkategorii projektu. Linia przed pierwszym `##` z tagiem projektu też do niego
+  należy — zapis przeniesie ją pod nagłówek.
+- Zapis: najpierw pozycje spoza projektów, potem sekcje projektów w kolejności kategorii
+  (główne wg pozycji, podkategorie tuż za rodzicem); projekt bez pozycji nie ma nagłówka.
+  W sekcji ta sama kolejność co w całym backlogu.
+- Błędy: `##` z nazwą, która nie jest projektem; ta sama sekcja drugi raz; pod nagłówkiem tag
+  kategorii spoza projektu; `##` w pliku dnia.
+- Bliższy projekt wygrywa: podkategoria-projekt w kategorii-projekcie ma własną sekcję.
+  Zarchiwizowany projekt niczego nie grupuje.
+
 ### `.diurnus.toml`
 
 ```toml
@@ -196,7 +226,8 @@ parent = "praca"
 
 - Kategoria główna ma kolor; podkategoria wskazuje rodzica tagiem i koloru nie ma.
 - Brak `icon` znaczy „jak kategoria nadrzędna". `archived = true` oznacza kategorię
-  zarchiwizowaną.
+  zarchiwizowaną. `project = true` robi z kategorii projekt (sekcja w `BACKLOG.md`); nazwy
+  projektów nie mogą się powtarzać, bez względu na wielkość liter.
 - Tag to slug: małe litery ASCII, cyfry i łączniki. Kategorie bez tagu dostają go z nazwy —
   bez polskich znaków, z łącznikami, z przyrostkiem `-2`, `-3` przy powtórzeniu.
 - Brak pliku daje ustawienia domyślne.

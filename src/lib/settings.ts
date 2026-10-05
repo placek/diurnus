@@ -36,6 +36,7 @@ export function buildCats(
       parent: c.parent || null,
     };
     if (!clean.parent) clean.color = c.color || 'yellow';
+    if (c.project) clean.project = true;
     if (c.archived) clean.archived = true;
 
     if (del.has(c.id)) {
@@ -98,4 +99,20 @@ export const duplicateBandStart = (bands: readonly Band[]) =>
 export function clampDayRange(start: number, end: number): { start: number; end: number } {
   const s = Math.min(23, Math.max(0, start));
   return { start: s, end: Math.min(24, Math.max(s + 1, end)) };
+}
+
+/**
+ * Nazwa projektu, która się powtarza (bez względu na wielkość liter), albo `null`.
+ * Nagłówek sekcji w BACKLOG.md to nazwa projektu, więc musi być jednoznaczna.
+ */
+export function duplicateProject(draft: readonly DraftCategory[]): string | null {
+  const seen = new Set<string>();
+  for (const c of draft) {
+    if (!c.project || !alive(c)) continue;
+    const key = c.name.trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) return c.name.trim();
+    seen.add(key);
+  }
+  return null;
 }

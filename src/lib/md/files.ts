@@ -4,7 +4,8 @@ import { shiftDay } from '../time';
 import { slotFits, violations } from '../machine';
 import type { DayHours, Item, ItemState } from '../machine';
 import type { State } from '../types';
-import { backlogList, todayList } from '../view';
+import { projectOf } from '../categories';
+import { backlogGroups, todayList } from '../view';
 import { parseConfig, renderConfig } from './config';
 import { descIndent, descLines, parseLine, renderLine } from './line';
 import type { Line } from './line';
@@ -34,9 +35,10 @@ export type ParseResult = { ok: true; state: State } | { ok: false; errors: File
 
 /* ───────────── Zapis ───────────── */
 
-function lineOf(i: Item, tags: Map<string, string>): Line {
+/** `inProject` — kategoria projektu, pod którego nagłówkiem stoi linia: jej tag jest zbędny. */
+function lineOf(i: Item, tags: Map<string, string>, inProject?: string): Line {
   const s = i.state;
-  const tag = i.cat !== undefined ? tags.get(i.cat) : undefined;
+  const tag = i.cat !== undefined && i.cat !== inProject ? tags.get(i.cat) : undefined;
   const desc = descLines(i.desc);
   const base = {
     text: i.text,
@@ -80,13 +82,29 @@ function lineOf(i: Item, tags: Map<string, string>): Line {
 const file = (heading: string, lines: string[]) =>
   lines.length ? `${heading}\n\n${lines.join('\n')}\n` : `${heading}\n`;
 
+/**
+ * Backlog: najpierw pozycje spoza projektów, potem sekcja `## Nazwa` na każdy
+ * projekt, który ma pozycje. Pod nagłówkiem linia nie powtarza tagu projektu —
+ * tag stoi tylko przy podkategorii projektu.
+ */
+function renderBacklog(s: State, tags: Map<string, string>): string {
+  const groups = backlogGroups(s.items, s.cats);
+  const parts = ['# Backlog'];
+  for (const g of groups) {
+    if (!g.items.length) continue;
+    if (g.project) parts.push('', `## ${g.project.name.trim()}`);
+    parts.push('', g.items.map((i) => renderLine(lineOf(i, tags, g.project?.id))).join('\n'));
+  }
+  return parts.join('\n') + '\n';
+}
+
 export function renderFiles(s: State): Files {
   const tags = tagsFor(s.cats);
   const line = (i: Item) => renderLine(lineOf(i, tags));
   const out: Files = {
     [CONFIG]: renderConfig({ cats: s.cats, day: s.day }),
     [dayFile(s.today)]: file(`# ${s.today}`, todayList(s.items).map(line)),
-    [BACKLOG]: file('# Backlog', backlogList(s.items).map(line)),
+    [BACKLOG]: renderBacklog(s, tags),
   };
   // Archiwum: każdy miniony dzień, w którym coś zostało, w kolejności pozycji.
   const past = new Map<string, Item[]>();
@@ -109,6 +127,7 @@ interface Ctx {
   today: string;
   hours: DayHours;
   catOfTag: Map<string, string>;
+  cats: State['cats'];
   errors: FileError[];
 }
 
@@ -182,6 +201,9 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
   const items: Item[] = [];
   /** Pozycja, pod którą mogą stać linie opisu, i jej wcięcie; `null` — przerwa po błędzie. */
   let last: { item: Item; indent: number; desc: string[]; blanks: number } | null = null;
+  /** sekcja projektu, w której stoją kolejne linie backlogu; `null` — przed pierwszym `##` */
+  let section: State['cats'][number] | null = null;
+  const seen = new Set<string>();
   let broken = false;
   const close = () => {
     if (last?.desc.length) {
@@ -208,6 +230,22 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
     }
     close();
     broken = true;
+    // Nagłówek projektu: kolejne linie należą do niego.
+    const h = /^##(?:\s+(.*))?$/.exec(src);
+    if (h) {
+      if (ctx.kind.type !== 'backlog')
+        return err(no, 'nagłówki projektów (##) są tylko w BACKLOG.md');
+      const name = (h[1] ?? '').trim();
+      const p = ctx.cats.find(
+        (c) => c.project && !c.archived && c.name.trim().toLowerCase() === name.toLowerCase(),
+      );
+      if (!p) return err(no, `nieznany projekt „${name}" — nie ma go w ${CONFIG}`);
+      if (seen.has(p.id)) return err(no, `projekt „${name}" ma już swoją sekcję`);
+      seen.add(p.id);
+      section = p;
+      broken = false;
+      return;
+    }
     const p = parseLine(src);
     if (!p.ok) return err(no, p.error);
     const l = p.line;
@@ -217,7 +255,9 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
     if (l.tag !== undefined) {
       cat = ctx.catOfTag.get(l.tag);
       if (cat === undefined) return err(no, `nieznany tag „#${l.tag}" — nie ma go w ${CONFIG}`);
-    }
+      if (section && projectOf(ctx.cats, cat)?.id !== section.id)
+        return err(no, `„#${l.tag}" nie należy do projektu „${section.name.trim()}"`);
+    } else if (section) cat = section.id;
     const isPattern = st.state.tag === 'backlog-task' && st.state.when?.type === 'recurring';
     const item: Item = {
       id: isPattern && l.id !== undefined ? l.id : `${ctx.name}:${no}`,
@@ -256,7 +296,15 @@ export function parseFiles(files: Files): ParseResult {
   const { cats, day } = cfg.config;
   const hours = { q0: day.start * 4, q1: day.end * 4 };
   const catOfTag = new Map(cats.map((c) => [c.tag!, c.id]));
-  const ctx = (name: string, kind: Kind): Ctx => ({ name, kind, today, hours, catOfTag, errors });
+  const ctx = (name: string, kind: Kind): Ctx => ({
+    name,
+    kind,
+    today,
+    hours,
+    catOfTag,
+    cats,
+    errors,
+  });
 
   const items: Item[] = [];
   for (const d of days) {
