@@ -13,7 +13,7 @@ import { formatRRule, parseRRule } from '../src/lib/rrule';
 import type { RRule } from '../src/lib/rrule';
 import { shiftDay } from '../src/lib/time';
 import type { State } from '../src/lib/types';
-import { backlogList, todayList } from '../src/lib/view';
+import { backlogOrder, todayList } from '../src/lib/view';
 
 const TODAY = '2026-09-25';
 
@@ -570,6 +570,10 @@ const DESCS = [
 function randomState(seed: number): State {
   const r = rng(seed);
   const base = normalize(null, TODAY);
+  // Projekty: kategoria główna (Dom) i podkategoria (Zadania › Programowanie).
+  base.cats = base.cats.map((c) =>
+    c.name === 'Dom' || c.name === 'Programowanie' ? { ...c, project: true } : c,
+  );
   const cats = base.cats.map((c) => c.id);
   const hours = { q0: base.day.start * 4, q1: base.day.end * 4 };
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
@@ -645,7 +649,7 @@ function project(s: State) {
     today: s.today,
     past: days.flatMap((d) => past.filter((i) => (i.state as { day: string }).day === d)).map(one),
     today_: todayList(s.items).map(one),
-    backlog: backlogList(s.items).map(one),
+    backlog: backlogOrder(s.items, s.cats).map(one),
   };
 }
 
@@ -671,6 +675,108 @@ describe('obieg losowych stanów maszyny', () => {
     expect(items.some((i) => i.text.startsWith('\\'))).toBe(true);
     expect(items.some((i) => i.desc?.includes('\n\n'))).toBe(true);
     expect(items.some((i) => i.desc !== undefined && i.from !== undefined)).toBe(true);
+    // Projekty: pozycje w obu i w podkategorii projektu głównego.
+    const files = all.map((s) => renderFiles(s)[BACKLOG]!);
+    expect(files.some((f) => f.includes('\n## Dom\n'))).toBe(true);
+    expect(files.some((f) => f.includes('\n## Programowanie\n'))).toBe(true);
+    expect(
+      files.some((f) => /## Dom\n[\s\S]*#(ogrod|samochod|zakupy|dzieci|naprawy) /.test(f)),
+    ).toBe(true);
+  });
+});
+
+describe('projekty w backlogu', () => {
+  const CFG = `${SPEC_CONFIG}
+[[categories]]
+tag = "diurnus"
+name = "Diurnus"
+color = "aqua"
+project = true
+
+[[categories]]
+tag = "diurnus-sync"
+name = "Sync"
+parent = "diurnus"
+
+[[categories]]
+tag = "remont"
+name = "Remont"
+parent = "dom"
+project = true
+`;
+  const files = (backlog: string) => ({
+    [CONFIG]: CFG,
+    [dayFile(TODAY)]: `# ${TODAY}\n`,
+    [BACKLOG]: backlog,
+  });
+
+  test('sekcja ## nadaje projekt liniom bez tagu; tag zostaje przy podkategorii projektu', () => {
+    const s = parsed(
+      files(
+        `# Backlog\n\n* [ ] Kiedyś\n\n## Diurnus\n\n* [ ] 2026-10-10 Wydanie\n* [ ] #diurnus-sync Dropbox\n      opis\n* Notatka\n\n## Remont\n\n* [ ] Kafelki\n`,
+      ),
+    );
+    const by = (t: string) => s.items.find((i) => i.text === t)!;
+    expect(by('Kiedyś').cat).toBeUndefined();
+    expect(by('Wydanie').cat).toBe('diurnus');
+    expect(by('Dropbox')).toMatchObject({ cat: 'diurnus-sync', desc: 'opis' });
+    expect(by('Notatka').cat).toBe('diurnus');
+    expect(by('Kafelki').cat).toBe('remont');
+  });
+
+  test('zapis: najpierw pozycje spoza projektów, potem sekcje projektów w kolejności kategorii', () => {
+    const src = `# Backlog\n\n* [ ] Kiedyś\n\n## Diurnus\n\n* [ ] 2026-10-10 Wydanie\n* [ ] #diurnus-sync Dropbox\n\n## Remont\n\n* [ ] Kafelki\n`;
+    const s = parsed(files(src));
+    expect(renderFiles(s)[BACKLOG]).toBe(
+      // Remont jest podkategorią Domu (przed Diurnusem w kolejności kategorii).
+      `# Backlog\n\n* [ ] Kiedyś\n\n## Remont\n\n* [ ] Kafelki\n\n## Diurnus\n\n* [ ] 2026-10-10 Wydanie\n* [ ] #diurnus-sync Dropbox\n`,
+    );
+    expect(renderConfig).toBeDefined();
+    expect(renderFiles(s)[CONFIG]).toContain('project = true');
+  });
+
+  test('pozycja z tagiem projektu poza sekcją trafia do projektu i przy zapisie przenosi się pod nagłówek', () => {
+    const s = parsed(files(`# Backlog\n\n* [ ] #diurnus Zgubione\n`));
+    expect(s.items[0]!.cat).toBe('diurnus');
+    expect(renderFiles(s)[BACKLOG]).toBe('# Backlog\n\n## Diurnus\n\n* [ ] Zgubione\n');
+  });
+
+  test('pusty projekt nie ma nagłówka; bez projektów plik jest taki jak dotąd', () => {
+    const s = parsed(files(`# Backlog\n\n* [ ] A\n`));
+    expect(renderFiles(s)[BACKLOG]).toBe('# Backlog\n\n* [ ] A\n');
+    const empty = parsed(files(`# Backlog\n`));
+    expect(renderFiles(empty)[BACKLOG]).toBe('# Backlog\n');
+  });
+
+  test('błędy: nieznany projekt, sekcja dwa razy, tag spoza projektu, ## w pliku dnia', () => {
+    const errs = (backlog: string) => errorsOf(files(backlog)).map((e) => [e.line, e.message]);
+    expect(errs(`# Backlog\n\n## Nieznany\n`)).toEqual([
+      [3, 'nieznany projekt „Nieznany" — nie ma go w .diurnus.toml'],
+    ]);
+    expect(errs(`# Backlog\n\n## Diurnus\n\n## diurnus\n`)).toEqual([
+      [5, 'projekt „diurnus" ma już swoją sekcję'],
+    ]);
+    expect(errs(`# Backlog\n\n## Diurnus\n\n* [ ] #dom Obce\n`)).toEqual([
+      [5, '„#dom" nie należy do projektu „Diurnus"'],
+    ]);
+    expect(
+      errorsOf({ [CONFIG]: CFG, [dayFile(TODAY)]: `# ${TODAY}\n\n## Diurnus\n` }).map(
+        (e) => e.message,
+      ),
+    ).toEqual(['nagłówki projektów (##) są tylko w BACKLOG.md']);
+  });
+
+  test('ustawienia: project = true tylko jako true, nazwy projektów nie mogą się powtarzać', () => {
+    const bad = parseConfig(
+      `${CFG}\n[[categories]]\ntag = "x"\nname = "diurnus"\ncolor = "red"\nproject = true\n`,
+    );
+    expect(bad.ok ? [] : bad.errors).toEqual(['projekt „diurnus" występuje dwa razy']);
+    const wrong = parseConfig(
+      `${CFG}\n[[categories]]\ntag = "y"\nname = "Y"\ncolor = "red"\nproject = false\n`,
+    );
+    expect(wrong.ok ? [] : wrong.errors).toEqual([
+      '[[categories]] nr 7: project może mieć tylko wartość true',
+    ]);
   });
 });
 

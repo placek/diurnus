@@ -6,7 +6,7 @@
   import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
   import type { Item } from '../../lib/types';
-  import { backlogList, categoryOf, itemTone, kindOf, soonOf, whenOf } from '../../lib/view';
+  import { backlogOrder, categoryOf, itemTone, kindOf, soonOf, whenOf } from '../../lib/view';
   import Bullet from '../list/Bullet.svelte';
   import ItemDesc from '../list/ItemDesc.svelte';
 
@@ -42,7 +42,8 @@
     return !!w && w.type !== 'date' && w.slot !== null;
   });
 
-  const siblings = $derived(backlogList(app.S.items));
+  // Kolejność wyświetlania: sekcja po sekcji (pozycje spoza projektów, potem projekty).
+  const siblings = $derived(backlogOrder(app.S.items, app.S.cats));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
   const fmtShort = new Intl.DateTimeFormat('pl-PL', {

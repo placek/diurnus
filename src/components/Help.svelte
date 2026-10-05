@@ -152,7 +152,12 @@
   <h3>Backlog</h3>
   <dl class="keys">
     <dt>Pisanie w pustym wierszu</dt>
-    <dd>nowa pozycja bez terminu</dd>
+    <dd>nowa pozycja bez terminu; w sekcji projektu — od razu w tym projekcie</dd>
+    <dt>Projekty</dt>
+    <dd>
+      kategoria oznaczona w ustawieniach jako projekt ma w backlogu własną sekcję pod resztą,
+      z pozycjami swoimi i swoich podkategorii; <kbd>Enter</kbd> w niej dodaje pozycję do projektu
+    </dd>
     <dt class="kb"><kbd>Enter</kbd> <kbd>⌫</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Esc</kbd></dt>
     <dd class="kb">jak w notatkach, także opis pod <kbd>Shift</kbd> <kbd>Enter</kbd>; znacznik zmienia się tylko z menu</dd>
     <dt>Klik w znacznik</dt>
@@ -198,7 +203,10 @@
   <h3>Ustawienia i dane</h3>
   <dl class="keys">
     <dt>Kategorie <span class="kb"><kbd>C</kbd></span></dt>
-    <dd>nazwa, ikona, kolor, kolejność, podkategorie</dd>
+    <dd>
+      nazwa, ikona, kolor, kolejność, podkategorie; „projekt" zbiera pozycje kategorii
+      w backlogu we własnej sekcji
+    </dd>
     <dt>Dzień <span class="kb"><kbd>D</kbd></span></dt>
     <dd>
       zakres godzin, pory dnia i powiadomienia kwadrans przed blokiem i na jego starcie — tylko

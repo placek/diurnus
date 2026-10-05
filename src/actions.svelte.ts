@@ -1,5 +1,5 @@
 import { app, commit, currentDay, dispatch, save, ui, uid, win } from './state.svelte';
-import { kids, topCats } from './lib/categories';
+import { kids, projectOf, topCats } from './lib/categories';
 import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
 import type { Event, Item, Refusal, WhenInput } from './lib/machine';
 import type { RRule } from './lib/rrule';
@@ -320,8 +320,13 @@ export function addItemAfter(afterId: string | null): void {
   const prev = afterId ? find(afterId) : undefined;
   // Enter w backlogu tworzy pozycję w backlogu, na liście dnia — w dziś.
   const place = prev && isBacklog(prev) ? 'backlog' : 'today';
+  // W sekcji projektu nowa pozycja zostaje w projekcie: dostaje kategorię poprzedniej.
+  const cat =
+    place === 'backlog' && prev?.cat && projectOf(app.S.cats, prev.cat) ? prev.cat : undefined;
   const id = uid();
-  const events: Event[] = [{ type: 'create', id, text: '', place, created: Date.now() }];
+  const events: Event[] = [
+    { type: 'create', id, text: '', place, created: Date.now(), ...(cat ? { cat } : {}) },
+  ];
   if (prev && typeAfterEnter(kindOf(prev)) === 'note') events.push({ type: 'toNote', id });
   if (dispatch(events, { after: (items) => placeAfter(items, id, afterId) }) === null)
     ui.focusItem = id;
@@ -334,9 +339,14 @@ export function deleteItem(id: string, focusAfter: string | null): void {
 }
 
 /** Pozycja z tekstem na końcu listy; pole początkowe samo nie jest pozycją. */
-export function createItemWithText(text: string, place: 'today' | 'backlog' = 'today'): void {
+export function createItemWithText(
+  text: string,
+  place: 'today' | 'backlog' = 'today',
+  cat?: string,
+): void {
   const id = uid();
-  if (dispatch([{ type: 'create', id, text, place, created: Date.now() }]) === null)
+  const created = Date.now();
+  if (dispatch([{ type: 'create', id, text, place, created, ...(cat ? { cat } : {}) }]) === null)
     ui.focusItem = id;
 }
 

@@ -1,3 +1,4 @@
+import { projectOf, projects } from './categories';
 import { SLOT_LEN, slotFits, slotTaken } from './machine';
 import type { DayHours, Item, Slot, When } from './machine';
 import { rel, splitDay } from './time';
@@ -150,6 +151,30 @@ export function backlogList(items: readonly Item[]): Item[] {
   );
   return [...dated, ...undated];
 }
+
+export interface BacklogGroup {
+  /** `null` — pozycje spoza projektów */
+  project: Category | null;
+  items: Item[];
+}
+
+/**
+ * Backlog w sekcjach: najpierw pozycje spoza projektów, potem po jednej sekcji
+ * na projekt (także pusty — żeby dało się w nim coś zaplanować). W każdej sekcji
+ * ta sama kolejność co w całym backlogu.
+ */
+export function backlogGroups(items: readonly Item[], cats: readonly Category[]): BacklogGroup[] {
+  const all = backlogList(items);
+  const of = (i: Item) => projectOf(cats, i.cat)?.id ?? null;
+  return [
+    { project: null, items: all.filter((i) => of(i) === null) },
+    ...projects(cats).map((p) => ({ project: p, items: all.filter((i) => of(i) === p.id) })),
+  ];
+}
+
+/** Kolejność wyświetlania backlogu — sekcja po sekcji (nawigacja klawiszami, zapis). */
+export const backlogOrder = (items: readonly Item[], cats: readonly Category[]): Item[] =>
+  backlogGroups(items, cats).flatMap((g) => g.items);
 
 /** Kategoria pozycji albo `null`, gdy jej nie ma lub została usunięta. */
 export const categoryOf = (i: Item, cats: readonly Category[]): Category | null =>
