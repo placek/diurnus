@@ -8,6 +8,7 @@
   import { categoryOf, isDone, itemTone, slotOf } from '../lib/view';
   import type { Tone } from '../lib/view';
   import Icon from './Icon.svelte';
+  import { MARK } from '../lib/items';
   import {
     canMoveTo,
     moveBlock,
@@ -69,10 +70,15 @@
   });
 
   const label = $derived(item.text || cat?.name || 'Bez kategorii');
+  const steps = $derived(item.steps ?? []);
+  const stepsDone = $derived(steps.filter((s) => s.done).length);
   const tip = $derived(
     `${fmtQ(day, slot)}–${fmtQ(day, endQ)}  ${cat ? pathOf(app.S.cats, cat) : 'Bez kategorii'}` +
       `${item.text ? ': ' + item.text : ''} (${TONE_LABEL[tone]})` +
-      (item.desc?.trim() ? `\n\n${item.desc.trim()}` : ''),
+      (item.desc?.trim() ? `\n\n${item.desc.trim()}` : '') +
+      (steps.length
+        ? `\n\n${steps.map((s) => `${s.done ? MARK.done : MARK.task} ${s.text}`).join('\n')}`
+        : ''),
   );
 
   const iconName = $derived(cat ? iconOf(app.S.cats, cat) : '');
@@ -171,6 +177,7 @@
 >
   {#if seg.first}
     <span class="t">{label}</span>
+    {#if steps.length}<span class="sn" title="Kroki">{stepsDone}/{steps.length}</span>{/if}
     {#if tone === 'active'}<span class="cd">{countdown}</span>{/if}
     <!-- Ikona kategorii po prawej, jak na listach. -->
     <Icon name={iconName} fallback={letter} />

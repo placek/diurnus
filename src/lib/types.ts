@@ -26,7 +26,7 @@ export interface Band {
 export type ItemType = 'task' | 'done' | 'note';
 
 export type { RRule } from './rrule';
-export type { Item } from './machine';
+export type { Item, Step } from './machine';
 
 export interface DaySettings {
   start: number;

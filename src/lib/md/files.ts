@@ -2,12 +2,12 @@ import { normalize } from '../model';
 import { advance, pin } from '../rrule';
 import { shiftDay } from '../time';
 import { slotFits, violations } from '../machine';
-import type { DayHours, Item, ItemState } from '../machine';
+import type { DayHours, Item, ItemState, Step } from '../machine';
 import type { State } from '../types';
 import { projectOf } from '../categories';
 import { backlogGroups, todayList } from '../view';
 import { parseConfig, renderConfig } from './config';
-import { descIndent, descLines, parseLine, renderLine } from './line';
+import { STEP, descIndent, descLines, parseLine, renderLine, unescapeDesc } from './line';
 import type { Line } from './line';
 import { tagsFor } from './slug';
 
@@ -40,10 +40,12 @@ function lineOf(i: Item, tags: Map<string, string>, inProject?: string): Line {
   const s = i.state;
   const tag = i.cat !== undefined && i.cat !== inProject ? tags.get(i.cat) : undefined;
   const desc = descLines(i.desc);
+  const steps = (i.steps ?? []).map((st) => ({ text: st.text, done: st.done }));
   const base = {
     text: i.text,
     ...(tag !== undefined ? { tag } : {}),
     ...(desc.length ? { desc } : {}),
+    ...(steps.length ? { steps } : {}),
   };
   // Kopia wzorca niesie identyfikator wzorca; sam wzorzec — własny.
   const from = i.from !== undefined ? { id: i.from } : {};
@@ -199,16 +201,28 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
     return [];
   }
   const items: Item[] = [];
-  /** Pozycja, pod którą mogą stać linie opisu, i jej wcięcie; `null` — przerwa po błędzie. */
-  let last: { item: Item; indent: number; desc: string[]; blanks: number } | null = null;
+  /** Pozycja, pod którą mogą stać linie opisu i kroki, i jej wcięcie; `null` — przerwa po błędzie. */
+  let last: {
+    item: Item;
+    indent: number;
+    /** zadanie — jego wcięte linie `* [ ]` to kroki; pod notatką to zwykły opis */
+    task: boolean;
+    desc: string[];
+    steps: Step[];
+    blanks: number;
+  } | null = null;
   /** sekcja projektu, w której stoją kolejne linie backlogu; `null` — przed pierwszym `##` */
   let section: State['cats'][number] | null = null;
   const seen = new Set<string>();
   let broken = false;
   const close = () => {
-    if (last?.desc.length) {
+    if (last && (last.desc.length || last.steps.length)) {
       const i = items.indexOf(last.item);
-      items[i] = { ...last.item, desc: last.desc.join('\n') };
+      items[i] = {
+        ...last.item,
+        ...(last.desc.length ? { desc: last.desc.join('\n') } : {}),
+        ...(last.steps.length ? { steps: last.steps } : {}),
+      };
     }
     last = null;
   };
@@ -224,8 +238,16 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
       if (!last) return err(no, 'wcięta linia opisu bez pozycji nad nią');
       const cut = /^[ \t]*/.exec(src)![0].length;
       const body = src.slice(Math.min(cut, last.indent)).replace(/\s+$/, '');
+      // Krok: tylko pod zadaniem. Wcięty płycej też jest krokiem (zagnieżdżona
+      // lista po dwóch spacjach); głębiej — to już tekst opisu.
+      const step = last.task ? STEP.exec(body) : null;
+      if (step) {
+        last.blanks = 0;
+        last.steps.push({ text: step[2] ?? '', done: step[1] === 'x' });
+        return;
+      }
       for (; last.blanks > 0; last.blanks--) last.desc.push('');
-      last.desc.push(body);
+      last.desc.push(unescapeDesc(body));
       return;
     }
     close();
@@ -268,7 +290,14 @@ function parseItems(text: string, heading: string, ctx: Ctx): Item[] {
     };
     items.push(item);
     broken = false;
-    last = { item, indent: descIndent(l.marker), desc: [], blanks: 0 };
+    last = {
+      item,
+      indent: descIndent(l.marker),
+      task: l.marker !== 'note',
+      desc: [],
+      steps: [],
+      blanks: 0,
+    };
   });
   close();
   return items;

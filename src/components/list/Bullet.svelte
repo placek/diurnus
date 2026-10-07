@@ -6,6 +6,7 @@
     moveToBacklog,
     moveToToday,
     openCategoryMenu,
+    addStep,
     openDesc,
     scheduleItem,
     setItemType,
@@ -69,7 +70,11 @@
     IN_PLACE.filter(
       (t) =>
         !(inBacklog && t.type === 'done') &&
-        !(t.type === 'note' && (slotOf(item) !== null || whenOf(item) !== null)),
+        // Notatka nie ma czasu ani kroków.
+        !(
+          t.type === 'note' &&
+          (slotOf(item) !== null || whenOf(item) !== null || !!item.steps?.length)
+        ),
     ),
   );
 
@@ -286,6 +291,18 @@
     >
       <span class="bm-mark">¶</span>Opis
     </button>
+    <!-- Kroki ma tylko zadanie; nowy staje na końcu listy. -->
+    {#if kind !== 'note'}
+      <button
+        role="menuitem"
+        onclick={() => {
+          menu = false;
+          addStep(item.id);
+        }}
+      >
+        <span class="bm-mark">☐</span>Dodaj krok
+      </button>
+    {/if}
     <!-- Jedna pozycja, jedna kategoria: ta sama na liście i na siatce. -->
     <button
       role="menuitem"

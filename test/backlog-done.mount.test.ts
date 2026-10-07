@@ -117,6 +117,7 @@ test('menu pozycji backlogu: typy | bez daty, wybierz datę… | opis, kategoria
     '…Wybierz datę…',
     '—',
     '¶Opis',
+    '☐Dodaj krok',
     '#Kategoria…',
   ]);
 });
@@ -130,7 +131,15 @@ test('menu pozycji dzisiejszej: typy | opis, kategoria, bez terminów', async ()
   const seq = [...document.querySelector('.bullet-menu')!.children].map((el) =>
     el.classList.contains('bm-sep') ? '—' : el.textContent?.trim(),
   );
-  expect(seq).toEqual(['·Zadanie', '×Wykonane', '–Notatka', '—', '¶Opis', '#Kategoria…']);
+  expect(seq).toEqual([
+    '·Zadanie',
+    '×Wykonane',
+    '–Notatka',
+    '—',
+    '¶Opis',
+    '☐Dodaj krok',
+    '#Kategoria…',
+  ]);
 });
 
 test('„Bez daty" zdejmuje wzorzec', async () => {

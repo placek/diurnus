@@ -3,7 +3,9 @@
   import { removeItem } from '../actions.svelte';
   import { NO_CAT_COLOR, catOf, colorOf, iconOf, kids, rootOf, topCats } from '../lib/categories';
   import { SLOT_LEN } from '../lib/machine';
-  import type { Event, Item } from '../lib/machine';
+  import type { Event, Item, Step } from '../lib/machine';
+  import { MARK } from '../lib/items';
+  import { tick } from 'svelte';
   import { fmtQ } from '../lib/time';
   import { isDone, itemTone, slotOf } from '../lib/view';
   import Icon from './Icon.svelte';
@@ -23,10 +25,25 @@
 
   let title = $state('');
   let desc = $state('');
+  /** kroki w arkuszu — zapisują się razem z resztą, „Zapisz" */
+  let steps = $state<{ text: string; done: boolean }[]>([]);
+  let stepInputs = $state<HTMLInputElement[]>([]);
   $effect(() => {
     title = item?.text ?? '';
     desc = item?.desc ?? '';
+    steps = (item?.steps ?? []).map((s) => ({ ...s }));
   });
+
+  /** Nowy pusty krok za `n` (na końcu bez `n`), od razu z fokusem. */
+  async function addSheetStep(n = steps.length - 1) {
+    steps.splice(n + 1, 0, { text: '', done: false });
+    await tick();
+    stepInputs[n + 1]?.focus();
+  }
+
+  /** Kroki do zapisu: bez zbędnych spacji, bez pustych. */
+  const tidySteps = (xs: readonly Step[]): Step[] =>
+    xs.map((s) => ({ text: s.text.trim(), done: s.done })).filter((s) => s.text !== '');
 
   /** Opis bez końcowych pustych linii; pusty — brak opisu. */
   const tidy = (d: string) => d.replace(/\s+$/, '');
@@ -49,22 +66,25 @@
     const nextDesc = tidy(desc);
     const catChanged = (i.cat ?? '') !== edit.cat;
     const descChanged = nextDesc !== (i.desc ?? '');
+    const nextSteps = tidySteps(steps);
+    const stepsChanged = JSON.stringify(nextSteps) !== JSON.stringify(i.steps ?? []);
     const events: Event[] = [];
     if (patch.done === true) events.push({ type: 'markDone', id: i.id, copyId: uid() });
     if (patch.done === false) events.push({ type: 'markOpen', id: i.id });
     const withData = (items: Item[]) =>
       items.map((x) => {
         if (x.id !== i.id) return x;
-        const { desc: _old, ...rest } = x;
+        const { desc: _old, steps: _oldSteps, ...rest } = x;
         return {
           ...rest,
           text: nextTitle,
           ...(edit.cat ? { cat: edit.cat } : {}),
           ...(nextDesc ? { desc: nextDesc } : {}),
+          ...(nextSteps.length ? { steps: nextSteps } : {}),
         };
       });
     if (events.length) dispatch(events, { after: withData });
-    else if (catChanged || descChanged || nextTitle !== i.text)
+    else if (catChanged || descChanged || stepsChanged || nextTitle !== i.text)
       commit(() => (app.S.items = withData(app.S.items)));
     closeAll();
   }
@@ -84,6 +104,38 @@
 
     <input id="ttl" maxlength="60" autocomplete="off" placeholder={cur?.name ?? 'Bez kategorii'} bind:value={title} />
     <textarea id="sheet-desc" rows="3" placeholder="Opis" aria-label="Opis" bind:value={desc}></textarea>
+
+    <!-- Kroki zadania: odhaczenie i tekst; Enter dodaje następny. -->
+    <ul class="sh-steps" aria-label="Kroki">
+      {#each steps as st, n}
+        <li class="step" class:is-done={st.done}>
+          <button
+            class="step-mark"
+            aria-label={st.done ? 'Odznacz krok' : 'Odhacz krok'}
+            aria-pressed={st.done}
+            onclick={() => (st.done = !st.done)}>{st.done ? MARK.done : MARK.task}</button
+          >
+          <input
+            bind:this={stepInputs[n]}
+            class="step-text"
+            maxlength="200"
+            autocomplete="off"
+            aria-label="Krok {n + 1}"
+            bind:value={st.text}
+            onkeydown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              e.stopPropagation();
+              addSheetStep(n);
+            }}
+          />
+          <button class="ib sh-step-x" aria-label="Usuń krok" onclick={() => steps.splice(n, 1)}
+            ><Icon name="xmark" fallback="×" /></button
+          >
+        </li>
+      {/each}
+    </ul>
+    <button class="sh-add-step" onclick={() => addSheetStep()}>+ Dodaj krok</button>
 
     <div id="sheetcats">
       <div class="cats">

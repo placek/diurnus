@@ -107,7 +107,7 @@
     <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
     <dd class="kb">
       nowa pozycja pod bieżącą; zmiana znacznika zadanie → wykonane → notatka
-      (<kbd>Shift</kbd> wstecz). Zadanie z godziną pomija notatkę
+      (<kbd>Shift</kbd> wstecz). Zadanie z godziną albo krokami pomija notatkę
     </dd>
     <dt class="kb"><kbd>⌫</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Esc</kbd></dt>
     <dd class="kb">
@@ -124,10 +124,21 @@
       „Opis" w menu znacznika (przytrzymanie), a ↵ w opisie dodaje linię. Na siatce opis jest
       w podpowiedzi bloku i w arkuszu edycji
     </dd>
+    <dt class="kb"><kbd>Ctrl</kbd> <kbd>Enter</kbd></dt>
+    <dd class="kb">
+      nowy krok zadania, pod opisem. W kroku <kbd>Enter</kbd> dodaje następny, w pustym kończy
+      listę nową pozycją; <kbd>Tab</kbd> odhacza krok. Na telefonie „Dodaj krok" w menu znacznika
+    </dd>
+    <dt>Kroki</dt>
+    <dd>
+      lista do odhaczenia pod zadaniem, niezależna od jego odhaczenia; licznik postępu stoi przy
+      pozycji i na bloku. Kopia zadania powtarzalnego zaczyna z krokami nieodhaczonymi. Notatka
+      kroków nie ma
+    </dd>
     <dt>Klik w znacznik</dt>
     <dd>zadanie ↔ wykonane</dd>
     <dt>Prawy przycisk albo przytrzymanie znacznika</dt>
-    <dd>typ pozycji, opis i kategoria</dd>
+    <dd>typ pozycji, opis, krok i kategoria</dd>
     <dt>Kolejność</dt>
     <dd>
       na górze wykonane, w kolejności odhaczania — odhaczone dołącza na koniec wykonanych. Pod

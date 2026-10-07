@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, pushHistory, save, ui, currentDay } from '../../state.svelte';
-  import { addItemAfter, cycleItemType, deleteItem, setItemText, splitToDesc } from '../../actions.svelte';
+  import { addItemAfter, addStep, focusItemEnd, tidySteps, cycleItemType, deleteItem, setItemText, splitToDesc } from '../../actions.svelte';
   import { colorOf, iconOf } from '../../lib/categories';
   import Icon from '../Icon.svelte';
   import { fmtQ } from '../../lib/time';
@@ -8,6 +8,7 @@
   import { categoryOf, itemTone, kindOf, slotOf, todayList } from '../../lib/view';
   import Bullet from './Bullet.svelte';
   import ItemDesc from './ItemDesc.svelte';
+  import ItemSteps from './ItemSteps.svelte';
 
   interface Props {
     item: Item;
@@ -45,12 +46,18 @@
   const siblings = $derived(todayList(app.S.items));
   const index = $derived(siblings.findIndex((i) => i.id === item.id));
 
-  /** Sąsiad w górę trafia w koniec swojego opisu, jeśli go ma — jak w edytorze. */
+  /** Sąsiad w górę trafia w swój koniec — ostatni krok albo koniec opisu — jak w edytorze. */
   function focusSibling(offset: -1 | 1) {
     const target = siblings[index + offset];
     if (!target) return;
-    if (offset === -1 && target.desc !== undefined) ui.focusDesc = { id: target.id, at: -1 };
+    if (offset === -1) focusItemEnd(target);
     else ui.focusItem = target.id;
+  }
+
+  /** Pod opisem: pierwszy krok, a bez kroków — następna pozycja. */
+  function belowDesc() {
+    if (item.steps?.length) ui.focusStep = { id: item.id, n: 0, at: 0 };
+    else focusSibling(1);
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -58,6 +65,12 @@
     const at = input.selectionStart ?? 0;
     const collapsed = input.selectionStart === input.selectionEnd;
 
+    // Ctrl+Enter: nowy krok, pierwszy pod opisem.
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      addStep(item.id, 0);
+      return;
+    }
     // Shift+Enter: nowa linia pod tytułem — w opisie.
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
@@ -97,6 +110,11 @@
       ui.focusDesc = { id: item.id, at: 0 };
       return;
     }
+    if (e.key === 'ArrowDown' && at === input.value.length && collapsed && item.steps?.length) {
+      e.preventDefault();
+      ui.focusStep = { id: item.id, n: 0, at: 0 };
+      return;
+    }
     if (
       e.key === 'ArrowDown' &&
       at === input.value.length &&
@@ -120,13 +138,17 @@
   class:has-cat={!!color}
   class:is-dragging={ui.drag?.id === item.id}
   class:has-desc={item.desc !== undefined}
+  class:has-steps={!!item.steps?.length}
   data-id={item.id}
   style={color ? `--c:var(--${color})` : undefined}
   onfocusin={() => (rowFocus = true)}
   onfocusout={(e) => {
     // Przejście między tytułem a opisem tej samej pozycji nie zwija opisu.
     const to = e.relatedTarget as Node | null;
-    if (!to || !(e.currentTarget as HTMLElement).contains(to)) rowFocus = false;
+    if (!to || !(e.currentTarget as HTMLElement).contains(to)) {
+      rowFocus = false;
+      tidySteps(item.id);
+    }
   }}
 >
   <Bullet {item} />
@@ -153,6 +175,7 @@
     onblur={() => (dirty = false)}
     onkeydown={onKeydown}
   />
+  {#if item.steps?.length}<span class="item-meta item-steps-n" title="Kroki">{item.steps.filter((s) => s.done).length}/{item.steps.length}</span>{/if}
   {#if slot !== null}<span class="item-meta item-hour">{fmtQ(currentDay.value, slot)}</span>{/if}
   <!-- Ikona kategorii stoi na samym końcu, za czasem. -->
   {#if cat}<span class="item-cat" title={cat.name}
@@ -162,6 +185,15 @@
     {item}
     open={rowFocus}
     onEnter={() => addItemAfter(item.id)}
+    onDown={belowDesc}
+  />
+  <ItemSteps
+    {item}
+    onExit={() => addItemAfter(item.id)}
+    onUp={() => {
+      if (item.desc !== undefined) ui.focusDesc = { id: item.id, at: -1 };
+      else ui.focusItem = item.id;
+    }}
     onDown={() => focusSibling(1)}
   />
 </div>
