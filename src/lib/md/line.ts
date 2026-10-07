@@ -14,6 +14,10 @@ import { TAG } from './slug';
  * kontynuacja elementu listy w Markdownie. Pusta linia w środku opisu zostaje
  * pusta (bez spacji); opis nie kończy się pustą linią.
  *
+ * Pod opisem zadania stoją jego kroki — zagnieżdżona lista z tym samym wcięciem:
+ * `* [ ] tekst` albo `* [x] tekst`. Linia opisu, która tak wygląda, dostaje
+ * `\` na początku, żeby nie stała się krokiem.
+ *
  * Linia nie wie, w którym pliku stoi — co wolno gdzie, sprawdza plik.
  */
 
@@ -28,6 +32,8 @@ export interface Line {
   id?: string;
   /** linie opisu pod pozycją, już bez wcięcia */
   desc?: string[];
+  /** kroki zadania, pod opisem */
+  steps?: { text: string; done: boolean }[];
 }
 
 /** Wcięcie opisu: pod tekstem za znacznikiem. */
@@ -42,6 +48,17 @@ export function descLines(desc: string | undefined): string[] {
 }
 
 const MARKER = { open: '[ ]', done: '[x]' } as const;
+
+/** Wcięta linia kroku, już bez wcięcia: `* [ ] tekst`, `* [x] tekst`. */
+export const STEP = /^\* \[( |x)\](?: (.*))?$/;
+/** Linia opisu, która czytałaby się jako krok — także już z ucieczką. */
+const LOOKS_LIKE_STEP = /^\\*\* \[[ x]\](?: |$)/;
+
+/** Ucieczka linii opisu: `\` przed tym, co wyglądałoby na krok. */
+export const escapeDesc = (d: string) => (LOOKS_LIKE_STEP.test(d) ? `\\${d}` : d);
+/** Odwrotność `escapeDesc`. */
+export const unescapeDesc = (d: string) =>
+  d.startsWith('\\') && LOOKS_LIKE_STEP.test(d) ? d.slice(1) : d;
 
 /** Tekst zaczynający się tak, jak mógłby zacząć się człon, dostaje `\`. */
 const NEEDS_LEAD = /^[\\[{#0-9]/;
@@ -76,9 +93,15 @@ export function renderLine(l: Line): string {
   const pad = ' '.repeat(descIndent(l.marker));
   const desc = (l.desc ?? []).map((d) => {
     if (/\r/.test(d)) throw new Error('Linia opisu nie może mieć znaku powrotu karetki');
-    return d === '' ? '' : pad + d;
+    return d === '' ? '' : pad + escapeDesc(d);
   });
-  return [parts.join(' '), ...desc].join('\n');
+  if (l.steps?.length && l.marker === 'note') throw new Error('Notatka nie ma kroków');
+  const steps = (l.steps ?? []).map((st) => {
+    if (/[\r\n]/.test(st.text)) throw new Error('Krok musi mieścić się w jednej linii');
+    const text = st.text.trim();
+    return `${pad}* ${MARKER[st.done ? 'done' : 'open']}${text ? ' ' + text : ''}`;
+  });
+  return [parts.join(' '), ...desc, ...steps].join('\n');
 }
 
 export function isRealDate(s: string): boolean {

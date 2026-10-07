@@ -72,6 +72,8 @@ export const ui = $state({
   focusCaret: null as number | null,
   /** opis pozycji, który ma dostać fokus, z miejscem karetki (`-1` — na końcu) */
   focusDesc: null as { id: string; at: number } | null,
+  /** krok `n` pozycji, który ma dostać fokus, z miejscem karetki (`-1` — na końcu) */
+  focusStep: null as { id: string; n: number; at: number } | null,
   /** trwające przeciąganie pozycji; `toIndex` liczy się w liście dnia BEZ niej */
   drag: null as { id: string; toIndex: number } | null,
   /** trwające przeciąganie bloku po siatce; `q` to kwant, na którym by wylądował

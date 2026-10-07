@@ -34,6 +34,11 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
   otwiera „Opis" w menu znacznika (przytrzymanie), a ↵ w opisie dodaje linię. Opis nie ma limitu;
   poza edycją widać jego dwie pierwsze linie. Blok na siatce pokazuje go w podpowiedzi, a arkusz edycji pozwala go
   zmienić.
+- **Kroki** zadania: lista do odhaczenia pod opisem — „spakować się, zatankować". `Ctrl`+`Enter`
+  w tytule albo opisie dodaje krok (na telefonie „Dodaj krok" w menu znacznika), `Enter` w kroku
+  dodaje następny, `Enter` w pustym kończy listę nową pozycją, `Tab` odhacza. Odhaczenie kroków nie
+  odhacza zadania; licznik `2/3` stoi przy pozycji i na bloku siatki. Kopia powtarzalnego zadania
+  dostaje kroki nieodhaczone, więc rutyna co dzień zaczyna od zera. Notatka kroków nie ma.
 - **Jeden rekord.** Zadanie z godziną na liście to ten sam blok, co na siatce — ten sam tekst,
   kategoria i znacznik.
 - **Kolejność:** na górze wykonane, w kolejności odhaczania; pod nimi zadania z godziną
@@ -121,7 +126,7 @@ edytorze:
 * Notatka z rozmowy
 ```
 
-Opis pozycji to linie wcięte pod jej tekstem. `RRRR-MM-DD.md` na dziś i każdy miniony dzień, `BACKLOG.md` (z regułami w klamrach, np.
+Opis pozycji to linie wcięte pod jej tekstem, a kroki zadania — wcięte `* [ ]` pod opisem. `RRRR-MM-DD.md` na dziś i każdy miniony dzień, `BACKLOG.md` (z regułami w klamrach, np.
 `{FREQ=WEEKLY;BYDAY=MO}`) oraz ustawienia `.diurnus.toml`. Format opisuje
 [specyfikacja](docs/superpowers/specs/2026-09-25-diurnus-markdown-files-design.md). Wczytać
 można to archiwum, te pliki zaznaczone razem albo starszą kopię JSON; plik, którego nie da

@@ -194,6 +194,7 @@ a.ib{text-decoration:none}
 .blk .ic{flex:none;font-size:11px}
 .blk .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .blk .cd{flex:none;font:500 13px var(--mono);opacity:.8}
+.blk .sn{flex:none;font:500 12px var(--sans);opacity:.75;font-variant-numeric:tabular-nums}
 .blk .cont{opacity:.55;margin-left:auto}
 
 /* Ta sama zasada co na listach: rzecz zrobiona jest zapisem i schodzi w tło,
@@ -305,6 +306,14 @@ a.ib{text-decoration:none}
   border:1.5px solid var(--line-2);border-radius:9px;padding:8px 11px;outline:none;
 }
 #sheet-desc:focus{border-color:var(--c)}
+.sh-steps{margin:8px 0 0;padding:0;list-style:none}
+.sh-steps .step-text{font-size:15px;padding:4px 4px}
+.sh-step-x{flex:none;font-size:12px;opacity:.6}
+.sh-add-step{
+  margin-top:4px;padding:4px 6px;border:0;border-radius:6px;background:transparent;
+  font:500 14px var(--sans);color:var(--fg-dim);cursor:pointer;
+}
+.sh-add-step:hover{background:var(--line);color:var(--fg)}
 .cats{display:flex;gap:6px;margin:12px 0 14px}
 .cb{
   flex:1;height:40px;border:0;border-radius:9px;cursor:pointer;display:grid;place-items:center;font-size:15px;
@@ -588,6 +597,22 @@ textarea.item-desc{display:block;min-height:calc(1.4em + 2px);field-sizing:conte
 textarea.item-desc:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
 .item-desc.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;cursor:text}
 .item.tone-done .item-desc{color:var(--fg-faint)}
+/* Kroki: lista pod opisem, wyrównana do tekstu jak opis. Znacznik kroku to
+   mniejszy znacznik pozycji — ta sama notacja, odhaczone szare i przekreślone. */
+.item-steps{flex:1 0 100%;margin:-2px 0 3px 31px;padding:0;list-style:none;max-width:calc(100% - 31px)}
+.step{display:flex;align-items:center;gap:4px}
+.step-mark{
+  flex:none;width:20px;height:20px;border:0;border-radius:5px;background:transparent;padding:0;
+  color:var(--fg-dim);cursor:pointer;display:grid;place-items:center;font:600 15px var(--sans);line-height:1;
+}
+.step-mark:hover{background:var(--line)}
+.step-text{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;padding:1px 2px;
+  font:400 15px/1.4 var(--sans);color:var(--fg);
+}
+.step-text:focus,.step-text:focus-visible{outline:none;background:color-mix(in srgb,var(--fg) 4%,transparent);border-radius:6px}
+.step.is-done .step-text{color:var(--fg-faint);text-decoration:line-through}
+.item.tone-done .step-text{color:var(--fg-faint)}
 .item.has-cat.is-linked{background:color-mix(in srgb, var(--c) var(--tint), transparent)}
 .item-cat{flex:none;display:grid;place-items:center;width:16px;font-size:13px;color:var(--c)}
 /* Wykonane przygasza ikonę jak blok na siatce: kategoria zostaje, ale nie woła. */

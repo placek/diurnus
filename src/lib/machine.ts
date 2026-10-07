@@ -60,7 +60,15 @@ export interface Item {
   readonly cat?: string;
   /** Opis pod tytułem, wiele linii (`\n`); jak kategoria — dana przenoszona na kopie. */
   readonly desc?: string;
+  /** Kroki zadania: lista do odhaczenia pod opisem. Dana jak opis; notatka kroków nie ma. */
+  readonly steps?: readonly Step[];
   readonly created?: number;
+}
+
+/** Krok zadania — tekst w jednej linii i odhaczenie, niezależne od zadania. */
+export interface Step {
+  readonly text: string;
+  readonly done: boolean;
 }
 
 export interface Machine {
@@ -155,10 +163,11 @@ const slotOf = (i: Item): Slot | null => (i.state.tag === 'today-task' ? i.state
 
 /* ───────────── Przejścia ───────────── */
 
-/** Kopia wzorca dziedziczy jego kategorię i opis. */
-const catOf = (i: Item): { cat?: string; desc?: string } => ({
+/** Kopia wzorca dziedziczy jego kategorię, opis i kroki — te ostatnie nieodhaczone. */
+const catOf = (i: Item): { cat?: string; desc?: string; steps?: Step[] } => ({
   ...(i.cat !== undefined ? { cat: i.cat } : {}),
   ...(i.desc !== undefined ? { desc: i.desc } : {}),
+  ...(i.steps?.length ? { steps: i.steps.map((s) => ({ text: s.text, done: false })) } : {}),
 });
 
 const put = (m: Machine, id: string, state: ItemState): Machine => ({
@@ -270,9 +279,13 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
   }
 }
 
-/** Notatka nie ma czasu, więc notatką staje się tylko zadanie otwarte i bez wiązania. */
+/**
+ * Notatka nie ma czasu, więc notatką staje się tylko zadanie otwarte i bez
+ * wiązania. Nie ma też kroków: zadanie z krokami zostaje zadaniem.
+ */
 function toNote(m: Machine, item: Item): Result {
   const s = item.state;
+  if (item.steps?.length) return no('not-allowed');
   if (s.tag === 'today-task' && !s.done && s.slot === null)
     return ok(put(m, item.id, { tag: 'today-note' }));
   if (s.tag === 'backlog-task' && s.when === null)
@@ -493,6 +506,8 @@ export function violations(m: Machine, day: DayHours): string[] {
       default:
         assertNever(s);
     }
+    const note = s.tag === 'today-note' || s.tag === 'backlog-note' || s.tag === 'past-note';
+    if (note && i.steps?.length) out.push(`${i.id}: notatka nie ma kroków`);
   }
 
   slots.sort((a, b) => a - b);

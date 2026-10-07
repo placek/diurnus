@@ -119,8 +119,32 @@ zwykła kontynuacja elementu listy, więc GitHub pokazuje opis jako część poz
   linią.
 - Wcięta linia bez pozycji nad nią to błąd. Opis pozycji, której linia jest błędna, nie daje
   dodatkowych błędów.
-- Tekst opisu nie ma ucieczek ani członów: `* `, `#` czy `09:00` na początku linii opisu to
-  zwykły tekst. Kopia wzorca dziedziczy opis tak jak kategorię.
+- Tekst opisu nie ma członów: `* `, `#` czy `09:00` na początku linii opisu to zwykły tekst.
+  Jedyna ucieczka dotyczy linii wyglądającej jak krok (niżej): `* [ ] …` i `* [x] …` w opisie
+  dostają `\` na początku, a odczyt zdejmuje jeden. Kopia wzorca dziedziczy opis tak jak
+  kategorię.
+
+### Kroki
+
+Zadanie (nie notatka) może mieć kroki: zagnieżdżoną listę do odhaczenia pod opisem, z tym samym
+wcięciem. Krok to `* [ ] tekst` albo `* [x] tekst` — tekst w jednej linii, bez członów
+i ucieczek.
+
+```markdown
+* [ ] 07:00 Wyjazd
+      pociąg o 7:40, peron 3
+      * [x] spakować się
+      * [ ] zatankować
+```
+
+- Zapis stawia kroki zawsze za opisem. Odczyt jest łagodniejszy: linia opisu za krokami dołącza
+  do opisu, a krok wcięty płycej niż norma (np. o dwie spacje, jak w zwykłej zagnieżdżonej
+  liście) też jest krokiem. Głębiej wcięty — to tekst opisu.
+- Pod notatką linia `* [ ] …` jest zwykłym opisem: notatka kroków nie ma.
+- Odhaczenie kroku nie zależy od odhaczenia zadania: wykonane zadanie może mieć nieodhaczone
+  kroki i odwrotnie. Zadanie z krokami nie staje się notatką.
+- Kopia wzorca dziedziczy kroki nieodhaczone — każde wystąpienie rutyny zaczyna od zera. Otwarte
+  zadanie przechodzi o północy dalej z odhaczeniami, jakie miało.
 
 ### Czas i data
 

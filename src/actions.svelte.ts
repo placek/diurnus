@@ -1,7 +1,7 @@
 import { app, commit, currentDay, dispatch, save, ui, uid, win } from './state.svelte';
 import { kids, projectOf, topCats } from './lib/categories';
 import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
-import type { Event, Item, Refusal, WhenInput } from './lib/machine';
+import type { Event, Item, Refusal, Step, WhenInput } from './lib/machine';
 import type { RRule } from './lib/rrule';
 import { fmtQ, pad, rel } from './lib/time';
 import type { ItemType } from './lib/types';
@@ -17,7 +17,7 @@ const find = (id: string): Item | undefined => app.S.items.find((i) => i.id === 
 
 /** Pola danych, które aplikacja zmienia wprost. Maszyna trzyma je jako
  *  tylko do odczytu, bo sama ich nie zmienia; stan nadal idzie przez zdarzenia. */
-type ItemData = { text: string; cat?: string; desc?: string };
+type ItemData = { text: string; cat?: string; desc?: string; steps?: Step[] };
 const data = (i: Item) => i as unknown as ItemData;
 
 /** Komunikat odmowy przy zajmowaniu slotu, z godziną i zakresem dnia. */
@@ -280,6 +280,74 @@ export function tidyDesc(id: string): void {
   if (next === '') delete data(item).desc;
   else data(item).desc = next;
   save();
+}
+
+/* ───────────── Kroki zadania ───────────── */
+
+/**
+ * Pusty krok pod indeksem `n` (domyślnie na końcu) z fokusem. Kroki ma tylko
+ * zadanie — notatka zostaje notatką.
+ */
+export function addStep(id: string, n?: number): void {
+  const item = find(id);
+  if (!item) return;
+  if (kindOf(item) === 'note') {
+    app.toast = { msg: 'Notatka nie ma kroków', undoable: false };
+    return;
+  }
+  const steps = [...(item.steps ?? [])];
+  const at = Math.max(0, Math.min(n ?? steps.length, steps.length));
+  steps.splice(at, 0, { text: '', done: false });
+  commit(() => (data(item).steps = steps));
+  ui.focusStep = { id, n: at, at: 0 };
+}
+
+/** Tekst kroku zmienia się jak tekst pozycji: bez migawki (robi ją `pushHistory()`). */
+export function setStepText(id: string, n: number, text: string): void {
+  const item = find(id);
+  const st = item?.steps?.[n];
+  if (!item || !st) return;
+  data(item).steps = item.steps!.map((s, k) => (k === n ? { ...s, text } : s));
+}
+
+/** Odhaczenie kroku — niezależne od odhaczenia zadania. */
+export function toggleStep(id: string, n: number): void {
+  const item = find(id);
+  const st = item?.steps?.[n];
+  if (!item || !st) return;
+  commit(() => (data(item).steps = item.steps!.map((s, k) => (k === n ? { ...s, done: !s.done } : s))));
+}
+
+/** Usunięcie kroku; ostatni krok zabiera całą listę. */
+export function removeStep(id: string, n: number): void {
+  const item = find(id);
+  if (!item?.steps?.[n]) return;
+  const steps = item.steps.filter((_, k) => k !== n);
+  commit(() => {
+    if (steps.length) data(item).steps = steps;
+    else delete data(item).steps;
+  });
+}
+
+/** Wyjście z pozycji: kroki bez zbędnych spacji, puste znikają. */
+export function tidySteps(id: string): void {
+  const item = find(id);
+  if (!item?.steps) return;
+  const steps = item.steps
+    .map((s) => ({ ...s, text: s.text.trim() }))
+    .filter((s) => s.text !== '');
+  if (steps.length === item.steps.length && steps.every((s, k) => s.text === item.steps![k]!.text))
+    return;
+  if (steps.length) data(item).steps = steps;
+  else delete data(item).steps;
+  save();
+}
+
+/** Koniec pozycji dla strzałki w górę z następnej: ostatni krok, koniec opisu albo tytuł. */
+export function focusItemEnd(item: Item): void {
+  if (item.steps?.length) ui.focusStep = { id: item.id, n: item.steps.length - 1, at: -1 };
+  else if (item.desc !== undefined) ui.focusDesc = { id: item.id, at: -1 };
+  else ui.focusItem = item.id;
 }
 
 /** Przestawienie pozycji swobodnej dziś; `toIndex` to miejsce w liście BEZ niej. */

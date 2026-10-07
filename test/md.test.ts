@@ -564,6 +564,23 @@ const DESCS = [
   '\tod tabulatora',
   '\\ukośnik ^x',
   '\npusta na początku',
+  '* [ ] wygląda jak krok',
+  'opis\n* [x] i krok w środku',
+  '\\* [ ] krok z ukośnikiem',
+  '* [ ]',
+];
+
+const STEPS: { text: string; done: boolean }[][] = [
+  [{ text: 'spakować się', done: false }],
+  [
+    { text: 'zatankować', done: true },
+    { text: '[ ] w nawiasach', done: false },
+    { text: '', done: false },
+  ],
+  [
+    { text: '#nie-tag 09:00 \\ukośnik ^x', done: true },
+    { text: '* gwiazdka', done: true },
+  ],
 ];
 
 /** Stan zbudowany wyłącznie przejściami maszyny — takie stany aplikacja naprawdę ma. */
@@ -626,6 +643,13 @@ function randomState(seed: number): State {
     // Opis to dana, nie stan — nadawany wprost, jak w aplikacji; kopie dziedziczą go przez maszynę.
     if (r() < 0.15)
       m = { ...m, items: m.items.map((i) => (i.id === id ? { ...i, desc: pick(DESCS) } : i)) };
+    // Kroki też — ale tylko zadaniom; maszyna nie zrobi potem z nich notatki.
+    const note = (i: Item) => /note$/.test(i.state.tag);
+    if (r() < 0.12)
+      m = {
+        ...m,
+        items: m.items.map((i) => (i.id === id && !note(i) ? { ...i, steps: pick(STEPS) } : i)),
+      };
   }
   return { ...base, today: m.today, items: [...m.items] };
 }
@@ -640,6 +664,7 @@ function project(s: State) {
       text: i.text,
       tag: i.cat !== undefined ? tags.get(i.cat) : undefined,
       desc: descLines(i.desc).join('\n') || undefined,
+      steps: i.steps?.length ? i.steps : undefined,
       link: isPattern ? `pattern:${i.id}` : i.from !== undefined ? `copy:${i.from}` : undefined,
     };
   };
@@ -675,6 +700,10 @@ describe('obieg losowych stanów maszyny', () => {
     expect(items.some((i) => i.text.startsWith('\\'))).toBe(true);
     expect(items.some((i) => i.desc?.includes('\n\n'))).toBe(true);
     expect(items.some((i) => i.desc !== undefined && i.from !== undefined)).toBe(true);
+    // Kroki: na kopiach wzorców (wszystkie nieodhaczone), obok opisu udającego krok.
+    expect(items.some((i) => i.steps?.length && i.from !== undefined)).toBe(true);
+    expect(items.some((i) => i.steps?.length && i.desc?.includes('* [x]'))).toBe(true);
+    expect(items.some((i) => i.steps?.length && i.state.tag === 'past-done')).toBe(true);
     // Projekty: pozycje w obu i w podkategorii projektu głównego.
     const files = all.map((s) => renderFiles(s)[BACKLOG]!);
     expect(files.some((f) => f.includes('\n## Dom\n'))).toBe(true);
@@ -840,5 +869,65 @@ describe('opis pozycji', () => {
     expect(descLines('a\n   \nb  \n\n')).toEqual(['a', '', 'b']);
     expect(descLines('')).toEqual([]);
     expect(descLines(undefined)).toEqual([]);
+  });
+});
+
+describe('kroki zadania', () => {
+  const day = (body: string) => ({
+    [CONFIG]: SPEC_CONFIG,
+    [dayFile(TODAY)]: `# ${TODAY}\n\n${body}`,
+  });
+
+  test('pod opisem, z jego wcięciem; linia opisu udająca krok dostaje „\\"', () => {
+    expect(
+      renderLine({
+        marker: 'open',
+        text: 'Wyjazd',
+        desc: ['pociąg 7:40', '* [ ] to tylko opis'],
+        steps: [
+          { text: 'spakować się', done: true },
+          { text: 'zatankować', done: false },
+          { text: '', done: false },
+        ],
+      }),
+    ).toBe(
+      '* [ ] Wyjazd\n      pociąg 7:40\n      \\* [ ] to tylko opis\n' +
+        '      * [x] spakować się\n      * [ ] zatankować\n      * [ ]',
+    );
+    expect(() =>
+      renderLine({ marker: 'note', text: 'N', steps: [{ text: 'x', done: false }] }),
+    ).toThrow('Notatka nie ma kroków');
+  });
+
+  test('odczyt: kroki pod zadaniem, także płycej wcięte; głębiej i pod notatką to opis', () => {
+    const s = parsed({
+      ...day(
+        `* [ ] Wyjazd\n      pociąg\n      \\* [ ] opis\n      * [x] spakować\n  * [ ] zatankować\n` +
+          `        * [ ] głęboko\n* [x] Zrobione\n      * [ ] jeszcze nie\n* Notatka\n  * [ ] tylko tekst\n`,
+      ),
+    });
+    const by = (t: string) => s.items.find((i) => i.text === t)!;
+    expect(by('Wyjazd').desc).toBe('pociąg\n* [ ] opis\n  * [ ] głęboko');
+    expect(by('Wyjazd').steps).toEqual([
+      { text: 'spakować', done: true },
+      { text: 'zatankować', done: false },
+    ]);
+    // Wykonane zadanie może mieć nieodhaczone kroki — jedno nie zależy od drugiego.
+    expect(by('Zrobione').steps).toEqual([{ text: 'jeszcze nie', done: false }]);
+    expect(by('Notatka').desc).toBe('* [ ] tylko tekst');
+    expect(by('Notatka').steps).toBeUndefined();
+  });
+
+  test('kroki w backlogu i w archiwum wracają przy zapisie bez zmian', () => {
+    const files = {
+      ...day(`* [ ] A\n`),
+      [dayFile('2026-09-20')]: `# 2026-09-20\n\n* [x] Stare\n      * [x] krok\n`,
+      [BACKLOG]: `# Backlog\n\n* [ ] {FREQ=DAILY} Rano ^r\n      * [ ] rozciąganie\n      * [ ] dziennik\n`,
+    };
+    const s = parsed(files);
+    expect(s.items.find((i) => i.text === 'Rano')!.steps).toHaveLength(2);
+    const out = renderFiles(s);
+    expect(out[BACKLOG]).toContain('Rano ^r\n      * [ ] rozciąganie\n      * [ ] dziennik\n');
+    expect(out[dayFile('2026-09-20')]).toBe(files[dayFile('2026-09-20')]);
   });
 });

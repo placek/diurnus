@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { pushHistory, save, ui } from '../../state.svelte';
-  import { mergeDescUp, setItemDesc, tidyDesc } from '../../actions.svelte';
+  import { addStep, mergeDescUp, setItemDesc, tidyDesc } from '../../actions.svelte';
   import type { Item } from '../../lib/types';
 
   /*
@@ -67,6 +67,12 @@
     const at = t.selectionStart ?? 0;
     const collapsed = t.selectionStart === t.selectionEnd;
 
+    // Ctrl+Enter: nowy krok, pierwszy pod opisem.
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      addStep(item.id, 0);
+      return;
+    }
     // Shift+Enter zostaje polu: nowa linia opisu. Na ekranie dotykowym
     // klawiatura nie ma Shift+Enter, więc tam ↵ w opisie też dodaje linię —
     // następna pozycja zaczyna się w pustym wierszu pod listą.

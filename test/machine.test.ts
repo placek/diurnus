@@ -701,6 +701,43 @@ test('opis też jest daną: przejścia go nie ruszają, kopie wzorca go dziedzic
   expect(m.items.find((i) => i.id === 'a@2026-09-27')!.desc).toBe('krok 1\nkrok 2');
 });
 
+test('kroki: kopie wzorca dostają je nieodhaczone, przejścia ich nie ruszają', () => {
+  let m = run(machine(), { type: 'create', id: 'a', text: 'A', place: 'backlog' });
+  const steps = [
+    { text: 'jeden', done: true },
+    { text: 'dwa', done: false },
+  ];
+  m = { ...m, items: m.items.map((i) => ({ ...i, steps })) };
+  m = run(
+    m,
+    { type: 'setWhen', id: 'a', when: recIn() },
+    { type: 'markDone', id: 'a', copyId: 'done' },
+    { type: 'advance', to: '2026-09-27' },
+  );
+  const fresh = [
+    { text: 'jeden', done: false },
+    { text: 'dwa', done: false },
+  ];
+  expect(m.items.find((i) => i.id === 'a')!.steps).toEqual(steps);
+  expect(m.items.find((i) => i.id === 'done')!.steps).toEqual(fresh);
+  expect(m.items.find((i) => i.id === 'a@2026-09-27')!.steps).toEqual(fresh);
+  // Przejście dnia zostawia odhaczenia otwartego zadania.
+  const ticked = m.items.map((i) => (i.id === 'a@2026-09-27' ? { ...i, steps } : i));
+  m = run({ ...m, items: ticked }, { type: 'advance', to: '2026-09-28' });
+  expect(m.items.find((i) => i.id === 'a@2026-09-27')!.steps).toEqual(steps);
+});
+
+test('kroki: zadanie z krokami nie zostaje notatką, a notatka z krokami łamie niezmiennik', () => {
+  let m = run(machine(), { type: 'create', id: 'a', text: 'A', place: 'today' });
+  m = { ...m, items: m.items.map((i) => ({ ...i, steps: [{ text: 'x', done: false }] })) };
+  expect(step(m, { type: 'toNote', id: 'a' }, DAY)).toEqual({ ok: false, reason: 'not-allowed' });
+  const note = { ...m, items: m.items.map((i) => ({ ...i, state: { tag: 'today-note' as const } })) };
+  expect(violations(note, DAY)).toContain('a: notatka nie ma kroków');
+  // Pusta lista kroków nie przeszkadza.
+  const empty = { ...m, items: m.items.map((i) => ({ ...i, steps: [] })) };
+  expect(step(empty, { type: 'toNote', id: 'a' }, DAY).ok).toBe(true);
+});
+
 describe('reguły iCal we wzorcach', () => {
   const R = (s: Partial<RRule> & Pick<RRule, 'freq'>): RRule => ({ interval: 1, ...s });
   const pattern = (m: Machine) => m.items.find((i) => i.id === 'a');
