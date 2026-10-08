@@ -25,6 +25,8 @@ function type(el: HTMLInputElement, value: string) {
   el.value = value;
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
+/** Sprzątanie kroków czeka, aż fokus naprawdę wyjdzie z wiersza — jeden obrót zegara. */
+const tick = () => new Promise((r) => setTimeout(r));
 const stepsOf = (app: { S: { items: { id: string }[] } }, id: string) =>
   (app.S.items.find((i) => i.id === id) as { steps?: S }).steps;
 
@@ -141,6 +143,7 @@ test('Backspace w pustym kroku go usuwa; wyjście z pozycji sprząta puste kroki
   flush();
   title('b').focus();
   flush();
+  await tick();
   expect(stepsOf(app, 'a')).toEqual([
     { text: 'y', done: false },
     { text: 'x', done: false },
@@ -166,10 +169,16 @@ test('menu znacznika: „Dodaj krok" w backlogu; notatka go nie ma, a zadanie z 
   const add = [...document.querySelectorAll<HTMLButtonElement>('.bullet-menu button')];
   expect(add).toHaveLength(0);
   open('k');
-  [...document.querySelectorAll<HTMLButtonElement>('.bullet-menu button')]
-    .find((b) => b.textContent!.includes('Dodaj krok'))!
-    .click();
+  // Jak w przeglądarce: przycisk menu ma fokus, a menu stoi w wierszu. Zamknięte
+  // zabiera przycisk, więc wiersz traci fokus (bez celu) — zanim dostanie go nowy krok.
+  const addBtn = [...document.querySelectorAll<HTMLButtonElement>('.bullet-menu button')].find(
+    (b) => b.textContent!.includes('Dodaj krok'),
+  )!;
+  addBtn.focus();
+  addBtn.click();
+  addBtn.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
   flush();
+  await tick();
   expect(stepsOf(app, 'k')).toEqual([{ text: '', done: false }]);
   expect(document.activeElement).toBe(stepInputs('k')[0]);
 
