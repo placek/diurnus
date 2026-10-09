@@ -144,10 +144,16 @@
   onfocusin={() => (rowFocus = true)}
   onfocusout={(e) => {
     // Przejście między tytułem a opisem tej samej pozycji nie zwija opisu.
+    const row = e.currentTarget as HTMLElement;
     const to = e.relatedTarget as Node | null;
-    if (!to || !(e.currentTarget as HTMLElement).contains(to)) {
+    if (!to || !row.contains(to)) {
       rowFocus = false;
-      tidySteps(item.id);
+      // Puste kroki sprzątamy dopiero, gdy fokus naprawdę wyszedł. Menu znacznika
+      // stoi w wierszu: zamknięte po „Dodaj krok" zabiera przycisk z fokusem, a
+      // fokus zaraz wraca do wiersza — do nowego, pustego kroku.
+      setTimeout(() => {
+        if (!row.contains(document.activeElement)) tidySteps(item.id);
+      });
     }
   }}
 >
