@@ -110,7 +110,8 @@ w **prywatnym repozytorium** i łączy urządzenia:
   z repozytorium i token, zgoda na powiadomienia oraz to, czy pomoc była już pokazana.
 - **Repozytorium jest źródłem prawdy.** Zanim cokolwiek pójdzie do repozytorium, aplikacja
   sprawdza, czy nie ma w nim czegoś nowszego, i najpierw to pobiera. Zmiany idą 2 s po edycji;
-  zmiany z innych urządzeń przychodzą też przy starcie, przy powrocie do karty i co 5 minut.
+  zmiany z innych urządzeń pojawiają się same w otwartej karcie najwyżej po 20 s (i od razu
+  przy starcie albo powrocie do karty) — bez przerywania pisania w innej pozycji.
   Bez sieci wszystko działa i czeka na powrót połączenia.
 - Ustawienia (i podpowiedź chmury w pasku) pokazują **ostatnią zmianę tutaj i w repozytorium**
   (datę ostatniego commita).

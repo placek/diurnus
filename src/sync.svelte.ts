@@ -2,6 +2,7 @@ import { app, onStateChange, replaceState, ui } from './state.svelte';
 import { parseFiles, renderFiles } from './lib/md/files';
 import type { FileError, Files } from './lib/md/files';
 import { readJSON, writeJSON } from './lib/persist';
+import { keepIdentity } from './lib/reuse';
 import { emptySync, planFirst, sendMine, takeRemote } from './lib/sync/engine';
 import type { Accept, Conflict, FirstPlan, SyncState } from './lib/sync/engine';
 import { GitHubStore, checkRepo, parseRepo } from './lib/sync/github';
@@ -62,10 +63,14 @@ const accept: Accept = (files) => {
   return p.ok ? true : p.errors.map((e) => `${where(e)}${e.message}`);
 };
 
-/** Stan z dokumentów, które `accept` przyjął. */
+/**
+ * Stan z dokumentów, które `accept` przyjął. Pozycje, których zmiana nie
+ * dotknęła, zostają tymi samymi pozycjami — z tym samym identyfikatorem — więc
+ * ich wiersze się nie przerysowują, a fokus i karetka zostają, gdzie były.
+ */
 function apply(files: Files): void {
   const p = parseFiles(files);
-  if (p.ok) replaceState(p.state);
+  if (p.ok) replaceState(keepIdentity(p.state, $state.snapshot(app.S) as State));
 }
 
 let runner: SyncRunner | null = null;

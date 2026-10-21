@@ -2,11 +2,12 @@
 import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FakeGitHub } from './fake-github';
 import { TODAY, resetDom, seed, task } from './helpers';
+import { PULL_EVERY } from '../src/lib/sync/runner';
 
 /*
  * Synchronizacja w działającej aplikacji, na udawanym API GitHuba: start,
  * wysłanie po edycji, pobranie po powrocie do karty, brak sieci. Zegar jest
- * udawany, więc 2 s i 5 minut mijają od razu.
+ * udawany, więc 2 s i 20 s mijają od razu.
  */
 
 const DAY = `${TODAY}.md`;
@@ -142,7 +143,7 @@ test('zmiana z innego urządzenia wchodzi po powrocie do karty', async () => {
   expect(gh.log.filter((l) => l.method === 'PUT' && l.path.endsWith(DAY))).toHaveLength(1);
 });
 
-test('co 5 minut sprawdzenie; bez zmian to jedno żądanie „bez zmian"', async () => {
+test('co 20 s przy widocznej karcie sprawdzenie; bez zmian to jedno żądanie „bez zmian"', async () => {
   seed([task('a')]);
   connect(gh);
   const { settle } = await start();
@@ -151,16 +152,39 @@ test('co 5 minut sprawdzenie; bez zmian to jedno żądanie „bez zmian"', async
   // spis w całości (i datę ostatniego commita) — ale żadnego dokumentu, bo
   // wersje się zgadzają.
   let n = gh.log.length;
-  await vi.advanceTimersByTimeAsync(5 * 60_000);
+  await vi.advanceTimersByTimeAsync(PULL_EVERY);
   await settle();
   expect(since(n)).toEqual([
     ['GET', 200],
     ['GET', 200],
   ]);
   n = gh.log.length;
-  await vi.advanceTimersByTimeAsync(5 * 60_000);
+  await vi.advanceTimersByTimeAsync(PULL_EVERY);
   await settle();
   expect(since(n)).toEqual([['GET', 304]]);
+});
+
+test('zmiana z innego urządzenia pojawia się sama, a pisanie w innej pozycji nie traci fokusu', async () => {
+  seed([task('a', null, { text: 'pierwsza' }), task('b', null, { text: 'druga' })]);
+  connect(gh);
+  const { app, settle } = await start();
+  const ids = app.S.items.map((i) => i.id);
+  // Ktoś pisze w drugiej pozycji…
+  const input = () =>
+    document.querySelector<HTMLInputElement>(`#list .item[data-id="${ids[1]}"] .item-text`)!;
+  input().focus();
+  input().setSelectionRange(2, 2);
+  const el = input();
+  // …a na telefonie przybywa pozycja w backlogu.
+  gh.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+  await vi.advanceTimersByTimeAsync(PULL_EVERY);
+  await settle();
+  expect(app.S.items.map((i) => i.text)).toContain('z telefonu');
+  // Te same pozycje, te same wiersze: fokus i karetka zostały.
+  expect(app.S.items.filter((i) => i.state.tag === 'today-task').map((i) => i.id)).toEqual(ids);
+  expect(input()).toBe(el);
+  expect(document.activeElement).toBe(el);
+  expect(el.selectionStart).toBe(2);
 });
 
 test('brak sieci: aplikacja działa, zmiana czeka i idzie po powrocie sieci', async () => {

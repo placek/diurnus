@@ -42,7 +42,7 @@ Zasady:
 | Pierwsze połączenie | Dane tylko po jednej stronie — kopiują się same; po obu — jedno pytanie: „Pobierz z magazynu" albo „Wyślij moje" |
 | Źródło prawdy | **Magazyn.** Każda tura zaczyna się od sprawdzenia go i pobrania zmian; dopiero potem idą lokalne zmiany |
 | Wysyłanie | 2 s po ostatniej zmianie, tylko zmienione dokumenty — po sprawdzeniu magazynu |
-| Pobieranie | Przy starcie, przy powrocie do karty i co 5 minut, gdy karta jest widoczna |
+| Pobieranie | Przy starcie, przy powrocie do karty i co 20 s, gdy karta jest widoczna — zmiana z innego urządzenia pojawia się sama |
 
 ## 3. Adapter magazynu
 
@@ -128,8 +128,10 @@ minionego dnia (już tylko do archiwum).
 
 ### Pobieranie
 
-Przy starcie, przy powrocie do karty, co 5 minut, gdy karta jest widoczna — i na początku
-każdej tury wysyłania:
+Przy starcie, przy powrocie do karty, co 20 s, gdy karta jest widoczna — i na początku
+każdej tury wysyłania. Otwarta karta dostaje więc zmianę z innego urządzenia najwyżej po 20 s,
+bez żadnego ruchu użytkownika. Sprawdzenie bez zmian to `304`, które nie liczy się do limitu
+GitHuba; ukryta karta nie sprawdza wcale (sprawdza po powrocie).
 
 1. `list(znacznik)` — zwykle `unchanged` i koniec.
 2. Dokumenty z inną wersją niż w `base` → `read`.
@@ -138,6 +140,10 @@ każdej tury wysyłania:
 4. **Wejście do stanu:** lokalne dokumenty z `renderFiles(stan)`, podmienione na te
    z magazynu, przechodzą przez `parseFiles`, a wynik zastępuje stan i dogania kalendarz
    (`advanceTo`). Historia cofania nie sięga przez pobranie — tak jak przy wczytaniu dziennika.
+   Pozycje, których zmiana nie dotknęła, zostają tymi samymi pozycjami — z identyfikatorem,
+   chwilą utworzenia i treścią co do znaku (`keepIdentity`); `parseFiles` nadaje identyfikatory
+   z numeru linii, więc bez tego każde pobranie przerysowałoby wszystkie wiersze i zabrało fokus
+   z pozycji, w której ktoś właśnie pisze.
 5. **Dokument, którego nie da się odczytać** (np. popsuty ręcznie w repozytorium), nie wchodzi:
    stan zostaje, komunikat pokazuje błędy `plik:linia: powód`, a ten dokument nie jest
    nadpisywany, dopóki ktoś go nie poprawi albo nie wybierze „Nadpisz moją wersją".
@@ -344,7 +350,7 @@ dysku zgubiłyby pliki.
 2. **Adapter GitHub** z testami na podstawionym `fetch`: drzewo z `304`, odczyt base64/UTF-8,
    zapis i usunięcie z `sha`, `409`/`422`/`404`, `401`, limity.
 3. **Zegar synchronizacji** w `state`: opóźnione wysyłanie, pobieranie przy starcie, powrocie
-   do karty i co 5 minut, ponowienia, stan do pokazania.
+   do karty i co 20 s, ponowienia, stan do pokazania.
 4. **Ustawienia → Dane → Synchronizacja**: GitHub, sprawdzenie repozytorium, pierwsze
    połączenie, stan, „Nadpisz moją wersją".
 5. **Test końcowy**: dwie karty przeglądarki na podstawionym API GitHuba — zmiana w jednej

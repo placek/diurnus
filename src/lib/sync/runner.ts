@@ -15,7 +15,7 @@ import type { Store, StoreErrorKind } from './store';
  *   w nim zmieniło, a dopiero potem wysyła lokalne zmiany. Dokument zmieniony
  *   po obu stronach bierze wersję magazynu (konflikt).
  * - Zmiana stanu → tura po 2 s ciszy (seria edycji daje jeden zapis).
- * - Sprawdzenie na żądanie: start, powrót do karty, co 5 minut.
+ * - Sprawdzenie na żądanie: start, powrót do karty, co 20 s przy widocznej karcie.
  * - Jedna operacja naraz; prośby, które przyjdą w trakcie, idą następną turą.
  * - Brak sieci i inne błędy → ponowienia co 5 s, 10 s, 20 s… do 5 minut;
  *   powrót sieci → od razu. Limit → czekanie tyle, ile każe magazyn.
@@ -23,7 +23,12 @@ import type { Store, StoreErrorKind } from './store';
  */
 
 export const PUSH_DELAY = 2000;
-export const PULL_EVERY = 5 * 60_000;
+/**
+ * Sprawdzenie magazynu, gdy karta jest widoczna: zmiana z innego urządzenia
+ * pojawia się tu najwyżej po tylu sekundach. Sprawdzenie bez zmian to jedno
+ * „304", które nie liczy się do limitu żądań GitHuba.
+ */
+export const PULL_EVERY = 20_000;
 export const RETRY_FIRST = 5000;
 export const RETRY_MAX = 5 * 60_000;
 /** Limit bez podanego czasu: minuta. */
