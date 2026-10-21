@@ -11,6 +11,10 @@ import type { Listing, Store, Version, WriteResult } from './store';
  *   odpowiedź „bez zmian" (304) nie liczy się do limitu żądań.
  * - Odczyt, zapis i usunięcie przez API treści; wersją jest `sha` bloba.
  *   Zapis na starej wersji GitHub odrzuca — to jest nasz konflikt.
+ * - Chwila ostatniej zmiany to data ostatniego commita gałęzi (w katalogu
+ *   dziennika). Pobierana tylko wtedy, gdy drzewo się zmieniło, a przy własnym
+ *   zapisie — z odpowiedzi na zapis. Jej brak niczego nie psuje: służy tylko
+ *   do pokazania.
  * - Każde żądanie z `cache: 'no-store'`: odpowiedzi GitHuba pozwalają
  *   przeglądarce trzymać je minutę, a stary spis ukryłby zmianę z innego
  *   urządzenia. Warunkowość spisu robimy sami, przez ETag.
@@ -49,6 +53,12 @@ export function fromBase64(b64: string): string {
   } catch {
     throw new StoreError('other', 'dokument w repozytorium nie jest tekstem UTF-8');
   }
+}
+
+/** Data z API (ISO 8601) w milisekundach; `undefined`, gdy jej nie ma albo jest zła. */
+function dateOf(s: string | undefined): number | undefined {
+  const t = s ? Date.parse(s) : NaN;
+  return Number.isFinite(t) ? t : undefined;
 }
 
 /* ───────────── Żądania ───────────── */
@@ -147,7 +157,22 @@ export class GitHubStore implements Store {
       const name = e.path.slice(this.prefix.length);
       if (!name.includes('/') && isDocName(name)) docs.set(name, e.sha);
     }
-    return { docs, mark: res.headers.get('etag') ?? '' };
+    const at = await this.lastCommitAt();
+    return { docs, mark: res.headers.get('etag') ?? '', ...(at !== undefined ? { at } : {}) };
+  }
+
+  /** Data ostatniego commita gałęzi, który dotknął katalogu dziennika; `undefined`, gdy się nie da. */
+  private async lastCommitAt(): Promise<number | undefined> {
+    const dir = this.prefix.replace(/\/$/, '');
+    const q = `sha=${encodeURIComponent(this.cfg.branch)}&per_page=1${dir ? `&path=${encodeURIComponent(dir)}` : ''}`;
+    try {
+      const res = await this.request(`${this.base}/commits?${q}`);
+      if (!res.ok) return undefined;
+      const list = (await res.json()) as { commit?: { committer?: { date?: string } } }[];
+      return dateOf(list[0]?.commit?.committer?.date);
+    } catch {
+      return undefined;
+    }
   }
 
   async read(name: string): Promise<{ body: string; version: Version } | null> {
@@ -190,8 +215,12 @@ export class GitHubStore implements Store {
     });
     if (res.ok) {
       this.empty = false;
-      const out = (await res.json()) as { content: { sha: string } };
-      return { ok: true, version: out.content.sha };
+      const out = (await res.json()) as {
+        content: { sha: string };
+        commit?: { committer?: { date?: string } };
+      };
+      const at = dateOf(out.commit?.committer?.date);
+      return { ok: true, version: out.content.sha, ...(at !== undefined ? { at } : {}) };
     }
     if (res.status === 409 || res.status === 422 || res.status === 404)
       return this.conflict(name, base, res);
@@ -207,7 +236,16 @@ export class GitHubStore implements Store {
         branch: this.cfg.branch,
       }),
     });
-    if (res.ok) return { ok: true, version: null };
+    if (res.ok) {
+      let at: number | undefined;
+      try {
+        const out = (await res.json()) as { commit?: { committer?: { date?: string } } };
+        at = dateOf(out.commit?.committer?.date);
+      } catch {
+        // odpowiedź bez treści — chwila zapisu nieznana
+      }
+      return { ok: true, version: null, ...(at !== undefined ? { at } : {}) };
+    }
     if (res.status === 404) return { ok: false, conflict: null };
     if (res.status === 409 || res.status === 422) return this.conflict(name, base, res);
     throw await failure(res);

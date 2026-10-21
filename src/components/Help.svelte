@@ -228,7 +228,9 @@
       wszystko żyje w tej przeglądarce. Zabezpieczeniem jest dziennik pobrany jako pliki
       markdown w archiwum ZIP (jego wczytanie zastępuje bieżący stan) albo synchronizacja
       z prywatnym repozytorium GitHub — wtedy chmura w nagłówku pokazuje jej stan (kropka:
-      niebieska — trwa, żółta — uwaga, czerwona — błąd); szczegóły w Ustawienia → Dane
+      niebieska — trwa, żółta — uwaga, czerwona — błąd), a jej podpowiedź — ostatnią zmianę
+      tutaj i w repozytorium. Repozytorium jest źródłem prawdy: nowsze zmiany z niego wchodzą,
+      zanim cokolwiek tam pójdzie; szczegóły w Ustawienia → Dane
     </dd>
     <dt>Motyw</dt>
     <dd>

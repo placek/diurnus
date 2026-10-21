@@ -148,11 +148,15 @@ test('co 5 minut sprawdzenie; bez zmian to jedno żądanie „bez zmian"', async
   const { settle } = await start();
   const since = (n: number) => gh.log.slice(n).map((l) => [l.method, l.status]);
   // Własne zapisy zmieniły drzewo, więc pierwsze sprawdzenie po nich pobiera
-  // spis w całości — ale żadnego dokumentu, bo wersje się zgadzają.
+  // spis w całości (i datę ostatniego commita) — ale żadnego dokumentu, bo
+  // wersje się zgadzają.
   let n = gh.log.length;
   await vi.advanceTimersByTimeAsync(5 * 60_000);
   await settle();
-  expect(since(n)).toEqual([['GET', 200]]);
+  expect(since(n)).toEqual([
+    ['GET', 200],
+    ['GET', 200],
+  ]);
   n = gh.log.length;
   await vi.advanceTimersByTimeAsync(5 * 60_000);
   await settle();

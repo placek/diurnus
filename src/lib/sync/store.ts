@@ -10,10 +10,17 @@ import { isRealDate } from '../md/line';
 
 export type Version = string;
 
-export type Listing = { unchanged: true } | { docs: Map<string, Version>; mark: string };
+export type Listing =
+  | { unchanged: true }
+  | {
+      docs: Map<string, Version>;
+      mark: string;
+      /** chwila ostatniej zmiany w magazynie (ms) — ostatni commit; brak, gdy magazyn jej nie zna */
+      at?: number;
+    };
 
 export type WriteResult =
-  | { ok: true; version: Version | null } // null po usunięciu
+  | { ok: true; version: Version | null; at?: number } // version null po usunięciu; at — chwila zapisu w magazynie
   | { ok: false; conflict: { body: string; version: Version } | null }; // null — dokumentu już nie ma
 
 export interface Store {

@@ -40,7 +40,8 @@ Zasady:
 | Konflikty | Wersja dokumentu przy każdym zapisie; przy konflikcie **wygrywa magazyn**, a aplikacja proponuje „Nadpisz moją wersją" |
 | Usuwanie | Dokument, którego stan już nie daje, jest usuwany z magazynu (z tym samym warunkiem wersji) |
 | Pierwsze połączenie | Dane tylko po jednej stronie — kopiują się same; po obu — jedno pytanie: „Pobierz z magazynu" albo „Wyślij moje" |
-| Wysyłanie | 2 s po ostatniej zmianie, tylko zmienione dokumenty |
+| Źródło prawdy | **Magazyn.** Każda tura zaczyna się od sprawdzenia go i pobrania zmian; dopiero potem idą lokalne zmiany |
+| Wysyłanie | 2 s po ostatniej zmianie, tylko zmienione dokumenty — po sprawdzeniu magazynu |
 | Pobieranie | Przy starcie, przy powrocie do karty i co 5 minut, gdy karta jest widoczna |
 
 ## 3. Adapter magazynu
@@ -89,9 +90,30 @@ treści (`base`), plus znacznik ostatniego spisu. Z tego wynika wszystko inne:
 - **Zmiana w magazynie** — spis podaje inną wersję niż `base`.
 - **Dokument do usunięcia** — jest w `base`, a `renderFiles` go już nie daje.
 
+### Magazyn najpierw
+
+Magazyn jest źródłem prawdy. Każda tura — także ta, która ma tylko wysłać lokalną edycję —
+zaczyna się od **pobrania** (niżej): spis ze znacznikiem, który przy braku zmian kosztuje jedno
+`304`. Jeśli w magazynie jest coś nowszego niż to, co ostatnio uzgodniono, wchodzi do stanu
+najpierw, a wysyłanie rusza dopiero na tym, co w magazynie jest teraz. Dokument zmieniony po obu
+stronach bierze wersję magazynu bez próby zapisu (konflikt, z „Nadpisz moją wersją").
+
+„Nowsze" rozstrzyga **wersja** dokumentów (`sha` w drzewie), nie porównanie zegarów: zegar
+telefonu i laptopa potrafią się rozjechać o minuty, a wersja jest dokładna. Czas służy do
+pokazania:
+
+- **Ostatnia zmiana tutaj** (`localAt`) — chwila ostatniej lokalnej edycji dziennika: zmiany
+  stanu, która różni się od uzgodnionego. Stan zastąpiony treścią z magazynu jej nie przesuwa.
+- **Ostatnia zmiana w repozytorium** (`remoteAt`) — data ostatniego commita gałęzi (w katalogu
+  dziennika): z odpowiedzi na własny zapis albo, gdy drzewo się zmieniło, z jednego żądania
+  o ostatni commit.
+
+Obie leżą w uzgodnieniu (`diurnus.sync`) i pokazują się w ustawieniach pod stanem
+(„Ostatnia zmiana: tutaj 12:03 · w repozytorium 12:05") i w podpowiedzi chmury w pasku.
+
 ### Wysyłanie
 
-2 s po ostatniej zmianie stanu, żeby seria edycji dała jeden zapis:
+2 s po ostatniej zmianie stanu, żeby seria edycji dała jeden zapis, i po sprawdzeniu magazynu:
 
 1. `renderFiles(stan)` i porównanie z `base`.
 2. Zmieniony dokument → `write` na wersji z `base` (nowy → `base = null`); usunięty →
@@ -106,7 +128,8 @@ minionego dnia (już tylko do archiwum).
 
 ### Pobieranie
 
-Przy starcie, przy powrocie do karty i co 5 minut, gdy karta jest widoczna:
+Przy starcie, przy powrocie do karty, co 5 minut, gdy karta jest widoczna — i na początku
+każdej tury wysyłania:
 
 1. `list(znacznik)` — zwykle `unchanged` i koniec.
 2. Dokumenty z inną wersją niż w `base` → `read`.
@@ -228,7 +251,7 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
 
 | Operacja | Wywołanie | Wersja |
 |---|---|---|
-| `list` | `GET /repos/{o}/{r}/git/trees/{gałąź}?recursive=1` z `If-None-Match` | `sha` bloba z drzewa |
+| `list` | `GET /repos/{o}/{r}/git/trees/{gałąź}?recursive=1` z `If-None-Match`; gdy drzewo się zmieniło, także `GET /repos/{o}/{r}/commits?sha={gałąź}&per_page=1[&path={katalog}]` po datę ostatniego commita | `sha` bloba z drzewa |
 | `read` | `GET /repos/{o}/{r}/contents/{ścieżka}?ref={gałąź}` → treść w base64 i `sha` | `sha` |
 | `write` | `PUT /repos/{o}/{r}/contents/{ścieżka}` z `content` (base64), `sha: base` (przy zmianie), `branch`, `message` | `content.sha` z odpowiedzi |
 | `remove` | `DELETE /repos/{o}/{r}/contents/{ścieżka}` z `sha: base`, `branch`, `message` | — |
@@ -248,6 +271,9 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
   jednym commitem (Git Data API: bloby, drzewo, commit, przesunięcie gałęzi) jest możliwy, ale
   to kilka żądań na raz i konflikt na poziomie całej gałęzi zamiast dokumentu — nie tu.
 - **Historia za darmo.** Każda wersja każdego dnia zostaje w historii repozytorium.
+- **Chwila ostatniej zmiany.** Data `commit.committer.date` ostatniego commita — z odpowiedzi
+  na `PUT`/`DELETE` albo z API commitów, gdy drzewo się zmieniło. Gdy jej nie da się pobrać,
+  spis i tak się udaje: data służy tylko do pokazania.
 
 ### Limity i bezpieczeństwo
 
@@ -261,7 +287,8 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
 
 ### Ruch
 
-- Sprawdzenie bez zmian: jedno żądanie drzewa → `304`, kilkaset bajtów.
+- Sprawdzenie bez zmian: jedno żądanie drzewa → `304`, kilkaset bajtów. Tyle samo kosztuje
+  sprawdzenie przed każdym wysłaniem.
 - Zmiana w ciągu dnia: jeden `PUT` dzisiejszego pliku (1–3 KB treści, w base64 o jedną trzecią
   więcej), czasem `BACKLOG.md`.
 - Pobranie zmiany z innego urządzenia: drzewo (dziesiątki bajtów na plik, rośnie z liczbą dni)

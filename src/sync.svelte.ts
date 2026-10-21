@@ -105,7 +105,13 @@ function run(cfg: StoreConfig | null): () => void {
     sync.status = null;
     return () => {};
   }
-  sync.status = initialStatus('standby');
+  // Karta w kolejce też pokazuje, kiedy ostatnio coś się zmieniło.
+  const st = loadSaved().state;
+  sync.status = {
+    ...initialStatus('standby'),
+    localAt: st.localAt ?? null,
+    remoteAt: st.remoteAt ?? null,
+  };
   return lead(() => drive(cfg));
 }
 

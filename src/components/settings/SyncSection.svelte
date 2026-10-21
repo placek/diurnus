@@ -14,7 +14,7 @@
     syncNow,
   } from '../../sync.svelte';
   import type { StoreConfig } from '../../sync.svelte';
-  import { describeStatus } from '../../lib/sync/describe';
+  import { describeStatus, describeTimes } from '../../lib/sync/describe';
   import type { FirstPlan, Summary } from '../../lib/sync/engine';
   import Icon from '../Icon.svelte';
 
@@ -50,6 +50,7 @@
   let editingToken = $state(false);
 
   const status = $derived(sync.status ? describeStatus(sync.status, app.now) : null);
+  const times = $derived(sync.status ? describeTimes(sync.status, app.now) : null);
 
   const pl = (n: number, one: string, few: string, many: string) =>
     n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
@@ -165,6 +166,7 @@
     {#if status}
       <p class="sync-status {status.tone}" role="status">{status.text}</p>
     {/if}
+    {#if times}<p class="sync-times">{times}</p>{/if}
     {#if cfg.expires}
       <p class="hint">Token ważny do <b>{cfg.expires}</b>.</p>
     {/if}

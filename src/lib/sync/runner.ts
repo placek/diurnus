@@ -10,9 +10,12 @@ import type { Store, StoreErrorKind } from './store';
  * silnik. Nie zna Svelte ani przeglądarki: stan aplikacji, pamięć i zamek
  * dostaje od wołającego, więc da się go sprawdzić na magazynie w pamięci.
  *
- * - Zmiana stanu → wysłanie po 2 s ciszy (seria edycji daje jeden zapis).
- * - Pobranie na żądanie (start, powrót do karty, co 5 minut); po nim od razu
- *   wysłanie tego, co czeka.
+ * - Źródłem prawdy jest magazyn: każda tura zaczyna się od sprawdzenia go
+ *   (spis z ETagiem — „bez zmian" nic nie kosztuje) i pobrania tego, co się
+ *   w nim zmieniło, a dopiero potem wysyła lokalne zmiany. Dokument zmieniony
+ *   po obu stronach bierze wersję magazynu (konflikt).
+ * - Zmiana stanu → tura po 2 s ciszy (seria edycji daje jeden zapis).
+ * - Sprawdzenie na żądanie: start, powrót do karty, co 5 minut.
  * - Jedna operacja naraz; prośby, które przyjdą w trakcie, idą następną turą.
  * - Brak sieci i inne błędy → ponowienia co 5 s, 10 s, 20 s… do 5 minut;
  *   powrót sieci → od razu. Limit → czekanie tyle, ile każe magazyn.
@@ -47,6 +50,10 @@ export interface SyncStatus {
   retryAt: number | null;
   /** przegrane lokalne wersje — do „Nadpisz moją wersją" */
   conflicts: Conflict[];
+  /** ostatnia lokalna zmiana dziennika na tym urządzeniu */
+  localAt: number | null;
+  /** ostatnia zmiana w magazynie (ostatni commit) */
+  remoteAt: number | null;
   /** zmiany z magazynu, których nie przyjęto */
   rejected: { names: string[]; errors: string[] } | null;
 }
@@ -59,6 +66,8 @@ export const initialStatus = (phase: Phase = 'idle'): SyncStatus => ({
   retryAt: null,
   conflicts: [],
   rejected: null,
+  localAt: null,
+  remoteAt: null,
 });
 
 export type SyncNotice =
@@ -118,6 +127,10 @@ export class SyncRunner {
   /** Stan się zmienił — wysłanie po chwili ciszy. */
   changed(): void {
     if (this.stopped) return;
+    // Zmiana, która różni się od uzgodnionego, to lokalna edycja — jej chwila
+    // zostaje zapisana. Stan zastąpiony treścią z magazynu niczego nie czeka.
+    const st = this.deps.load();
+    if (pending(this.deps.files(), st)) this.deps.save({ ...st, localAt: this.now() });
     this.refreshPending();
     clearTimeout(this.pushTimer);
     this.pushTimer = setTimeout(() => this.kick(), PUSH_DELAY);
@@ -201,10 +214,14 @@ export class SyncRunner {
     });
   }
 
-  /** Pobranie, jeśli ktoś o nie prosił, a potem wysłanie, jeśli coś czeka. */
+  /**
+   * Najpierw magazyn: pobranie, gdy ktoś o nie prosił albo gdy coś czeka na
+   * wysłanie — wysyłamy dopiero na tym, co jest w magazynie teraz. Potem
+   * wysłanie, jeśli po pobraniu coś jeszcze czeka.
+   */
   private async cycle(): Promise<StoreError | null> {
     clearTimeout(this.pushTimer);
-    if (this.wantPull) {
+    if (this.wantPull || pending(this.deps.files(), this.deps.load())) {
       this.wantPull = false;
       const e = await this.op((files, st) => pull(this.deps.store, files, st, this.deps.accept));
       if (e) {
@@ -264,8 +281,13 @@ export class SyncRunner {
   }
 
   private refreshPending(): void {
-    const p = pending(this.deps.files(), this.deps.load());
-    if (p !== this.status.pending) this.set({ pending: p });
+    const st = this.deps.load();
+    const p = pending(this.deps.files(), st);
+    const localAt = st.localAt ?? null;
+    const remoteAt = st.remoteAt ?? null;
+    const s = this.status;
+    if (p !== s.pending || localAt !== s.localAt || remoteAt !== s.remoteAt)
+      this.set({ pending: p, localAt, remoteAt });
   }
 
   /* ───────────── Operacja ───────────── */

@@ -27,6 +27,8 @@ export class FakeGitHub {
   private files = new Map<string, { body: string; sha: string; raw?: Uint8Array }>();
   private rev = 0;
   private commits = 0;
+  /** chwila ostatniego commita (ISO, jak w API) — z zegara, także udawanego */
+  lastCommitAt: string | null = null;
   readonly log: {
     method: string;
     path: string;
@@ -51,6 +53,7 @@ export class FakeGitHub {
     else this.files.set(path, { body, sha: this.sha(body) });
     this.rev++;
     this.commits++;
+    this.lastCommitAt = new Date().toISOString();
   }
 
   /** Plik z bajtami, które nie są UTF-8. */
@@ -168,6 +171,16 @@ export class FakeGitHub {
       );
     }
 
+    // Ostatni commit gałęzi (z `path` — dotykający katalogu; tu zawsze ten sam).
+    if (rest === '/commits' && method === 'GET') {
+      if (this.empty) return this.json(409, { message: 'Git Repository is empty.' });
+      if (url.searchParams.get('sha') !== this.defaultBranch)
+        return this.json(404, { message: 'No commit found' });
+      return this.json(200, [
+        { sha: `c${this.rev}`, commit: { committer: { date: this.lastCommitAt } } },
+      ]);
+    }
+
     const contents = /^\/contents\/(.+)$/.exec(rest);
     if (contents) {
       const path = contents[1]!;
@@ -208,7 +221,7 @@ export class FakeGitHub {
         this.messages.push(String(body?.['message']));
         return this.json(cur ? 200 : 201, {
           content: { path, sha: this.files.get(path)!.sha },
-          commit: { sha: `c${this.rev}` },
+          commit: { sha: `c${this.rev}`, committer: { date: this.lastCommitAt } },
         });
       }
       if (method === 'DELETE') {
@@ -216,7 +229,10 @@ export class FakeGitHub {
         if (body?.['sha'] !== cur.sha) return this.json(409, { message: `${path} does not match` });
         this.put(path, null);
         this.messages.push(String(body?.['message']));
-        return this.json(200, { content: null, commit: { sha: `c${this.rev}` } });
+        return this.json(200, {
+          content: null,
+          commit: { sha: `c${this.rev}`, committer: { date: this.lastCommitAt } },
+        });
       }
     }
     return this.json(404, { message: 'Not Found' });

@@ -58,3 +58,14 @@ export function describeStatus(s: SyncStatus, now: number): StatusText {
       return { text: `Błąd: ${s.message ?? 'nieznany'}${retry(s, now)}`, tone: 'error', attention };
   }
 }
+
+/**
+ * Kiedy ostatnio zmienił się dziennik tutaj i w magazynie (ostatni commit) —
+ * `null`, gdy nic o tym nie wiadomo.
+ */
+export function describeTimes(s: SyncStatus, now: number): string | null {
+  const parts: string[] = [];
+  if (s.localAt !== null) parts.push(`tutaj ${when(s.localAt, now)}`);
+  if (s.remoteAt !== null) parts.push(`w repozytorium ${when(s.remoteAt, now)}`);
+  return parts.length ? `Ostatnia zmiana: ${parts.join(' · ')}` : null;
+}
