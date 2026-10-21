@@ -107,7 +107,12 @@ export class SyncRunner {
   private halted = false;
   private stopped = false;
 
-  constructor(private readonly deps: RunnerDeps) {}
+  constructor(private readonly deps: RunnerDeps) {
+    // Chwile ostatnich zmian są w zapisanym uzgodnieniu — widać je od razu po
+    // odświeżeniu strony, nie dopiero po pierwszej rozmowie z magazynem.
+    const st = deps.load();
+    this.status = { ...this.status, localAt: st.localAt ?? null, remoteAt: st.remoteAt ?? null };
+  }
 
   private now(): number {
     return this.deps.now ? this.deps.now() : Date.now();
@@ -345,7 +350,12 @@ export class SyncRunner {
         // Dokumenty z magazynu nie pasują do tego, co zmieniło się w międzyczasie:
         // uzgodnienie tych dokumentów się cofa, a następne pobranie oceni je
         // na nowo, już na bieżącym stanie.
-        state = { docs: { ...state.docs }, blocked: { ...state.blocked } };
+        state = {
+          docs: { ...state.docs },
+          blocked: { ...state.blocked },
+          ...(state.remoteAt !== undefined ? { remoteAt: state.remoteAt } : {}),
+          ...(state.localAt !== undefined ? { localAt: state.localAt } : {}),
+        };
         for (const n of names) {
           const p = prev.docs[n];
           if (p) state.docs[n] = p;
@@ -355,6 +365,11 @@ export class SyncRunner {
         this.wantPull = true;
       }
     }
+
+    // Edycja w trakcie operacji zapisała swoją chwilę w uzgodnieniu, którego ta
+    // operacja nie widziała — nie może jej zgubić.
+    const localAt = Math.max(this.deps.load().localAt ?? 0, state.localAt ?? 0);
+    if (localAt) state = { ...state, localAt };
 
     // Uzgodnienie przed stanem: zastąpienie stanu od razu pyta, co czeka na wysłanie.
     this.deps.save(state);

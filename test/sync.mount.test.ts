@@ -272,3 +272,28 @@ test('bez wspólnego motywu działa motyw tej przeglądarki', async () => {
   expect(state.app.S.theme).toBeUndefined();
   expect(document.documentElement.dataset.theme).toBe('dark');
 });
+
+test('chwila ostatniej lokalnej zmiany przeżywa odświeżenie strony', async () => {
+  seed([task('a')]);
+  connect(gh);
+  vi.setSystemTime(new Date(2026, 9, 21, 9, 0));
+  const first = await start();
+  vi.setSystemTime(new Date(2026, 9, 21, 9, 30));
+  rename(first.state, 'edycja');
+  await vi.advanceTimersByTimeAsync(3000);
+  await first.settle();
+  const editedAt = new Date(2026, 9, 21, 9, 30).getTime();
+  expect(first.sync.sync.status?.localAt).toBe(editedAt);
+
+  // Odświeżenie: aplikacja od nowa, z tego, co zostało w localStorage.
+  unmountApp?.();
+  unmountApp = null;
+  document.body.innerHTML = '';
+  vi.resetModules();
+  vi.setSystemTime(new Date(2026, 9, 21, 10, 0));
+  const again = await start();
+  expect(again.sync.sync.status?.localAt).toBe(editedAt);
+  expect(
+    document.querySelector('.hdr-side [title*="Ostatnia zmiana"]')?.getAttribute('title'),
+  ).toContain('tutaj 09:30');
+});

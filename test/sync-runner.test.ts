@@ -268,10 +268,15 @@ describe('pobieranie', () => {
     r.runner.pull();
     await vi.advanceTimersByTimeAsync(0);
     // „Stan", z którym dokument z magazynu się nie składa (tu: znacznik dla `strict`).
+    vi.setSystemTime(Date.now() + 60_000);
+    const editedAt = Date.now();
     r.edit(DAY, '# 2026-09-25\n\nZEPSUTE\n');
     gated.release();
     await r.settle();
     expect(r.applied).toBe(0);
+    // Edycja w trakcie pobrania (i cofnięte uzgodnienie) nie gubi swojej chwili.
+    expect(r.st.localAt).toBe(editedAt);
+    expect(r.status.localAt).toBe(editedAt);
     expect(r.files['BACKLOG.md']).toBe(base['BACKLOG.md']);
     // Drugie pobranie ocenia backlog na bieżącym stanie i blokuje go jak każdy nieprzyjęty dokument.
     expect(r.st.blocked).toHaveProperty('BACKLOG.md');
@@ -460,6 +465,7 @@ describe('magazyn jest źródłem prawdy', () => {
   });
 
   test('chwile ostatniej zmiany: lokalnej edycji i ostatniego commita w magazynie', async () => {
+    vi.setSystemTime(new Date(2026, 9, 21, 12, 0));
     const r = await rig();
     vi.setSystemTime(new Date(2026, 9, 21, 12, 3));
     r.edit(DAY, v2);
@@ -478,4 +484,20 @@ describe('magazyn jest źródłem prawdy', () => {
     expect(r.status.remoteAt).toBe(new Date(2026, 9, 21, 12, 30).getTime());
     expect(r.status.localAt).toBe(new Date(2026, 9, 21, 12, 3).getTime());
   });
+});
+
+test('po odświeżeniu strony chwile ostatnich zmian są widoczne od razu, przed pierwszą turą', () => {
+  const st: SyncState = { ...emptySync(), localAt: 1000, remoteAt: 2000 };
+  let status = null as unknown as SyncStatus;
+  const runner = new SyncRunner({
+    store: new MemoryStore(),
+    files: () => base,
+    accept: strict,
+    apply: () => {},
+    load: () => st,
+    save: () => {},
+    onStatus: (x) => (status = x),
+  });
+  expect(runner.current).toMatchObject({ localAt: 1000, remoteAt: 2000 });
+  expect(status).toBeNull(); // nic jeszcze nie zgłoszone — widok bierze `current`
 });
