@@ -7,6 +7,7 @@ import type { State } from '../types';
 import { projectOf } from '../categories';
 import { backlogGroups, todayList } from '../view';
 import { parseConfig, renderConfig } from './config';
+import type { Config } from './config';
 import { STEP, descIndent, descLines, parseLine, renderLine, unescapeDesc } from './line';
 import type { Line } from './line';
 import { tagsFor } from './slug';
@@ -104,7 +105,11 @@ export function renderFiles(s: State): Files {
   const tags = tagsFor(s.cats);
   const line = (i: Item) => renderLine(lineOf(i, tags));
   const out: Files = {
-    [CONFIG]: renderConfig({ cats: s.cats, day: s.day }),
+    [CONFIG]: renderConfig({
+      cats: s.cats,
+      day: s.day,
+      ...(s.theme !== undefined ? { theme: s.theme } : {}),
+    }),
     [dayFile(s.today)]: file(`# ${s.today}`, todayList(s.items).map(line)),
     [BACKLOG]: renderBacklog(s, tags),
   };
@@ -322,7 +327,7 @@ export function parseFiles(files: Files): ParseResult {
   if (!cfg.ok) for (const m of cfg.errors) errors.push({ file: CONFIG, line: null, message: m });
   if (!today || !cfg.ok) return { ok: false, errors };
 
-  const { cats, day } = cfg.config;
+  const { cats, day, theme } = cfg.config;
   const hours = { q0: day.start * 4, q1: day.end * 4 };
   const catOfTag = new Map(cats.map((c) => [c.tag!, c.id]));
   const ctx = (name: string, kind: Kind): Ctx => ({
@@ -351,11 +356,14 @@ export function parseFiles(files: Files): ParseResult {
     errors.push({ file: null, line: null, message: v });
   if (errors.length) return { ok: false, errors };
 
-  return { ok: true, state: { v: 7, cats, day, today, items } };
+  return {
+    ok: true,
+    state: { v: 7, cats, day, today, items, ...(theme !== undefined ? { theme } : {}) },
+  };
 }
 
 // Brak pliku ustawień: domyślne kategorie i doba, z tagami z nazw.
-function defaultConfig(): { ok: true; config: { cats: State['cats']; day: State['day'] } } {
+function defaultConfig(): { ok: true; config: Config } {
   const s = normalize(null);
   const tags = tagsFor(s.cats);
   const cats = s.cats.map((c) => ({

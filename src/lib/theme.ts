@@ -1,4 +1,11 @@
-import type { Prefs } from './types';
+import type { Prefs, State, Theme } from './types';
+
+export const THEMES: readonly Theme[] = ['auto', 'light', 'dark'];
+export const isTheme = (x: unknown): x is Theme => (THEMES as readonly unknown[]).includes(x);
+
+/** Motyw w użyciu: wspólny z ustawień, a dopóki go nie ma — ten z przeglądarki. */
+export const themeOf = (s: Pick<State, 'theme'>, prefs: Pick<Prefs, 'theme'>): Theme =>
+  s.theme ?? prefs.theme;
 
 export const THEME_LABEL: Record<Prefs['theme'], string> = {
   auto: 'systemowy',

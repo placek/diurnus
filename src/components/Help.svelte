@@ -231,7 +231,10 @@
       niebieska — trwa, żółta — uwaga, czerwona — błąd); szczegóły w Ustawienia → Dane
     </dd>
     <dt>Motyw</dt>
-    <dd>Ustawienia → Dzień: systemowy, jasny albo ciemny</dd>
+    <dd>
+      Ustawienia → Dzień: systemowy, jasny albo ciemny. Z synchronizacją jest wspólny dla
+      urządzeń, jak kategorie i doba
+    </dd>
     <dt>Cofanie</dt>
     <dd>
       „Cofnij" w komunikacie <span class="kb">albo <kbd>Ctrl</kbd> <kbd>Z</kbd></span> — cofa

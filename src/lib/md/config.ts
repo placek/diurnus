@@ -1,10 +1,12 @@
 import { parse as parseToml } from 'smol-toml';
 import { COLORS } from '../model';
-import type { Category, DaySettings } from '../types';
+import { isTheme } from '../theme';
+import type { Category, DaySettings, Theme } from '../types';
 import { TAG, tagsFor } from './slug';
 
 /*
- * `.diurnus.toml`: kategorie i ustawienia doby. Zapis jest ręczny, żeby był
+ * `.diurnus.toml`: kategorie, ustawienia doby i motyw — wszystko, co jest
+ * wspólne dla urządzeń. Token magazynu tu nie trafia nigdy. Zapis jest ręczny, żeby był
  * bajt w bajt powtarzalny; odczyt idzie przez `smol-toml` i ścisłą walidację —
  * nieznany klucz to błąd, a nie cicho pominięta literówka.
  */
@@ -12,13 +14,17 @@ import { TAG, tagsFor } from './slug';
 export interface Config {
   cats: Category[];
   day: DaySettings;
+  /** wspólny motyw; brak — każde urządzenie zostaje przy swoim */
+  theme?: Theme;
 }
 
 const str = (s: string) => JSON.stringify(s); // podstawowy łańcuch TOML
 
 export function renderConfig(cfg: Config): string {
   const tags = tagsFor(cfg.cats);
-  const out: string[] = ['[day]', `start = ${cfg.day.start}`, `end = ${cfg.day.end}`];
+  // Klucze bez tabeli muszą stać w TOML przed pierwszą tabelą.
+  const out: string[] = cfg.theme !== undefined ? [`theme = ${str(cfg.theme)}`, ''] : [];
+  out.push('[day]', `start = ${cfg.day.start}`, `end = ${cfg.day.end}`);
   for (const b of [...cfg.day.bands].sort((a, b) => a.from - b.from)) {
     out.push(
       '',
@@ -60,7 +66,9 @@ export function parseConfig(text: string): ConfigResult {
   }
   const errors: string[] = [];
   if (!isObj(raw)) return { ok: false, errors: ['plik nie jest tabelą TOML'] };
-  onlyKeys(raw, ['day', 'categories'], 'plik', errors);
+  onlyKeys(raw, ['theme', 'day', 'categories'], 'plik', errors);
+  const theme = raw['theme'];
+  if (theme !== undefined && !isTheme(theme)) errors.push('theme: „auto", „light" albo „dark"');
 
   const d = raw['day'];
   let day: DaySettings = { start: 6, end: 22, bands: [] };
@@ -151,5 +159,7 @@ export function parseConfig(text: string): ConfigResult {
     }
   }
 
-  return errors.length ? { ok: false, errors } : { ok: true, config: { cats, day } };
+  return errors.length
+    ? { ok: false, errors }
+    : { ok: true, config: { cats, day, ...(isTheme(theme) ? { theme } : {}) } };
 }

@@ -15,7 +15,7 @@
   import { kids, topCats } from './lib/categories';
   import { clampCursor, keyAction } from './lib/keys';
   import { SLOT_LEN } from './lib/machine';
-  import { themeColor } from './lib/theme';
+  import { themeColor, themeOf } from './lib/theme';
   import { nowQ, pad, qTime } from './lib/time';
   import { activeNow, categoryOf, occ, slotOf } from './lib/view';
   import Panes from './components/Panes.svelte';
@@ -58,7 +58,7 @@
   // Motyw: 'auto' zostawia decyzję medium query, więc atrybut jest usuwany,
   // a nie ustawiany na zgadywaną wartość.
   $effect(() => {
-    const t = app.prefs.theme;
+    const t = themeOf(app.S, app.prefs);
     const root = document.documentElement;
     if (t === 'auto') delete root.dataset.theme;
     else root.dataset.theme = t;

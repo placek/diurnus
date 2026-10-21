@@ -85,7 +85,8 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 
 - **Kategorie** (`C`): nazwa, ikona, kolor, kolejność, podkategorie.
 - **Dzień** (`D`): zakres godzin, pory dnia, powiadomienia i motyw — systemowy, jasny albo
-  ciemny.
+  ciemny. Motyw jest wspólny dla urządzeń, jak kategorie i doba; powiadomienia — nie, bo
+  zgodę daje każda przeglądarka osobno.
 - **Układ** na trzy panele albo — na wąskim ekranie — jeden panel naraz, na start lista dnia,
   z przełącznikiem po lewej od daty.
 - **Cofanie** każdej zmiany: „Cofnij" w komunikacie albo `Ctrl`+`Z`.
@@ -103,6 +104,10 @@ w **prywatnym repozytorium** i łączy urządzenia:
 
 - Potrzebne jest repozytorium (może być puste) i token *fine-grained* ograniczony do niego,
   z uprawnieniem *Contents: Read and write*. Token zostaje wyłącznie w przeglądarce.
+- Razem z pozycjami jadą **ustawienia** — `.diurnus.toml`: kategorie (z ikonami, kolorami,
+  projektami i archiwum), zakres dnia, pory dnia i motyw. Drugie urządzenie podłączone do tego
+  samego repozytorium dostaje je od razu. Na każdym urządzeniu osobno zostają tylko: połączenie
+  z repozytorium i token, zgoda na powiadomienia oraz to, czy pomoc była już pokazana.
 - Zmiany idą do repozytorium 2 s po edycji; zmiany z innych urządzeń przychodzą przy starcie,
   przy powrocie do karty i co 5 minut. Bez sieci wszystko działa i czeka na powrót połączenia.
 - Przy pierwszym połączeniu, gdy dziennik jest po obu stronach, aplikacja pyta, który zostaje.

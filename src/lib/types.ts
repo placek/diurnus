@@ -46,10 +46,19 @@ export interface State {
   day: DaySettings;
   today: string;
   items: Item[];
+  /**
+   * Motyw wspólny dla urządzeń — jedzie z resztą ustawień w `.diurnus.toml`.
+   * Brak: nikt go jeszcze nie wybrał po tej zmianie, więc każde urządzenie
+   * zostaje przy swoim (`Prefs.theme`) i nic nie trafia do magazynu.
+   */
+  theme?: Theme;
 }
 
+export type Theme = 'auto' | 'light' | 'dark';
+
 export interface Prefs {
-  theme: 'auto' | 'light' | 'dark';
+  /** motyw tej przeglądarki — używany, dopóki stan nie ma wspólnego (`State.theme`) */
+  theme: Theme;
   seenHelp: boolean;
   /** powiadomienia o zadaniach ze slotem; padają tylko przy otwartej karcie */
   notify: boolean;

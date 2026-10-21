@@ -1,4 +1,5 @@
 import { fromV5 } from './migrate';
+import { isTheme } from './theme';
 import { fromLegacy, isLegacy } from './rrule';
 import type { V5State } from './migrate';
 import { today as todayKey } from './time';
@@ -167,6 +168,7 @@ export function normalize(x: unknown, today: string = todayKey()): State {
   v7.cats = validCats(v7.cats);
   v7.day = validDay(v7.day);
   if (typeof v7.today !== 'string' || !DATE.test(v7.today)) v7.today = today;
+  if (v7.theme !== undefined && !isTheme(v7.theme)) delete v7.theme;
   // Uszkodzona kopia może mieć pozycje bez stanu; takich nie da się pokazać.
   v7.items = (v7.items as Item[]).filter(
     (i) => i && typeof i.id === 'string' && i.state && typeof i.state.tag === 'string',

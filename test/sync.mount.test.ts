@@ -228,3 +228,43 @@ test('rozłączenie w innej karcie zatrzymuje synchronizację', async () => {
   await vi.advanceTimersByTimeAsync(10 * 60_000);
   expect(gh.log.length).toBe(n);
 });
+
+test('motyw jedzie z ustawieniami w .diurnus.toml; dopóki nikt go nie wybierze, plik go nie ma', async () => {
+  seed([task('a')]);
+  connect(gh);
+  const { state, flush, settle } = await start();
+  // Po aktualizacji nic się nie zmienia: każde urządzenie zostaje przy swoim motywie.
+  expect(gh.text('.diurnus.toml')).not.toContain('theme');
+
+  state.ui.settings = 'day';
+  flush();
+  document.querySelector<HTMLInputElement>('input[name="theme"][value="dark"]')!.click();
+  flush();
+  expect(document.documentElement.dataset.theme).toBe('dark');
+  await vi.advanceTimersByTimeAsync(3000);
+  await settle();
+  expect(gh.text('.diurnus.toml')).toMatch(/^theme = "dark"\n\n\[day\]/);
+
+  // Inne urządzenie wybrało jasny — po powrocie do karty jest jasny i tutaj.
+  gh.put('.diurnus.toml', gh.text('.diurnus.toml')!.replace('"dark"', '"light"'));
+  await vi.advanceTimersByTimeAsync(15_000);
+  dispatchEvent(new Event('focus'));
+  await settle();
+  expect(state.app.S.theme).toBe('light');
+  expect(document.documentElement.dataset.theme).toBe('light');
+  expect(
+    document.querySelector<HTMLInputElement>('input[name="theme"][value="light"]')!.checked,
+  ).toBe(true);
+});
+
+test('bez wspólnego motywu działa motyw tej przeglądarki', async () => {
+  seed([task('a')]);
+  localStorage.setItem(
+    'diurnus.prefs',
+    JSON.stringify({ theme: 'dark', seenHelp: true, notify: false }),
+  );
+  connect(gh);
+  const { state } = await start();
+  expect(state.app.S.theme).toBeUndefined();
+  expect(document.documentElement.dataset.theme).toBe('dark');
+});

@@ -1,13 +1,15 @@
 <script lang="ts">
   import { COLORS, DEFAULT_DAY, uid } from '../../lib/model';
-  import { app, savePrefs } from '../../state.svelte';
-  import { THEME_LABEL } from '../../lib/theme';
-  import type { Prefs } from '../../lib/types';
+  import { app, commit, savePrefs } from '../../state.svelte';
+  import { THEMES, THEME_LABEL, themeOf } from '../../lib/theme';
+  import type { Theme } from '../../lib/types';
 
-  // Motyw działa od razu, jak powiadomienia — to preferencja tej przeglądarki,
-  // nie część dnia, więc nie czeka na „Zapisz".
-  const THEMES: Prefs['theme'][] = ['auto', 'light', 'dark'];
-  function setTheme(t: Prefs['theme']) {
+  // Motyw działa od razu, nie czeka na „Zapisz". Jest wspólny: trafia do
+  // `.diurnus.toml`, więc synchronizacja zabiera go na inne urządzenia. Kopia
+  // w preferencjach przeglądarki zostaje na wypadek stanu bez motywu.
+  const theme = $derived(themeOf(app.S, app.prefs));
+  function setTheme(t: Theme) {
+    if (app.S.theme !== t) commit(() => (app.S.theme = t));
     app.prefs.theme = t;
     savePrefs();
   }
@@ -195,7 +197,7 @@
         type="radio"
         name="theme"
         value={t}
-        checked={app.prefs.theme === t}
+        checked={theme === t}
         onchange={() => setTheme(t)}
       />
       {THEME_LABEL[t][0]!.toUpperCase() + THEME_LABEL[t].slice(1)}
