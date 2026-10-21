@@ -32,6 +32,14 @@ export interface SyncState {
    * ktoś nie wybierze „Nadpisz moją wersją".
    */
   blocked: Record<string, Version>;
+  /**
+   * Ostatnia zmiana w magazynie (ms) — z ostatniego commita, takiego, jaki
+   * podał magazyn. Tylko do pokazania: o tym, czy pobrać, rozstrzyga wersja
+   * dokumentów, nie zegar, bo zegary urządzeń się rozjeżdżają.
+   */
+  remoteAt?: number;
+  /** Ostatnia lokalna zmiana dziennika na tym urządzeniu (ms). */
+  localAt?: number;
 }
 
 export const emptySync = (): SyncState => ({ docs: {}, blocked: {} });
@@ -66,7 +74,14 @@ const clone = (s: SyncState): SyncState => ({
   docs: { ...s.docs },
   blocked: { ...s.blocked },
   ...(s.mark !== undefined ? { mark: s.mark } : {}),
+  ...(s.remoteAt !== undefined ? { remoteAt: s.remoteAt } : {}),
+  ...(s.localAt !== undefined ? { localAt: s.localAt } : {}),
 });
+
+/** Zapis w magazynie przesuwa jego chwilę ostatniej zmiany. */
+const seen = (st: SyncState, at: number | undefined) => {
+  if (at !== undefined && at > (st.remoteAt ?? 0)) st.remoteAt = at;
+};
 
 /** Tylko dokumenty dziennika — reszta nie jest sprawą synchronizacji. */
 const docsOf = (files: Files): Files =>
@@ -183,13 +198,17 @@ export async function push(
     for (const name of dirty) {
       const body = files[name]!;
       const r = await store.write(name, body, st.docs[name]?.version ?? null);
-      if (r.ok) st.docs[name] = { version: r.version!, hash: contentHash(body) };
-      else lost(name, r, body);
+      if (r.ok) {
+        st.docs[name] = { version: r.version!, hash: contentHash(body) };
+        seen(st, r.at);
+      } else lost(name, r, body);
     }
     for (const name of gone) {
       const r = await store.remove(name, st.docs[name]!.version);
-      if (r.ok) delete st.docs[name];
-      else lost(name, r, null);
+      if (r.ok) {
+        delete st.docs[name];
+        seen(st, r.at);
+      } else lost(name, r, null);
     }
   } catch (e) {
     error = asStoreError(e);
@@ -233,6 +252,7 @@ export async function pull(
         if (locallyChanged(docsOf(files), st, name)) conflicts.push({ name, remote: r, mine });
       }
       st.mark = listing.mark;
+      seen(st, listing.at);
     }
   } catch (e) {
     error = asStoreError(e);
@@ -264,6 +284,7 @@ export async function overwrite(
     else if (base !== null) r = await store.remove(c.name, base);
     else r = { ok: true, version: null }; // obie strony bez dokumentu
     if (r.ok) {
+      seen(st, r.at);
       delete st.blocked[c.name];
       if (c.mine !== null) {
         // Własna treść wchodzi z powrotem do stanu jako uzgodniona.
@@ -311,6 +332,8 @@ export interface Snapshot {
   files: Files;
   versions: Record<string, Version>;
   mark: string;
+  /** chwila ostatniego commita, jeśli magazyn ją podał */
+  at?: number;
 }
 
 export type FirstPlan =
@@ -326,7 +349,12 @@ export async function planFirst(store: Store, files: Files): Promise<FirstPlan> 
   const listing = await store.list();
   if ('unchanged' in listing)
     throw new StoreError('other', 'spis bez znacznika nie może być „bez zmian"');
-  const snap: Snapshot = { files: {}, versions: {}, mark: listing.mark };
+  const snap: Snapshot = {
+    files: {},
+    versions: {},
+    mark: listing.mark,
+    ...(listing.at !== undefined ? { at: listing.at } : {}),
+  };
   for (const name of [...listing.docs.keys()].sort()) {
     if (!isDocName(name)) continue;
     const doc = await store.read(name);
@@ -356,7 +384,12 @@ export function takeRemote(snap: Snapshot, accept: Accept): Outcome {
       rejected: { names: Object.keys(snap.files).sort(), errors: verdict },
       error: null,
     };
-  const st: SyncState = { docs: {}, blocked: {}, mark: snap.mark };
+  const st: SyncState = {
+    docs: {},
+    blocked: {},
+    mark: snap.mark,
+    ...(snap.at !== undefined ? { remoteAt: snap.at } : {}),
+  };
   for (const [n, body] of Object.entries(snap.files))
     st.docs[n] = { version: snap.versions[n]!, hash: contentHash(body) };
   return {
@@ -386,6 +419,7 @@ export async function sendMine(
       Object.entries(snap.versions).map(([n, version]) => [n, { version, hash: '' }]),
     ),
     blocked: {},
+    ...(snap.at !== undefined ? { remoteAt: snap.at } : {}),
   };
   return push(store, files, st, accept);
 }

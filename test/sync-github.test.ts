@@ -69,7 +69,7 @@ describe.each(harnesses)('umowa magazynu: %s', (_name, make) => {
     const listing = await store.list();
     expect('docs' in listing && listing.docs.get(DAY)).toBe(v2);
 
-    expect(await store.remove(DAY, v2)).toEqual({ ok: true, version: null });
+    expect(await store.remove(DAY, v2)).toMatchObject({ ok: true, version: null });
     expect(await store.read(DAY)).toBeNull();
   });
 
@@ -140,11 +140,37 @@ describe('GitHubStore', () => {
     const first = await store.list();
     const mark = (first as { mark: string }).mark;
     expect(await store.list(mark)).toEqual({ unchanged: true });
+    // Zmienione drzewo dociąga datę ostatniego commita; „bez zmian" — już nie.
     expect(gh.log.map((r) => `${r.method} ${r.path} ${r.status}`)).toEqual([
       'GET /repos/ola/diurnus-data/git/trees/main?recursive=1 200',
+      'GET /repos/ola/diurnus-data/commits?sha=main&per_page=1 200',
       'GET /repos/ola/diurnus-data/git/trees/main?recursive=1 304',
     ]);
-    expect(gh.log[1]!.headers['if-none-match']).toBe(mark);
+    expect(gh.log[2]!.headers['if-none-match']).toBe(mark);
+  });
+
+  test('chwila ostatniej zmiany: z ostatniego commita i z odpowiedzi na zapis', async () => {
+    const gh = new FakeGitHub({ [DAY]: 'x' });
+    gh.lastCommitAt = '2026-10-20T08:15:00Z';
+    const store = new GitHubStore({ ...cfg(gh), dir: 'dziennik' }, gh.fetch);
+    const first = await store.list();
+    expect('docs' in first && first.at).toBe(Date.parse('2026-10-20T08:15:00Z'));
+    expect(gh.log[1]!.path).toBe(
+      '/repos/ola/diurnus-data/commits?sha=main&per_page=1&path=dziennik',
+    );
+    const w = await store.write('BACKLOG.md', '# Backlog\n', null);
+    expect(w.ok && w.at).toBe(Date.parse(gh.lastCommitAt!));
+    // Bez daty (błąd API commitów) spis i tak się udaje — data służy tylko do pokazania.
+    gh.failWith = null;
+    const broken = new GitHubStore(cfg(gh), (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) =>
+      String(input).includes('/commits?')
+        ? new Response('{}', { status: 500 })
+        : gh.fetch(input, init)) as typeof fetch);
+    const l = await broken.list();
+    expect('docs' in l && l.at).toBeUndefined();
   });
 
   test('katalog w repozytorium: tylko jego bezpośrednie dokumenty; inne pliki nie istnieją', async () => {

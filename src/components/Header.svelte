@@ -1,7 +1,7 @@
 <script lang="ts">
   import { app, ui } from '../state.svelte';
   import { sync } from '../sync.svelte';
-  import { describeStatus } from '../lib/sync/describe';
+  import { describeStatus, describeTimes } from '../lib/sync/describe';
   import Icon from './Icon.svelte';
   import Logo from './Logo.svelte';
   import TodayHead from './TodayHead.svelte';
@@ -24,6 +24,7 @@
 
   // Synchronizacja: ikonka tylko przy połączonym magazynie, kropka — gdy coś jest nie tak.
   const syncText = $derived(sync.status ? describeStatus(sync.status, app.now) : null);
+  const syncTimes = $derived(sync.status ? describeTimes(sync.status, app.now) : null);
   const syncMark = $derived(
     !syncText
       ? ''
@@ -68,7 +69,7 @@
         class="ib sync-ind {syncMark}"
         role="status"
         aria-label="Synchronizacja: {syncText.text}"
-        title={syncText.text}
+        title={syncTimes ? `${syncText.text}\n${syncTimes}` : syncText.text}
       >
         <Icon name="cloud" fallback="☁" />
       </span>

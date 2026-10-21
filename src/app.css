@@ -467,6 +467,7 @@ kbd{
 .sync a{color:var(--blue)}
 .sync-meta{font:400 13px var(--mono);color:var(--fg-dim)}
 .sync-status{margin:0;font:500 14px var(--sans);color:var(--fg-dim)}
+.sync-times{margin:-4px 0 0 15px;font:400 13px var(--sans);color:var(--fg-faint);font-variant-numeric:tabular-nums}
 .sync-status::before{content:'';display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:50%;background:var(--green);vertical-align:1px}
 .sync-status.busy::before{background:var(--blue)}
 .sync-status.warn::before{background:var(--yellow)}

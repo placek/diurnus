@@ -217,8 +217,9 @@ describe('pobieranie', () => {
     expect(r.status.phase).toBe('busy');
     gated.release();
     await r.settle();
+    // Każda tura zaczyna od magazynu: pierwsza (wysłanie) i druga (prośby zgłoszone w jej trakcie).
     expect(r.store.calls.write).toBe(1);
-    expect(r.store.calls.list).toBe(1);
+    expect(r.store.calls.list).toBe(2);
     expect(r.files['BACKLOG.md']).toContain('nowe');
   });
 
@@ -267,10 +268,15 @@ describe('pobieranie', () => {
     r.runner.pull();
     await vi.advanceTimersByTimeAsync(0);
     // „Stan", z którym dokument z magazynu się nie składa (tu: znacznik dla `strict`).
+    vi.setSystemTime(Date.now() + 60_000);
+    const editedAt = Date.now();
     r.edit(DAY, '# 2026-09-25\n\nZEPSUTE\n');
     gated.release();
     await r.settle();
     expect(r.applied).toBe(0);
+    // Edycja w trakcie pobrania (i cofnięte uzgodnienie) nie gubi swojej chwili.
+    expect(r.st.localAt).toBe(editedAt);
+    expect(r.status.localAt).toBe(editedAt);
     expect(r.files['BACKLOG.md']).toBe(base['BACKLOG.md']);
     // Drugie pobranie ocenia backlog na bieżącym stanie i blokuje go jak każdy nieprzyjęty dokument.
     expect(r.st.blocked).toHaveProperty('BACKLOG.md');
@@ -346,14 +352,15 @@ describe('bez sieci i błędy', () => {
     expect(r.status).toMatchObject({ phase: 'offline', pending: true });
     expect(r.status.retryAt).toBe(Date.now() + RETRY_FIRST);
 
-    // Edycja w czasie przerwy nie przyspiesza prób.
+    // Edycja w czasie przerwy nie przyspiesza prób. Próbą jest sprawdzenie
+    // magazynu, od którego zaczyna się każda tura.
     r.edit(DAY, v3);
     await vi.advanceTimersByTimeAsync(PUSH_DELAY);
-    expect(r.store.calls.write).toBe(1);
+    expect(r.store.calls.list).toBe(1);
 
     await vi.advanceTimersByTimeAsync(RETRY_FIRST - PUSH_DELAY);
     await r.settle();
-    expect(r.store.calls.write).toBe(2);
+    expect(r.store.calls.list).toBe(2);
     expect(r.status.retryAt).toBe(Date.now() + 2 * RETRY_FIRST);
     await vi.advanceTimersByTimeAsync(2 * RETRY_FIRST);
     await r.settle();
@@ -415,7 +422,7 @@ describe('bez sieci i błędy', () => {
     expect(r.status.phase).toBe('rate-limit');
     r.runner.online();
     await r.settle();
-    expect(r.store.calls.write).toBe(1);
+    expect(r.store.calls.list).toBe(1);
     await vi.advanceTimersByTimeAsync(1000);
     await r.settle();
     expect(r.store.snapshot()[DAY]).toBe(v2);
@@ -430,4 +437,67 @@ describe('bez sieci i błędy', () => {
     await r.settle();
     expect(r.store.calls.write).toBe(0);
   });
+});
+
+describe('magazyn jest źródłem prawdy', () => {
+  test('przed wysłaniem tura sprawdza magazyn i wpuszcza jego zmiany', async () => {
+    const r = await rig();
+    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.edit(DAY, v2);
+    await vi.advanceTimersByTimeAsync(PUSH_DELAY);
+    await r.settle();
+    // Zmiana z telefonu weszła w tej samej turze, a nie dopiero przy następnym sprawdzeniu.
+    expect(r.files['BACKLOG.md']).toContain('z telefonu');
+    expect(r.store.snapshot()[DAY]).toBe(v2);
+    expect(r.store.calls.list).toBe(1);
+    expect(r.status).toMatchObject({ phase: 'idle', pending: false, conflicts: [] });
+  });
+
+  test('ten sam dokument zmieniony tu i w magazynie: wygrywa magazyn, bez nieudanego zapisu', async () => {
+    const r = await rig();
+    r.store.put(DAY, v3);
+    r.edit(DAY, v2);
+    await vi.advanceTimersByTimeAsync(PUSH_DELAY);
+    await r.settle();
+    expect(r.files[DAY]).toBe(v3);
+    expect(r.store.calls.write).toBe(0);
+    expect(r.status.conflicts.map((c) => [c.name, c.mine])).toEqual([[DAY, v2]]);
+  });
+
+  test('chwile ostatniej zmiany: lokalnej edycji i ostatniego commita w magazynie', async () => {
+    vi.setSystemTime(new Date(2026, 9, 21, 12, 0));
+    const r = await rig();
+    vi.setSystemTime(new Date(2026, 9, 21, 12, 3));
+    r.edit(DAY, v2);
+    expect(r.status.localAt).toBe(new Date(2026, 9, 21, 12, 3).getTime());
+    expect(r.st.localAt).toBe(r.status.localAt);
+    await vi.advanceTimersByTimeAsync(PUSH_DELAY);
+    await r.settle();
+    // Własny zapis jest ostatnią zmianą w magazynie.
+    expect(r.status.remoteAt).toBe(new Date(2026, 9, 21, 12, 3, 2).getTime());
+
+    // Zmiana z innego urządzenia przesuwa chwilę magazynu, nie lokalną.
+    vi.setSystemTime(new Date(2026, 9, 21, 12, 30));
+    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.runner.pull();
+    await r.settle();
+    expect(r.status.remoteAt).toBe(new Date(2026, 9, 21, 12, 30).getTime());
+    expect(r.status.localAt).toBe(new Date(2026, 9, 21, 12, 3).getTime());
+  });
+});
+
+test('po odświeżeniu strony chwile ostatnich zmian są widoczne od razu, przed pierwszą turą', () => {
+  const st: SyncState = { ...emptySync(), localAt: 1000, remoteAt: 2000 };
+  let status = null as unknown as SyncStatus;
+  const runner = new SyncRunner({
+    store: new MemoryStore(),
+    files: () => base,
+    accept: strict,
+    apply: () => {},
+    load: () => st,
+    save: () => {},
+    onStatus: (x) => (status = x),
+  });
+  expect(runner.current).toMatchObject({ localAt: 1000, remoteAt: 2000 });
+  expect(status).toBeNull(); // nic jeszcze nie zgłoszone — widok bierze `current`
 });

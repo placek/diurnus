@@ -108,8 +108,13 @@ w **prywatnym repozytorium** i łączy urządzenia:
   projektami i archiwum), zakres dnia, pory dnia i motyw. Drugie urządzenie podłączone do tego
   samego repozytorium dostaje je od razu. Na każdym urządzeniu osobno zostają tylko: połączenie
   z repozytorium i token, zgoda na powiadomienia oraz to, czy pomoc była już pokazana.
-- Zmiany idą do repozytorium 2 s po edycji; zmiany z innych urządzeń przychodzą przy starcie,
-  przy powrocie do karty i co 5 minut. Bez sieci wszystko działa i czeka na powrót połączenia.
+- **Repozytorium jest źródłem prawdy.** Zanim cokolwiek pójdzie do repozytorium, aplikacja
+  sprawdza, czy nie ma w nim czegoś nowszego, i najpierw to pobiera. Zmiany idą 2 s po edycji;
+  zmiany z innych urządzeń pojawiają się same w otwartej karcie najwyżej po 20 s (i od razu
+  przy starcie albo powrocie do karty) — bez przerywania pisania w innej pozycji.
+  Bez sieci wszystko działa i czeka na powrót połączenia.
+- Ustawienia (i podpowiedź chmury w pasku) pokazują **ostatnią zmianę tutaj i w repozytorium**
+  (datę ostatniego commita).
 - Przy pierwszym połączeniu, gdy dziennik jest po obu stronach, aplikacja pyta, który zostaje.
 - Konflikt (ten sam dokument zmieniony tu i gdzie indziej) wygrywa repozytorium; przegraną
   wersję przywraca „Nadpisz moją wersją".

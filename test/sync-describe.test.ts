@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { describeStatus } from '../src/lib/sync/describe';
+import { describeStatus, describeTimes } from '../src/lib/sync/describe';
 import { initialStatus } from '../src/lib/sync/runner';
 import type { SyncStatus } from '../src/lib/sync/runner';
 
@@ -42,4 +42,15 @@ test('konflikt albo odrzucone zmiany wymagają uwagi, nawet gdy wszystko wysłan
   expect(
     describeStatus(s({ rejected: { names: ['x.md'], errors: ['x.md:1: zła'] } }), NOW).attention,
   ).toBe(true);
+});
+
+test('ostatnia zmiana tutaj i w repozytorium (ostatni commit)', () => {
+  expect(describeTimes(s({}), NOW)).toBeNull();
+  expect(describeTimes(s({ localAt: at(12, 3) }), NOW)).toBe('Ostatnia zmiana: tutaj 12:03');
+  expect(describeTimes(s({ localAt: at(12, 3), remoteAt: at(18, 30, 27) }), NOW)).toBe(
+    'Ostatnia zmiana: tutaj 12:03 · w repozytorium 27.09 18:30',
+  );
+  expect(describeTimes(s({ remoteAt: at(12, 5) }), NOW)).toBe(
+    'Ostatnia zmiana: w repozytorium 12:05',
+  );
 });

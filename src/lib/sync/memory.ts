@@ -10,6 +10,8 @@ export class MemoryStore implements Store {
   private docs = new Map<string, { body: string; version: Version }>();
   private seq = 0;
   private rev = 0;
+  /** chwila ostatniej zmiany — jak data ostatniego commita */
+  private at: number | null = null;
   private failures: StoreErrorKind[] = [];
   /** Liczba wywołań każdej operacji — do sprawdzania ruchu w testach. */
   readonly calls = { list: 0, read: 0, write: 0, remove: 0 };
@@ -23,6 +25,7 @@ export class MemoryStore implements Store {
     if (body === null) this.docs.delete(name);
     else this.docs.set(name, { body, version: `v${++this.seq}` });
     this.rev++;
+    this.at = Date.now();
   }
 
   /** Bieżąca treść — do asercji w testach. */
@@ -50,7 +53,11 @@ export class MemoryStore implements Store {
     this.maybeFail();
     const mark = `r${this.rev}`;
     if (since === mark) return { unchanged: true };
-    return { docs: new Map([...this.docs].map(([n, d]) => [n, d.version])), mark };
+    return {
+      docs: new Map([...this.docs].map(([n, d]) => [n, d.version])),
+      mark,
+      ...(this.at !== null ? { at: this.at } : {}),
+    };
   }
 
   async read(name: string) {
@@ -66,7 +73,7 @@ export class MemoryStore implements Store {
     const cur = this.docs.get(name);
     if ((cur?.version ?? null) !== base) return { ok: false, conflict: cur ? { ...cur } : null };
     this.put(name, body);
-    return { ok: true, version: this.docs.get(name)!.version };
+    return { ok: true, version: this.docs.get(name)!.version, at: this.at! };
   }
 
   async remove(name: string, base: Version): Promise<WriteResult> {
@@ -76,6 +83,6 @@ export class MemoryStore implements Store {
     if (!cur) return { ok: false, conflict: null };
     if (cur.version !== base) return { ok: false, conflict: { ...cur } };
     this.put(name, null);
-    return { ok: true, version: null };
+    return { ok: true, version: null, at: this.at! };
   }
 }
