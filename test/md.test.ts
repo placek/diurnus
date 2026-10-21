@@ -214,6 +214,20 @@ describe('.diurnus.toml', () => {
     expect(renderConfig(r.config)).toBe(CONFIG_TEXT);
   });
 
+  test('motyw: wspólny klucz przed tabelami; bez niego plik jak dotąd', () => {
+    const r = parseConfig(CONFIG_TEXT);
+    if (!r.ok) throw new Error(r.errors.join('; '));
+    expect(r.config.theme).toBeUndefined();
+    const text = renderConfig({ ...r.config, theme: 'dark' });
+    expect(text).toBe(`theme = "dark"\n\n${CONFIG_TEXT}`);
+    const back = parseConfig(text);
+    expect(back.ok && back.config.theme).toBe('dark');
+    expect(parseConfig(`theme = "sepia"\n\n${CONFIG_TEXT}`)).toEqual({
+      ok: false,
+      errors: ['theme: „auto", „light" albo „dark"'],
+    });
+  });
+
   test('zarchiwizowana kategoria i znaki specjalne w nazwie przechodzą obieg', () => {
     const cfg = {
       cats: [
@@ -651,7 +665,8 @@ function randomState(seed: number): State {
         items: m.items.map((i) => (i.id === id && !note(i) ? { ...i, steps: pick(STEPS) } : i)),
       };
   }
-  return { ...base, today: m.today, items: [...m.items] };
+  const theme = pick([undefined, 'auto', 'light', 'dark'] as const);
+  return { ...base, today: m.today, items: [...m.items], ...(theme ? { theme } : {}) };
 }
 
 /** Wszystko, co jest stanem: bez identyfikatorów i czasu utworzenia, w kolejności kanonicznej. */
@@ -672,6 +687,7 @@ function project(s: State) {
   const days = [...new Set(past.map((i) => (i.state as { day: string }).day))].sort();
   return {
     today: s.today,
+    theme: s.theme,
     past: days.flatMap((d) => past.filter((i) => (i.state as { day: string }).day === d)).map(one),
     today_: todayList(s.items).map(one),
     backlog: backlogOrder(s.items, s.cats).map(one),

@@ -11,7 +11,7 @@ Dwukierunkowe przekształcenie stanu aplikacji w pliki i z powrotem:
 
 - `YYYY-MM-DD.md` — dziś (i, po północy, archiwum tamtego dnia);
 - `BACKLOG.md` — wszystko poza dziś;
-- `.diurnus.toml` — kategorie i ustawienia dnia.
+- `.diurnus.toml` — kategorie, ustawienia dnia i motyw.
 
 Format zachowuje stan **deterministycznie i jednoznacznie**: każdy stan ma dokładnie jedną
 postać kanoniczną, a jej odczyt daje ten sam stan.
@@ -227,6 +227,8 @@ projektów.
 ### `.diurnus.toml`
 
 ```toml
+theme = "dark"
+
 [day]
 start = 6
 end = 22
@@ -254,6 +256,12 @@ parent = "praca"
   projektów nie mogą się powtarzać, bez względu na wielkość liter.
 - Tag to slug: małe litery ASCII, cyfry i łączniki. Kategorie bez tagu dostają go z nazwy —
   bez polskich znaków, z łącznikami, z przyrostkiem `-2`, `-3` przy powtórzeniu.
+- `theme` — `"auto"`, `"light"` albo `"dark"` — to motyw wspólny dla urządzeń. Klucz stoi przed
+  tabelami, jak wymaga TOML. Brak klucza znaczy „nikt jeszcze nie wybrał": każde urządzenie
+  zostaje przy swoim motywie i nic go nie dopisuje, dopóki ktoś nie wybierze motywu
+  w ustawieniach — dzięki temu aktualizacja nie zmienia pliku i nie wywołuje konfliktów.
+- Do pliku trafia wszystko, co ma być wspólne; nigdy token ani połączenie z magazynem.
+  Na urządzeniu zostają też zgoda na powiadomienia i znacznik obejrzanej pomocy.
 - Brak pliku daje ustawienia domyślne.
 
 ## 5. Zapis i odczyt
@@ -280,8 +288,9 @@ Zakładka „Dane" w ustawieniach zastępuje dawną kopię JSON:
   błąd.
 - **Błędy** pokazują się w zakładce jako lista `plik:linia: powód`; nic się wtedy nie wczytuje.
 - **Wczytanie** pyta o potwierdzenie, zastępuje cały stan i czyści historię cofania. Wczytany
-  dzień dogania kalendarz tak samo jak stan zapisany dawniej. Preferencje (motyw, pomoc,
-  powiadomienia) nie są częścią dziennika i zostają bez zmian.
+  dzień dogania kalendarz tak samo jak stan zapisany dawniej. Motyw jedzie
+  w `.diurnus.toml`; preferencje tej przeglądarki (pomoc, powiadomienia) nie są częścią
+  dziennika i zostają bez zmian.
 - **Starsza kopia JSON** nadal się wczytuje, jeśli wskazać ją samą; nowej się już nie tworzy.
 
 Kod: `src/lib/md/archive.ts` i `src/components/settings/DataTab.svelte`.

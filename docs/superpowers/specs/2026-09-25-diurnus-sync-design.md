@@ -10,7 +10,10 @@
 Opcjonalna synchronizacja dziennika z magazynem poza przeglądarką. Dziennik jest zapisywany
 jako te same dokumenty, które aplikacja już umie zapisać i odczytać: `RRRR-MM-DD.md`,
 `BACKLOG.md` i `.diurnus.toml`. Dzięki temu ten sam dziennik jest na kilku urządzeniach,
-a dane nie giną razem z pamięcią przeglądarki.
+a dane nie giną razem z pamięcią przeglądarki. `.diurnus.toml` niesie całą wspólną
+konfigurację — kategorie, dobę z porami dnia i motyw — więc nowe urządzenie dostaje ją razem
+z pozycjami. Token i połączenie z magazynem zostają w przeglądarce (`diurnus.sync`) i nigdy
+nie trafiają do repozytorium.
 
 Zasady:
 
