@@ -1,6 +1,6 @@
 import { app, commit, currentDay, dispatch, save, ui, uid, win } from './state.svelte';
 import { kids, projectOf, topCats } from './lib/categories';
-import { cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
+import { CYCLE, cycleType, moveFree, placeAfter, retype, typeAfterEnter } from './lib/items';
 import type { Event, Item, Refusal, Step, WhenInput } from './lib/machine';
 import type { RRule } from './lib/rrule';
 import { fmtQ, pad, rel } from './lib/time';
@@ -44,10 +44,20 @@ export function createAt(q: number, catId: string): void {
   );
 }
 
-/** Wykonane ↔ otwarte. Tylko użytkownik oznacza wykonanie. */
+/** Komunikat, gdy ktoś chce odhaczyć nieudane. */
+export const FAILED_LOCKED = 'Nieudane — najpierw przywróć je jako zadanie';
+
+/**
+ * Wykonane ↔ otwarte. Tylko użytkownik oznacza wykonanie. Nieudanego nie
+ * odhacza się jednym kliknięciem: najpierw wraca do zadań (menu znacznika).
+ */
 export function toggleDone(id: string): void {
   const item = find(id);
   if (!item || kindOf(item) === 'note') return;
+  if (kindOf(item) === 'failed') {
+    app.toast = { msg: FAILED_LOCKED, undoable: false };
+    return;
+  }
   dispatch([isDone(item) ? { type: 'markOpen', id } : { type: 'markDone', id, copyId: uid() }]);
 }
 
@@ -128,7 +138,7 @@ export function moveBlock(id: string, q: number): boolean {
       msg: `Przeniesiono na ${fmtQ(currentDay.value, q)}`,
       undoable: true,
       refusal: (r) =>
-        r === 'not-allowed' ? 'Wykonane zadanie zostaje o swojej godzinie' : slotRefusal(q)(r),
+        r === 'not-allowed' ? 'Zamknięte zadanie zostaje o swojej godzinie' : slotRefusal(q)(r),
     }) === null
   );
 }
@@ -369,16 +379,17 @@ export function setItemType(id: string, type: ItemType): void {
 }
 
 /**
- * Tab przechodzi przez znaczniki po kolei. Zadanie z czasem nie może być
- * notatką, więc dla niego cykl pomija notatkę zamiast stawać.
+ * Tab przechodzi przez znaczniki po kolei. Znacznika, którego nie da się
+ * nadać (zadanie z czasem nie jest notatką, nieudane nie staje się od razu
+ * wykonanym), cykl nie stawia — przechodzi do następnego.
  */
 export function cycleItemType(id: string, dir: 1 | -1 = 1): void {
   const item = find(id);
   if (!item) return;
   let target = cycleType(kindOf(item), dir);
-  for (let n = 0; n < 2; n++) {
+  for (let n = 0; n < CYCLE.length - 1; n++) {
     const events = retype(item, target, uid());
-    if (dispatch(events, { refusal: () => null }) === null) return;
+    if (events.length && dispatch(events, { refusal: () => null }) === null) return;
     target = cycleType(target, dir);
   }
 }
@@ -422,7 +433,7 @@ export function createItemWithText(
 
 export function moveToBacklog(id: string): void {
   dispatch([{ type: 'move', id, to: 'backlog' }], {
-    refusal: (r) => (r === 'not-allowed' ? 'Wykonane zostaje w swoim dniu' : null),
+    refusal: (r) => (r === 'not-allowed' ? 'Zamknięte zostaje w swoim dniu' : null),
   });
 }
 

@@ -17,10 +17,11 @@ export const isToday = (i: Item): boolean =>
 export const isBacklog = (i: Item): boolean =>
   i.state.tag === 'backlog-task' || i.state.tag === 'backlog-note';
 
-/** Znacznik na liście: zadanie, wykonane albo notatka. */
+/** Znacznik na liście: zadanie, wykonane, nieudane albo notatka. */
 export function kindOf(i: Item): ItemType {
   const s = i.state;
   if (s.tag === 'today-note' || s.tag === 'backlog-note' || s.tag === 'past-note') return 'note';
+  if ((s.tag === 'past-done' || s.tag === 'today-task') && s.failed) return 'failed';
   if (s.tag === 'past-done' || (s.tag === 'today-task' && s.done)) return 'done';
   return 'task';
 }
@@ -33,6 +34,12 @@ export const whenOf = (i: Item): When | null =>
 
 export const isDone = (i: Item): boolean => i.state.tag === 'today-task' && i.state.done;
 
+export const isFailed = (i: Item): boolean =>
+  i.state.tag === 'today-task' && i.state.failed === true;
+
+/** Dzisiejsze zadanie zamknięte: wykonane albo nieudane. */
+export const isClosed = (i: Item): boolean => isDone(i) || isFailed(i);
+
 /** Dzisiejsze zadania ze slotem w kolejności godzin — to one są siatką. */
 export const timedToday = (items: readonly Item[]): Item[] =>
   items.filter((i) => slotOf(i) !== null).sort((a, b) => slotOf(a)! - slotOf(b)!);
@@ -41,19 +48,22 @@ export const timedToday = (items: readonly Item[]): Item[] =>
 export const freeToday = (items: readonly Item[]): Item[] =>
   items.filter((i) => isToday(i) && slotOf(i) === null);
 
-/** Dzisiejsze wykonane w kolejności odhaczenia — to kolejność tablicy (patrz `markDone`). */
-export const doneToday = (items: readonly Item[]): Item[] => items.filter(isDone);
+/**
+ * Dzisiejsze zamknięte — wykonane i nieudane — w kolejności zamknięcia; to
+ * kolejność tablicy (patrz `markClosed`).
+ */
+export const doneToday = (items: readonly Item[]): Item[] => items.filter(isClosed);
 
-/** Dzisiejsze nieodhaczone zadania ze slotem, według godzin. */
+/** Dzisiejsze niezamknięte zadania ze slotem, według godzin. */
 export const openTimed = (items: readonly Item[]): Item[] =>
-  timedToday(items).filter((i) => !isDone(i));
+  timedToday(items).filter((i) => !isClosed(i));
 
-/** Dzisiejsze nieodhaczone pozycje bez slotu, w kolejności tablicy. Tylko one się przestawiają. */
+/** Dzisiejsze niezamknięte pozycje bez slotu, w kolejności tablicy. Tylko one się przestawiają. */
 export const openFree = (items: readonly Item[]): Item[] =>
-  freeToday(items).filter((i) => !isDone(i));
+  freeToday(items).filter((i) => !isClosed(i));
 
 /**
- * Lista dnia w kolejności wyświetlania: najpierw wykonane w kolejności odhaczenia,
+ * Lista dnia w kolejności wyświetlania: najpierw zamknięte w kolejności zamknięcia,
  * potem plan według godzin, potem reszta w kolejności własnej.
  */
 export const todayList = (items: readonly Item[]): Item[] => [
@@ -88,14 +98,16 @@ export const phase = (day: string, slot: Slot, now: number): Rel =>
  * Jeden schemat barw dla obu list. Upływ czasu zmienia wyłącznie kolor,
  * nigdy stan — wykonanie oznacza tylko użytkownik.
  *   incoming — przed nami, active — slot trwa, done — zrobione,
- *   missed — slot minął, a rzecz nie, note — notatka nie jest zobowiązaniem
+ *   missed — slot minął, a rzecz nie, failed — nieudane, oznaczone ręcznie,
+ *   note — notatka nie jest zobowiązaniem
  */
-export type Tone = 'incoming' | 'active' | 'done' | 'missed' | 'note';
+export type Tone = 'incoming' | 'active' | 'done' | 'missed' | 'failed' | 'note';
 
 export function itemTone(i: Item, day: string, now: number): Tone {
   const kind = kindOf(i);
   if (kind === 'note') return 'note';
   if (kind === 'done') return 'done';
+  if (kind === 'failed') return 'failed';
   const slot = slotOf(i);
   if (slot === null) return 'incoming';
   const p = phase(day, slot, now);
@@ -104,7 +116,7 @@ export function itemTone(i: Item, day: string, now: number): Tone {
 
 /** Zadanie, którego slot właśnie trwa, jeśli jest otwarte. */
 export const activeNow = (items: readonly Item[], day: string, now: number): Item | undefined =>
-  timedToday(items).find((i) => !isDone(i) && phase(day, slotOf(i)!, now) === 'now');
+  timedToday(items).find((i) => !isClosed(i) && phase(day, slotOf(i)!, now) === 'now');
 
 const sortDate = (i: Item): string | null => {
   const w = whenOf(i);

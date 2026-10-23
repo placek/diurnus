@@ -7,7 +7,7 @@
   import { MARK } from '../lib/items';
   import { tick } from 'svelte';
   import { fmtQ } from '../lib/time';
-  import { isDone, itemTone, slotOf } from '../lib/view';
+  import { isDone, isFailed, itemTone, slotOf } from '../lib/view';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -48,18 +48,31 @@
   /** Opis bez końcowych pustych linii; pusty — brak opisu. */
   const tidy = (d: string) => d.replace(/\s+$/, '');
 
-  const CHIP = { done: 'wykonane', active: 'teraz', missed: 'minęło', incoming: 'plan', note: 'notatka' };
+  const CHIP = {
+    done: 'wykonane',
+    failed: 'nieudane',
+    active: 'teraz',
+    missed: 'minęło',
+    incoming: 'plan',
+    note: 'notatka',
+  };
   const chip = $derived(item ? CHIP[itemTone(item, currentDay.value, app.now)] : '');
 
-  // Jedyna zmiana stanu w arkuszu: wykonane ↔ otwarte. Tekst i kategoria to
-  // dane pozycji, zapisywane w tej samej migawce.
-  const toggle = $derived(
-    item && isDone(item)
-      ? { done: false, label: 'Cofnij wykonanie', icon: 'rotate-left' }
-      : { done: true, label: 'Wykonane', icon: 'check' },
-  );
+  // Jedyne zmiany stanu w arkuszu: otwarte → wykonane albo nieudane, a zamknięte
+  // z powrotem do otwartych. Nieudane nie staje się wykonanym bez powrotu.
+  // Tekst i kategoria to dane pozycji, zapisywane w tej samej migawce.
+  type To = 'done' | 'failed' | 'open';
+  const moves = $derived.by((): { to: To; label: string; icon: string }[] => {
+    if (!item) return [];
+    if (isDone(item)) return [{ to: 'open', label: 'Cofnij wykonanie', icon: 'rotate-left' }];
+    if (isFailed(item)) return [{ to: 'open', label: 'Przywróć', icon: 'rotate-left' }];
+    return [
+      { to: 'failed', label: 'Nieudane', icon: 'ban' },
+      { to: 'done', label: 'Wykonane', icon: 'check' },
+    ];
+  });
 
-  function apply(patch: { done?: boolean } = {}) {
+  function apply(patch: { to?: To } = {}) {
     const i = item;
     if (!i) return;
     const nextTitle = title.trim();
@@ -69,8 +82,9 @@
     const nextSteps = tidySteps(steps);
     const stepsChanged = JSON.stringify(nextSteps) !== JSON.stringify(i.steps ?? []);
     const events: Event[] = [];
-    if (patch.done === true) events.push({ type: 'markDone', id: i.id, copyId: uid() });
-    if (patch.done === false) events.push({ type: 'markOpen', id: i.id });
+    if (patch.to === 'done') events.push({ type: 'markDone', id: i.id, copyId: uid() });
+    if (patch.to === 'failed') events.push({ type: 'markFailed', id: i.id, copyId: uid() });
+    if (patch.to === 'open') events.push({ type: 'markOpen', id: i.id });
     const withData = (items: Item[]) =>
       items.map((x) => {
         if (x.id !== i.id) return x;
@@ -175,9 +189,11 @@
         <Icon name="trash-can" />Usuń
       </button>
       <span class="sp"></span>
-      <button class="btn" onclick={() => apply({ done: toggle.done })}>
-        <Icon name={toggle.icon} />{toggle.label}
-      </button>
+      {#each moves as m (m.to)}
+        <button class="btn" onclick={() => apply({ to: m.to })}>
+          <Icon name={m.icon} />{m.label}
+        </button>
+      {/each}
       <button class="btn primary" onclick={() => apply()}>Zapisz</button>
     </div>
   </div>

@@ -27,8 +27,12 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
 
 ### Lista dnia
 
-- **Bullet journal:** zadanie `·`, wykonane `×`, notatka `–`. Pisze się od razu w pustym
-  wierszu; `Enter` dodaje kolejny, `Tab` zmienia znacznik, `⌫` na pustym usuwa.
+- **Bullet journal:** zadanie `·`, wykonane `×`, nieudane `⊘`, notatka `–`. Pisze się od razu
+  w pustym wierszu; `Enter` dodaje kolejny, `Tab` zmienia znacznik, `⌫` na pustym usuwa.
+- **Nieudane** (`⊘`, czerwone jak minięty slot): każde zadanie można tak zamknąć — menu
+  znacznika, `Tab` albo arkusz edycji; z backlogu trafia do dziś. Nieudanego nie odhacza się
+  kliknięciem: najpierw wraca do zadań („Zadanie" w menu, „Przywróć" w arkuszu). Minięty slot
+  to co innego — nadal odhacza się jednym kliknięciem. W pliku dnia to `* [-]`.
 - **Opis** pod dowolną pozycją, na liście dnia i w backlogu: `Shift`+`Enter` schodzi linię
   niżej, do opisu, a w opisie dodaje kolejną linię. Na telefonie, bez `Shift`+`Enter`, opis
   otwiera „Opis" w menu znacznika (przytrzymanie), a ↵ w opisie dodaje linię. Opis nie ma limitu;
@@ -75,8 +79,8 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 
 ### Dni
 
-- **O północy** otwarte zadania przechodzą na nowy dzień (bez godziny), a wykonane i notatki
-  zostają w archiwum swojego dnia.
+- **O północy** otwarte zadania przechodzą na nowy dzień (bez godziny), a wykonane, nieudane
+  i notatki zostają w archiwum swojego dnia.
 - Stan zapisany dawno dogania kalendarz dzień po dniu, z przyjściami każdego świtu po drodze.
 - Wszystkie zmiany idą przez **deterministyczną maszynę stanów** — ten sam stan i to samo
   zdarzenie dają zawsze ten sam wynik, a przejście spoza grafu jest nazwaną odmową.

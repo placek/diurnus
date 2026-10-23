@@ -340,7 +340,7 @@ test('wykonane zadanie nie zmienia godziny: cel jest czerwony, a upuszczenie odm
   flush();
 
   expect(slot(app, 'a')).toBe(40);
-  expect(app.toast?.msg).toMatch(/Wykonane/);
+  expect(app.toast?.msg).toMatch(/Zamknięte/);
 });
 
 test('upływ czasu nie oznacza wykonania: slot, który minął, zostaje otwarty', async () => {

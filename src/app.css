@@ -207,6 +207,14 @@ a.ib{text-decoration:none}
 .st-confirmed .t{text-decoration:line-through}
 .st-confirmed .ic{color:var(--fg-faint)}
 
+/* Nieudane: zamknięte jak wykonane, ale w czerwieni minionego slotu — porażka
+   jest zapisem, nie zobowiązaniem, więc blok nie świeci kolorem kategorii. */
+.st-failed{
+  background:color-mix(in srgb,var(--red) 12%,transparent);
+  border-color:color-mix(in srgb,var(--red) 45%,transparent);color:var(--red);
+}
+.st-failed .ic{color:var(--red)}
+
 .st-planned{
   background:color-mix(in srgb,var(--c) 26%,transparent);
   border-color:var(--c);color:var(--fg);
@@ -652,6 +660,12 @@ textarea.item-desc:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);
 
 .item.tone-missed .item-text,
 .item.tone-missed .item-text::placeholder{color:var(--red)}
+
+/* Nieudane: jak minięty slot — czerwień — ze znacznikiem ⊘ w tej samej barwie. */
+.item.tone-failed .item-text,
+.item.tone-failed .item-text::placeholder{color:var(--red)}
+.item .bullet.t-failed,
+.item.is-linked .bullet.t-failed{color:var(--red)}
 
 .item.tone-done .item-text,
 .item.tone-done .item-text::placeholder{color:var(--fg-faint)}

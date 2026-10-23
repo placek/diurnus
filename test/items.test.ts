@@ -57,7 +57,8 @@ test('moveFree nie rusza wykonanych: stoją w kolejności odhaczenia i nie licz�
 
 test('cycleType i typeAfterEnter', () => {
   expect(cycleType('task')).toBe('done');
-  expect(cycleType('done')).toBe('note');
+  expect(cycleType('done')).toBe('failed');
+  expect(cycleType('failed')).toBe('note');
   expect(cycleType('note')).toBe('task');
   expect(cycleType('task', -1)).toBe('note');
   expect(typeAfterEnter('done')).toBe('task');
@@ -69,10 +70,17 @@ test('retype: każda zamiana typu to ciąg dozwolonych przejść maszyny', () =>
   const states: Record<ItemType, ItemState> = {
     task: { tag: 'today-task', done: false, slot: null },
     done: { tag: 'today-task', done: true, slot: null },
+    failed: { tag: 'today-task', done: false, slot: null, failed: true },
     note: { tag: 'today-note' },
   };
-  for (const from of ['task', 'done', 'note'] as ItemType[]) {
-    for (const to of ['task', 'done', 'note'] as ItemType[]) {
+  const KINDS: ItemType[] = ['task', 'done', 'failed', 'note'];
+  for (const from of KINDS) {
+    for (const to of KINDS) {
+      // Nieudane nie staje się wykonanym jednym ruchem — zostaje nieudane.
+      if (from === 'failed' && to === 'done') {
+        expect(retype(it('a', states.failed), 'done', 'c')).toEqual([]);
+        continue;
+      }
       let m: Machine = { today: '2026-09-25', items: [it('a', states[from])] };
       for (const e of retype(m.items[0]!, to, 'c')) {
         const r = step(m, e, HOURS);

@@ -95,8 +95,9 @@ test('Enter tworzy kolejną pozycję i przenosi do niej fokus', async () => {
 test('Enter po notatce tworzy notatkę, po wykonanym zadaniu zwykłe zadanie', async () => {
   const flush = await mountApp();
   startTyping('Notatka', flush);
-  press(inputs()[0]!, 'Tab');
-  press(inputs()[0]!, 'Tab');
+  press(inputs()[0]!, 'Tab'); // wykonane
+  press(inputs()[0]!, 'Tab'); // nieudane
+  press(inputs()[0]!, 'Tab'); // notatka
   flush();
   expect(marks()[0]).toBe('–'); // note
   press(inputs()[0]!, 'Enter');

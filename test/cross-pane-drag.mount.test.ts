@@ -69,7 +69,7 @@ test('wykonane zostaje w swoim dniu i mówi dlaczego', async () => {
   drag(listBullet('a'), flush);
 
   expect(stateOf(app.S.items, 'a')).toEqual({ tag: 'today-task', done: true, slot: null });
-  expect(app.toast?.msg).toMatch(/Wykonane/);
+  expect(app.toast?.msg).toMatch(/Zamknięte/);
 });
 
 /* ── Backlog → dziś ── */

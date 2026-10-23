@@ -23,7 +23,7 @@ export interface Band {
 }
 
 /** Jak pozycja wygląda na liście: znacznik bullet journal. Wynika ze stanu. */
-export type ItemType = 'task' | 'done' | 'note';
+export type ItemType = 'task' | 'done' | 'failed' | 'note';
 
 export type { RRule } from './rrule';
 export type { Item, Step } from './machine';

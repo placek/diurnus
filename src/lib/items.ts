@@ -6,6 +6,7 @@ import { kindOf, openFree } from './view';
 export const MARK: Record<ItemType, string> = {
   task: '·',
   done: '×',
+  failed: '⊘',
   note: '–',
 };
 
@@ -54,9 +55,9 @@ export function moveFree(items: readonly Item[], id: string, toIndex: number): I
   return out;
 }
 
-// Trzy znaczniki opisujące pozycję. Przenoszenie między polami odbywa się
+// Znaczniki opisujące pozycję. Przenoszenie między polami odbywa się
 // przeciągnięciem, nie zmianą znacznika.
-export const CYCLE = ['task', 'done', 'note'] as const;
+export const CYCLE = ['task', 'done', 'failed', 'note'] as const;
 
 export function cycleType(type: ItemType, dir: 1 | -1 = 1): ItemType {
   const i = CYCLE.indexOf(type);
@@ -70,14 +71,23 @@ export const typeAfterEnter = (type: ItemType): ItemType => (type === 'note' ? '
  * Zdarzenia zamieniające typ pozycji. Graf nie ma bezpośredniego przejścia
  * wykonane ↔ notatka, więc ta zamiana idzie przez otwarte zadanie — dwa
  * zwykłe przejścia, które maszyna sprawdza każde z osobna.
+ *
+ * Nieudane nie staje się wykonanym jednym ruchem: najpierw trzeba je wprost
+ * przywrócić do zadań. Dla tej zamiany nie ma więc zdarzeń.
  */
 export function retype(item: Item, target: ItemType, copyId: string): Event[] {
   const id = item.id;
   const from = kindOf(item);
   if (from === target) return [];
+  if (from === 'failed' && target === 'done') return [];
   const toTask: Event[] =
-    from === 'done' ? [{ type: 'markOpen', id }] : from === 'note' ? [{ type: 'toTask', id }] : [];
+    from === 'done' || from === 'failed'
+      ? [{ type: 'markOpen', id }]
+      : from === 'note'
+        ? [{ type: 'toTask', id }]
+        : [];
   if (target === 'task') return toTask;
   if (target === 'done') return [...toTask, { type: 'markDone', id, copyId }];
+  if (target === 'failed') return [...toTask, { type: 'markFailed', id, copyId }];
   return [...toTask, { type: 'toNote', id }];
 }

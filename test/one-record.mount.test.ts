@@ -86,12 +86,20 @@ test('Tab na pozycji ze slotem pomija notatkę: zadanie ↔ wykonane', async () 
   expect(stateOf(app.S.items, 'a')).toMatchObject({ tag: 'today-task', done: false, slot: 36 });
 });
 
-test('Tab na pozycji swobodnej cykluje trzy znaczniki', async () => {
+test('Tab na pozycji swobodnej cykluje cztery znaczniki', async () => {
   seed([task('a')]);
   const { flush, app } = await mountApp();
   press(input('a'), 'Tab');
   flush();
   expect(stateOf(app.S.items, 'a')).toMatchObject({ done: true });
+  press(input('a'), 'Tab');
+  flush();
+  expect(stateOf(app.S.items, 'a')).toEqual({
+    tag: 'today-task',
+    done: false,
+    slot: null,
+    failed: true,
+  });
   press(input('a'), 'Tab');
   flush();
   expect(stateOf(app.S.items, 'a')).toEqual({ tag: 'today-note' });
