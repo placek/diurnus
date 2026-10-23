@@ -141,6 +141,16 @@ a.ib{text-decoration:none}
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   padding:0 16px;
 }
+/* Medytacja dnia pod datą: jedna cicha linia, przycięta wielokropkiem; całość
+   w podpowiedzi. Na wąskim ekranie otwiera listę, wyśrodkowana jak data. */
+.medit{
+  margin:0;max-width:100%;min-width:0;text-align:center;
+  font:400 13px/1.3 var(--sans);color:var(--fg-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.medit-ref{font-weight:600;color:var(--fg-dim);font-variant-numeric:tabular-nums}
+.medit-theme{color:var(--fg-faint)}
+.list-body > .medit{padding:2px 8px 8px;white-space:normal;text-wrap:balance}
 #backlog{
   min-height:0;overflow-y:auto;overflow-x:hidden;
   padding:10px max(10px,env(safe-area-inset-right)) 10px 10px;

@@ -239,6 +239,11 @@
       tutaj i w repozytorium. Repozytorium jest źródłem prawdy: nowsze zmiany z niego wchodzą,
       zanim cokolwiek tam pójdzie; szczegóły w Ustawienia → Dane
     </dd>
+    <dt>Pod datą</dt>
+    <dd>
+      medytacja poranna: rozdział <i>De Imitatione Christi</i> i Psalm na dzisiejszy dzień roku,
+      z myślą przewodnią (pełny opis w podpowiedzi)
+    </dd>
     <dt>Motyw</dt>
     <dd>
       Ustawienia → Dzień: systemowy, jasny albo ciemny. Z synchronizacją jest wspólny dla
