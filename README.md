@@ -83,6 +83,10 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
   dzień roku, z myślą przewodnią rozdziału — według planu rotacji (114 rozdziałów, indeks
   `(dzień_roku − 1) mod 114`, Psalmy w numeracji Wulgaty z hebrajską w nawiasie). Plan jest
   w `src/lib/meditation.ts`.
+- **Tajemnice różańca** na dziś, po łacinie, pod medytacją: część według dnia tygodnia (*Rosarium
+  Virginis Mariae*: pon. i sob. *gaudiosa*, wt. i pt. *dolorosa*, śr. i nd. *gloriosa*, czw.
+  *luminosa*), a pięć tajemnic — każda jednym słowem, gdzie się da — w podpowiedzi; na telefonie
+  dotknięcie rozwija je w linii. Dane w `src/lib/rosary.ts`.
 
 - **O północy** otwarte zadania przechodzą na nowy dzień (bez godziny), a wykonane, nieudane
   i notatki zostają w archiwum swojego dnia.
