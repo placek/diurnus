@@ -15,7 +15,7 @@ import { contentHash } from '../src/lib/sync/hash';
 import { MemoryStore } from '../src/lib/sync/memory';
 import { StoreError, isDocName } from '../src/lib/sync/store';
 import type { Store } from '../src/lib/sync/store';
-import { parseFiles, renderFiles } from '../src/lib/md/files';
+import { parseJournal as parseFiles, renderJournal as renderFiles } from '../src/lib/journal';
 import type { Files } from '../src/lib/md/files';
 import { normalize } from '../src/lib/model';
 import { step } from '../src/lib/machine';
@@ -28,11 +28,11 @@ const strict: Accept = (files) => {
   return bad.length ? bad.map(([n]) => `${n}:1: popsute`) : true;
 };
 
-const DAY = '2026-09-25.md';
+const DAY = '2026-09-25.xit';
 const base: Files = {
   '.diurnus.toml': '[day]\nstart = 6\n',
-  'BACKLOG.md': '# Backlog\n',
-  [DAY]: '# 2026-09-25\n\n* [ ] A\n',
+  'BACKLOG.xit': '# Backlog\n',
+  [DAY]: '# 2026-09-25\n\n[ ] A\n',
 };
 
 /** Jedno urządzenie po pierwszym wysłaniu wszystkiego. */
@@ -44,20 +44,27 @@ async function synced(store = new MemoryStore()) {
 
 describe('nazwy i odciski', () => {
   test('dokumenty dziennika to dni, backlog i ustawienia — nic więcej', () => {
-    expect(['2026-09-25.md', 'BACKLOG.md', '.diurnus.toml'].every(isDocName)).toBe(true);
+    for (const n of ['2026-09-25.xit', 'BACKLOG.xit', '.diurnus.toml'])
+      expect(isDocName(n), n).toBe(true);
     for (const n of [
       'README.md',
-      '2026-02-30.md',
-      '2026-9-25.md',
-      'days/2026-09-25.md',
-      'backlog.md',
+      '2026-02-30.xit',
+      '2026-9-25.xit',
+      'days/2026-09-25.xit',
+      'backlog.xit',
+      '2026-09-25.md',
+      'BACKLOG.md',
     ])
       expect(isDocName(n), n).toBe(false);
+    // Starszy Markdown — tylko na czas przejścia.
+    for (const n of ['2026-09-25.md', 'BACKLOG.md', '.diurnus.toml'])
+      expect(isDocName(n, 'md'), n).toBe(true);
+    expect(isDocName('2026-09-25.xit', 'md')).toBe(false);
   });
 
   test('odcisk jest stały i czuły na każdy znak', () => {
     expect(contentHash('# 2026')).toBe(contentHash('# 2026'));
-    expect(contentHash('* [ ] A')).not.toBe(contentHash('* [x] A'));
+    expect(contentHash('[ ] A')).not.toBe(contentHash('[x] A'));
     expect(contentHash('zażółć')).toMatch(/^[0-9a-f]{14}$/);
   });
 });
@@ -75,7 +82,7 @@ describe('wysyłanie', () => {
 
   test('zmiana jednego dokumentu wysyła tylko jego, na uzgodnionej wersji', async () => {
     const { store, state } = await synced();
-    const files = { ...base, [DAY]: '# 2026-09-25\n\n* [x] A\n' };
+    const files = { ...base, [DAY]: '# 2026-09-25\n\n[x] A\n' };
     expect(pending(files, state)).toBe(true);
     const r = await push(store, files, state, ok);
     expect(store.calls.write).toBe(4);
@@ -119,11 +126,11 @@ describe('pobieranie', () => {
   test('zmiana z innego urządzenia wchodzi — czytany jest tylko zmieniony dokument', async () => {
     const { store, state } = await synced();
     const reads = store.calls.read;
-    store.put(DAY, '# 2026-09-25\n\n* [ ] A\n* [ ] B\n');
+    store.put(DAY, '# 2026-09-25\n\n[ ] A\n[ ] B\n');
     const r = await pull(store, base, state, ok);
     expect(store.calls.read - reads).toBe(1);
     expect(r.changed).toBe(true);
-    expect(r.files[DAY]).toContain('* [ ] B');
+    expect(r.files[DAY]).toContain('[ ] B');
     expect(r.conflicts).toEqual([]);
     expect(pending(r.files, r.state)).toBe(false);
   });
@@ -138,7 +145,7 @@ describe('pobieranie', () => {
 
   test('ta sama zmiana po obu stronach to zgoda, nie konflikt', async () => {
     const { store, state } = await synced();
-    const same = '# 2026-09-25\n\n* [x] A\n';
+    const same = '# 2026-09-25\n\n[x] A\n';
     store.put(DAY, same);
     const r = await pull(store, { ...base, [DAY]: same }, state, ok);
     expect(r.conflicts).toEqual([]);
@@ -147,8 +154,8 @@ describe('pobieranie', () => {
 });
 
 describe('konflikty: wygrywa magazyn, „Nadpisz moją wersją" przywraca swoją', () => {
-  const theirs = '# 2026-09-25\n\n* [ ] A\n* [ ] od nich\n';
-  const mine = '# 2026-09-25\n\n* [ ] A\n* [ ] moje\n';
+  const theirs = '# 2026-09-25\n\n[ ] A\n[ ] od nich\n';
+  const mine = '# 2026-09-25\n\n[ ] A\n[ ] moje\n';
 
   test('przy pobieraniu', async () => {
     const { store, state } = await synced();
@@ -211,7 +218,7 @@ describe('konflikty: wygrywa magazyn, „Nadpisz moją wersją" przywraca swoją
     const { store, state } = await synced();
     store.put(DAY, theirs);
     const r = await pull(store, { ...base, [DAY]: mine }, state, ok);
-    store.put(DAY, '# 2026-09-25\n\n* [ ] trzecia wersja\n');
+    store.put(DAY, '# 2026-09-25\n\n[ ] trzecia wersja\n');
     const o = await overwrite(store, r.files, r.state, r.conflicts[0]!, ok);
     expect(o.conflicts).toHaveLength(1);
     expect(o.files[DAY]).toContain('trzecia wersja');
@@ -228,20 +235,20 @@ describe('dokumenty, których nie da się przyjąć', () => {
     expect(r.state.blocked).toHaveProperty(DAY);
 
     // Ta sama wersja nie jest czytana znowu, a lokalna zmiana jej nie nadpisze.
-    store.put('BACKLOG.md', '# Backlog\n\n* [ ] X\n');
+    store.put('BACKLOG.xit', '# Backlog\n\n[ ] X\n');
     const reads = store.calls.read;
     const again = await pull(store, base, r.state, strict);
-    expect(store.calls.read - reads).toBe(1); // tylko BACKLOG.md
+    expect(store.calls.read - reads).toBe(1); // tylko BACKLOG.xit
     await push(
       store,
-      { ...again.files, [DAY]: '# 2026-09-25\n\n* [ ] lokalnie\n' },
+      { ...again.files, [DAY]: '# 2026-09-25\n\n[ ] lokalnie\n' },
       again.state,
       strict,
     );
     expect(store.snapshot()[DAY]).toContain('ZEPSUTE');
 
     // Ktoś poprawia plik w magazynie — wchodzi i blokada znika.
-    store.put(DAY, '# 2026-09-25\n\n* [ ] naprawione\n');
+    store.put(DAY, '# 2026-09-25\n\n[ ] naprawione\n');
     const fixed = await pull(store, again.files, again.state, strict);
     expect(fixed.files[DAY]).toContain('naprawione');
     expect(fixed.state.blocked).toEqual({});
@@ -268,8 +275,8 @@ describe('błędy magazynu', () => {
     const { store, state } = await synced();
     const files = {
       ...base,
-      'BACKLOG.md': '# Backlog\n\n* [ ] X\n',
-      [DAY]: '# 2026-09-25\n\n* [x] A\n',
+      'BACKLOG.xit': '# Backlog\n\n[ ] X\n',
+      [DAY]: '# 2026-09-25\n\n[x] A\n',
     };
     // Pierwszy zapis przechodzi, drugi trafia na brak sieci.
     let writes = 0;
@@ -277,6 +284,7 @@ describe('błędy magazynu', () => {
       list: (since) => store.list(since),
       read: (n) => store.read(n),
       remove: (n, v) => store.remove(n, v),
+      commit: (c, m) => store.commit(c, m),
       write: async (n, b, v) => {
         if (++writes === 2) throw new StoreError('offline', 'brak sieci');
         return store.write(n, b, v);
@@ -314,9 +322,9 @@ describe('błędy magazynu', () => {
 describe('pierwsze połączenie', () => {
   const remote: Files = {
     '.diurnus.toml': '[day]\nstart = 7\n',
-    'BACKLOG.md': '# Backlog\n\n* [ ] zdalne\n',
-    '2026-09-20.md': '# 2026-09-20\n\n* [x] X\n* Y\n',
-    '2026-09-24.md': '# 2026-09-24\n\n* [x] Z\n',
+    'BACKLOG.xit': '# Backlog\n\n[ ] zdalne\n',
+    '2026-09-20.xit': '# 2026-09-20\n\n[x] X\n[?] Y\n',
+    '2026-09-24.xit': '# 2026-09-24\n\n[x] Z\n',
     'README.md': 'nie dziennik',
   };
 
@@ -331,13 +339,13 @@ describe('pierwsze połączenie', () => {
 
   test('lokalnie pusto: dziennik z magazynu zastępuje lokalny', async () => {
     const store = new MemoryStore(remote);
-    const empty = { '.diurnus.toml': 'x', 'BACKLOG.md': '# Backlog\n', [DAY]: '# 2026-09-25\n' };
+    const empty = { '.diurnus.toml': 'x', 'BACKLOG.xit': '# Backlog\n', [DAY]: '# 2026-09-25\n' };
     const plan = await planFirst(store, empty);
     expect(plan.kind).toBe('pull');
     const r = takeRemote(plan.snapshot, ok);
     expect(r.files).not.toHaveProperty('README.md');
     expect(r.files).not.toHaveProperty(DAY);
-    expect(r.files['BACKLOG.md']).toContain('zdalne');
+    expect(r.files['BACKLOG.xit']).toContain('zdalne');
     expect(pending(r.files, r.state)).toBe(false);
     // Następne pobranie nie ma już nic do zrobienia.
     const reads = store.calls.read;
@@ -423,10 +431,10 @@ describe('dwa urządzenia na plikach dziennika', () => {
     expect(pending(renderFiles(a), aSync)).toBe(false);
 
     // Popsuty ręcznie plik w magazynie nie psuje stanu.
-    store.put(`${TODAY}.md`, `# ${TODAY}\n\nto nie jest pozycja\n`);
+    store.put(`${TODAY}.xit`, `[ ] A\n[y] to nie jest pozycja\n`);
     const broken = await pull(store, renderFiles(a), aSync, acceptFiles);
     expect(broken.changed).toBe(false);
-    expect(broken.rejected?.errors[0]).toMatch(new RegExp(`^${TODAY}\\.md:3:`));
+    expect(broken.rejected?.errors[0]).toMatch(new RegExp(`^${TODAY}\\.xit:2:`));
     expect(stateFrom(broken.files).items).toHaveLength(2);
   });
 });

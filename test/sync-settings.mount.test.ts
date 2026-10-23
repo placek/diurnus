@@ -9,7 +9,7 @@ import { TODAY, resetDom, seed, task } from './helpers';
  * po obu stronach), stan, konflikt, nowy token i rozłączenie.
  */
 
-const DAY = `${TODAY}.md`;
+const DAY = `${TODAY}.xit`;
 let gh: FakeGitHub;
 let unmountApp: (() => void) | null = null;
 
@@ -102,7 +102,7 @@ test('połączenie z pustym repozytorium wysyła dziennik i zaczyna synchronizac
   const env = await start();
   await fillAndConnect(env, 'https://github.com/ola/diurnus-data');
 
-  expect(gh.text(DAY)).toContain('* [ ] a');
+  expect(gh.text(DAY)).toContain('[ ] a');
   expect(saved().config).toEqual({
     kind: 'github',
     owner: 'ola',
@@ -126,7 +126,7 @@ test('połączenie z pustym repozytorium wysyła dziennik i zaczyna synchronizac
   });
   await vi.advanceTimersByTimeAsync(2000);
   await env.settle();
-  expect(gh.text(DAY)).toContain('* [ ] b');
+  expect(gh.text(DAY)).toContain('[ ] b');
 });
 
 test('katalog i gałąź z „Gałąź i katalog"', async () => {
@@ -176,8 +176,8 @@ test('publiczne repozytorium: ostrzeżenie; „Połącz mimo to" łączy, „Anu
 
 test('tu pusto, w repozytorium dziennik — pobrany bez pytania', async () => {
   seed([]);
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] z telefonu\n`);
-  gh.put('BACKLOG.md', '# Backlog\n\n* [ ] kiedyś\n');
+  gh.put(DAY, `[ ] z telefonu\n`);
+  gh.put('BACKLOG.xit', '[ ] kiedyś\n');
   const env = await start();
   await fillAndConnect(env);
   expect(texts(env.app.S.items).sort()).toEqual(['kiedyś', 'z telefonu']);
@@ -187,8 +187,8 @@ test('tu pusto, w repozytorium dziennik — pobrany bez pytania', async () => {
 
 test('dane po obu stronach: pytanie z liczbą pozycji i dniami; „Pobierz z repozytorium"', async () => {
   seed([task('a'), task('b')]);
-  gh.put('2026-09-01.md', '# 2026-09-01\n\n* [x] stare\n');
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] z telefonu\n`);
+  gh.put('2026-09-01.xit', '[x] stare\n');
+  gh.put(DAY, `[ ] z telefonu\n`);
   const env = await start();
   await fillAndConnect(env);
 
@@ -206,19 +206,19 @@ test('dane po obu stronach: pytanie z liczbą pozycji i dniami; „Pobierz z rep
 
 test('dane po obu stronach: „Wyślij moje" robi z repozytorium kopię tej przeglądarki', async () => {
   seed([task('a')]);
-  gh.put('2026-09-01.md', '# 2026-09-01\n\n* [x] stare\n');
+  gh.put('2026-09-01.xit', '[x] stare\n');
   gh.put('README.md', '# Mój dziennik\n');
   const env = await start();
   await fillAndConnect(env);
   btn('Wyślij moje')!.click();
   await env.settle();
   expect(texts(env.app.S.items)).toEqual(['a']);
-  expect(gh.paths()).toEqual(['.diurnus.toml', DAY, 'BACKLOG.md', 'README.md'].sort());
+  expect(gh.paths()).toEqual(['.diurnus.toml', DAY, 'BACKLOG.xit', 'README.md'].sort());
 });
 
 test('„Anuluj" przy pytaniu nie łączy i nic nie zmienia', async () => {
   seed([task('a')]);
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] z telefonu\n`);
+  gh.put(DAY, `[ ] z telefonu\n`);
   const env = await start();
   await fillAndConnect(env);
   btn('Anuluj')!.click();
@@ -235,7 +235,7 @@ test('konflikt: komunikat z „Pokaż", w ustawieniach „Nadpisz moją wersją"
   env.ui.settings = null;
   env.flush();
 
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] od nich\n`);
+  gh.put(DAY, `[ ] od nich\n`);
   env.state.commit(() => {
     env.app.S.items = env.app.S.items.map((i) => ({ ...i, text: 'moje' }));
   });
@@ -253,7 +253,7 @@ test('konflikt: komunikat z „Pokaż", w ustawieniach „Nadpisz moją wersją"
   btn('Nadpisz moją wersją')!.click();
   await env.settle();
   expect(texts(env.app.S.items)).toEqual(['moje']);
-  expect(gh.text(DAY)).toContain('* [ ] moje');
+  expect(gh.text(DAY)).toContain('[ ] moje');
   expect(section().querySelector('.sync-conflict')).toBeNull();
 });
 
@@ -261,7 +261,7 @@ test('„Zostaw" zamyka konflikt z wersją z repozytorium', async () => {
   seed([task('a')]);
   const env = await start();
   await fillAndConnect(env);
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] od nich\n`);
+  gh.put(DAY, `[ ] od nich\n`);
   env.state.commit(() => {
     env.app.S.items = env.app.S.items.map((i) => ({ ...i, text: 'moje' }));
   });
@@ -277,16 +277,16 @@ test('popsuty dokument w repozytorium: błędy widać, „Nadpisz moją wersją"
   seed([task('a')]);
   const env = await start();
   await fillAndConnect(env);
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] 99:99 zła godzina\n`);
+  gh.put(DAY, `[ ] zła godzina -> ${TODAY}T99:99\n`);
   btn('Synchronizuj teraz')!.click();
   await env.settle();
   const box = section().querySelector('.import-errors')!;
-  expect(box.textContent).toContain(`${DAY}:3`);
+  expect(box.textContent).toContain(`${DAY}:1`);
   expect(texts(env.app.S.items)).toEqual(['a']);
 
   [...box.querySelectorAll('button')].find((b) => b.textContent?.includes('Nadpisz'))!.click();
   await env.settle();
-  expect(gh.text(DAY)).toContain('* [ ] a');
+  expect(gh.text(DAY)).toContain('[ ] a');
   expect(section().querySelector('.import-errors')).toBeNull();
 });
 
@@ -319,7 +319,7 @@ test('„Rozłącz": token znika z przeglądarki, dane zostają po obu stronach'
   expect(saved()).toEqual({ config: null, state: { docs: {}, blocked: {} } });
   expect(JSON.stringify(saved())).not.toContain(gh.token);
   expect(texts(env.app.S.items)).toEqual(['a']);
-  expect(gh.text(DAY)).toContain('* [ ] a');
+  expect(gh.text(DAY)).toContain('[ ] a');
   expect(cloud()).toBeNull();
   expect(section().querySelector<HTMLInputElement>('input[value="local"]')!.checked).toBe(true);
 

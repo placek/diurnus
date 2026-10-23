@@ -39,7 +39,11 @@ export function describeStatus(s: SyncStatus, now: number): StatusText {
   const waiting = s.pending ? ' · zmiany czekają' : '';
   switch (s.phase) {
     case 'busy':
-      return { text: 'Synchronizuję…', tone: 'busy', attention };
+      return {
+        text: s.migrating ? 'Przechodzę na [x]it!…' : 'Synchronizuję…',
+        tone: 'busy',
+        attention,
+      };
     case 'standby':
       return { text: 'Synchronizuje inna karta tej przeglądarki', tone: 'ok', attention };
     case 'idle':

@@ -1,5 +1,5 @@
-import { StoreError, isDocName } from './store';
-import type { Listing, Store, Version, WriteResult } from './store';
+import { StoreError, isAnyDocName } from './store';
+import type { Change, CommitResult, Listing, Store, Version, WriteResult } from './store';
 
 /*
  * Magazyn dziennika w repozytorium GitHub (projekt synchronizacji, §5).
@@ -11,6 +11,9 @@ import type { Listing, Store, Version, WriteResult } from './store';
  *   odpowiedź „bez zmian" (304) nie liczy się do limitu żądań.
  * - Odczyt, zapis i usunięcie przez API treści; wersją jest `sha` bloba.
  *   Zapis na starej wersji GitHub odrzuca — to jest nasz konflikt.
+ * - Wiele zmian jednym commitem przez API danych gita: drzewo na drzewie
+ *   bieżącego commita, commit, przesunięcie gałęzi bez wymuszania. Gałąź,
+ *   która przesunęła się w międzyczasie, odrzuca przesunięcie — nic nie wchodzi.
  * - Chwila ostatniej zmiany to data ostatniego commita gałęzi (w katalogu
  *   dziennika). Pobierana tylko wtedy, gdy drzewo się zmieniło, a przy własnym
  *   zapisie — z odpowiedzi na zapis. Jej brak niczego nie psuje: służy tylko
@@ -155,7 +158,7 @@ export class GitHubStore implements Store {
     for (const e of body.tree) {
       if (e.type !== 'blob' || !e.path.startsWith(this.prefix)) continue;
       const name = e.path.slice(this.prefix.length);
-      if (!name.includes('/') && isDocName(name)) docs.set(name, e.sha);
+      if (!name.includes('/') && isAnyDocName(name)) docs.set(name, e.sha);
     }
     const at = await this.lastCommitAt();
     return { docs, mark: res.headers.get('etag') ?? '', ...(at !== undefined ? { at } : {}) };
@@ -249,6 +252,78 @@ export class GitHubStore implements Store {
     if (res.status === 404) return { ok: false, conflict: null };
     if (res.status === 409 || res.status === 422) return this.conflict(name, base, res);
     throw await failure(res);
+  }
+
+  private async getJson<T>(url: string): Promise<T> {
+    const res = await this.request(url);
+    if (!res.ok) throw await failure(res);
+    return (await res.json()) as T;
+  }
+
+  private async postJson<T>(url: string, body: unknown, method = 'POST'): Promise<Response> {
+    return this.request(url, { method, body: JSON.stringify(body) });
+  }
+
+  /** Bloby drzewa (rekurencyjnie): ścieżka → `sha`. */
+  private async blobs(tree: string): Promise<Map<string, Version>> {
+    const t = await this.getJson<{ tree: { path: string; type: string; sha: string }[] }>(
+      `${this.base}/git/trees/${encodeURIComponent(tree)}?recursive=1`,
+    );
+    return new Map(t.tree.filter((e) => e.type === 'blob').map((e) => [e.path, e.sha]));
+  }
+
+  async commit(changes: Change[], message: string): Promise<CommitResult> {
+    const ref = `${this.base}/git/ref/heads/${this.cfg.branch.split('/').map(encodeURIComponent).join('/')}`;
+    const head = await this.request(ref);
+    // Bez gałęzi (puste repozytorium) nie ma na czym budować — tak jakby się zmieniło.
+    if (head.status === 404 || head.status === 409) return { ok: false, moved: true };
+    if (!head.ok) throw await failure(head);
+    const parent = ((await head.json()) as { object: { sha: string } }).object.sha;
+    const cur = await this.getJson<{ tree: { sha: string } }>(
+      `${this.base}/git/commits/${encodeURIComponent(parent)}`,
+    );
+
+    // Wersje, na których stoją zmiany, muszą być tymi w bieżącym commicie.
+    const before = await this.blobs(cur.tree.sha);
+    for (const c of changes)
+      if ((before.get(this.prefix + c.name) ?? null) !== c.base) return { ok: false, moved: true };
+
+    const tree = await this.postJson(`${this.base}/git/trees`, {
+      base_tree: cur.tree.sha,
+      tree: changes.map((c) => ({
+        path: this.prefix + c.name,
+        mode: '100644',
+        type: 'blob',
+        ...(c.body === null ? { sha: null } : { content: c.body }),
+      })),
+    });
+    if (!tree.ok) throw await failure(tree);
+    const treeSha = ((await tree.json()) as { sha: string }).sha;
+
+    const made = await this.postJson(`${this.base}/git/commits`, {
+      message,
+      tree: treeSha,
+      parents: [parent],
+    });
+    if (!made.ok) throw await failure(made);
+    const commit = (await made.json()) as { sha: string; committer?: { date?: string } };
+
+    const moved = await this.postJson(
+      ref.replace('/git/ref/', '/git/refs/'),
+      { sha: commit.sha, force: false },
+      'PATCH',
+    );
+    // 422 — to nie jest przewinięcie do przodu: ktoś zdążył przed nami.
+    if (moved.status === 422 || moved.status === 409) return { ok: false, moved: true };
+    if (!moved.ok) throw await failure(moved);
+
+    // Wersje nowych dokumentów z nowego drzewa — tego samego, które weszło.
+    const after = await this.blobs(treeSha);
+    const versions: Record<string, Version> = {};
+    for (const c of changes)
+      if (c.body !== null) versions[c.name] = after.get(this.prefix + c.name)!;
+    const at = dateOf(commit.committer?.date);
+    return { ok: true, versions, ...(at !== undefined ? { at } : {}) };
   }
 }
 

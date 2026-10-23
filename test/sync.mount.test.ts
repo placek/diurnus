@@ -10,7 +10,7 @@ import { PULL_EVERY } from '../src/lib/sync/runner';
  * udawany, więc 2 s i 20 s mijają od razu.
  */
 
-const DAY = `${TODAY}.md`;
+const DAY = `${TODAY}.xit`;
 
 function connect(gh: FakeGitHub, state: unknown = { docs: {}, blocked: {} }) {
   localStorage.setItem(
@@ -97,13 +97,15 @@ test('start: pusty magazyn dostaje dziennik; README zostaje nietknięte', async 
   connect(gh);
   const { sync } = await start();
   expect(gh.paths(), JSON.stringify(gh.log.map((l) => l.path))).toEqual(
-    ['.diurnus.toml', 'BACKLOG.md', DAY, 'README.md'].sort(),
+    ['.diurnus.toml', 'BACKLOG.xit', DAY, 'README.md'].sort(),
   );
-  expect(gh.text(DAY)).toContain('* [ ] a');
+  expect(gh.text(DAY)).toContain('[ ] a');
   expect(gh.text('README.md')).toBe('# Mój dziennik\n');
   expect(sync.sync.status).toMatchObject({ phase: 'idle', pending: false });
   const saved = JSON.parse(localStorage.getItem('diurnus.sync')!);
-  expect(Object.keys(saved.state.docs).sort()).toEqual(['.diurnus.toml', 'BACKLOG.md', DAY].sort());
+  expect(Object.keys(saved.state.docs).sort()).toEqual(
+    ['.diurnus.toml', 'BACKLOG.xit', DAY].sort(),
+  );
   expect(saved.config.token).toBe(gh.token);
 });
 
@@ -123,7 +125,7 @@ test('edycja idzie do magazynu 2 s po ostatniej zmianie, jednym zapisem', async 
   await vi.advanceTimersByTimeAsync(1);
   await settle();
   expect(writes()).toBe(before + 1);
-  expect(gh.text(DAY)).toContain('* [ ] abc');
+  expect(gh.text(DAY)).toContain('[ ] abc');
   expect(sync.sync.status?.pending).toBe(false);
 });
 
@@ -131,7 +133,7 @@ test('zmiana z innego urządzenia wchodzi po powrocie do karty', async () => {
   seed([task('a')]);
   connect(gh);
   const { app, settle } = await start();
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] a\n* [ ] z telefonu\n`);
+  gh.put(DAY, `[ ] a\n[ ] z telefonu\n`);
 
   await vi.advanceTimersByTimeAsync(15_000); // powrót sprawdza najwyżej co 10 s
   dispatchEvent(new Event('focus'));
@@ -176,7 +178,7 @@ test('zmiana z innego urządzenia pojawia się sama, a pisanie w innej pozycji n
   input().setSelectionRange(2, 2);
   const el = input();
   // …a na telefonie przybywa pozycja w backlogu.
-  gh.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+  gh.put('BACKLOG.xit', '[ ] z telefonu\n');
   await vi.advanceTimersByTimeAsync(PULL_EVERY);
   await settle();
   expect(app.S.items.map((i) => i.text)).toContain('z telefonu');
@@ -201,7 +203,7 @@ test('brak sieci: aplikacja działa, zmiana czeka i idzie po powrocie sieci', as
   gh.offline = false;
   dispatchEvent(new Event('online'));
   await settle();
-  expect(gh.text(DAY)).toContain('* [ ] offline');
+  expect(gh.text(DAY)).toContain('[ ] offline');
   expect(sync.sync.status).toMatchObject({ phase: 'idle', pending: false });
 });
 
@@ -209,19 +211,19 @@ test('konflikt: wygrywa magazyn, „Nadpisz moją wersją" przywraca swoją', as
   seed([task('a')]);
   connect(gh);
   const { state, settle, sync } = await start();
-  gh.put(DAY, `# ${TODAY}\n\n* [ ] od nich\n`);
+  gh.put(DAY, `[ ] od nich\n`);
   rename(state, 'moje');
   await vi.advanceTimersByTimeAsync(2000);
   await settle();
   expect(texts(state.app.S.items)).toEqual(['od nich']);
   expect(state.app.toast?.msg).toContain(DAY);
   const [c] = sync.sync.status!.conflicts;
-  expect(c?.mine).toContain('* [ ] moje');
+  expect(c?.mine).toContain('[ ] moje');
 
   await sync.overwriteMine(c!);
   await settle();
   expect(texts(state.app.S.items)).toEqual(['moje']);
-  expect(gh.text(DAY)).toContain('* [ ] moje');
+  expect(gh.text(DAY)).toContain('[ ] moje');
   expect(sync.sync.status!.conflicts).toEqual([]);
 });
 
@@ -271,7 +273,7 @@ test('motyw jedzie z ustawieniami w .diurnus.toml; dopóki nikt go nie wybierze,
   expect(document.documentElement.dataset.theme).toBe('dark');
   await vi.advanceTimersByTimeAsync(3000);
   await settle();
-  expect(gh.text('.diurnus.toml')).toMatch(/^theme = "dark"\n\n\[day\]/);
+  expect(gh.text('.diurnus.toml')).toMatch(/^format = "xit"\ntheme = "dark"\n\n\[day\]/);
 
   // Inne urządzenie wybrało jasny — po powrocie do karty jest jasny i tutaj.
   gh.put('.diurnus.toml', gh.text('.diurnus.toml')!.replace('"dark"', '"light"'));
@@ -320,4 +322,44 @@ test('chwila ostatniej lokalnej zmiany przeżywa odświeżenie strony', async ()
   expect(
     document.querySelector('.hdr-side [title*="Ostatnia zmiana"]')?.getAttribute('title'),
   ).toContain('tutaj 09:30');
+});
+
+test('po aktualizacji repozytorium w Markdownie przechodzi na [x]it! jednym commitem', async () => {
+  const { renderLegacy, parseJournal } = await import('../src/lib/journal');
+  const { planFirst, takeRemote } = await import('../src/lib/sync/engine');
+  const { GitHubStore } = await import('../src/lib/sync/github');
+  seed([task('a')]);
+  // Przed aktualizacją: repozytorium i uzgodnienie z czasów plików Markdown.
+  const first = await start();
+  for (const [n, body] of Object.entries(renderLegacy(first.app.S))) gh.put(n, body);
+  const store = new GitHubStore(
+    { owner: gh.owner, repo: gh.repo, branch: 'main', dir: '', token: gh.token },
+    gh.fetch,
+  );
+  const plan = await planFirst(store, {});
+  const md = takeRemote(plan.snapshot, (f) => parseJournal(f).ok || ['nieczytelne']);
+  expect(Object.keys(md.state.docs).sort()).toEqual(
+    ['.diurnus.toml', 'BACKLOG.md', `${TODAY}.md`].sort(),
+  );
+  rename(first.state, 'niewysłane'); // lokalna zmiana, której repozytorium jeszcze nie ma
+  unmountApp?.();
+
+  connect(gh, md.state);
+  gh.log.length = 0;
+  const { sync, app } = await start();
+  expect(gh.paths()).toEqual(['.diurnus.toml', 'BACKLOG.xit', DAY, 'README.md'].sort());
+  expect(gh.text(DAY)).toBe('[ ] niewysłane\n');
+  expect(gh.text('.diurnus.toml')).toMatch(/^format = "xit"\n/);
+  expect(gh.messages.at(-1)).toBe('diurnus: przejście na [x]it!');
+  expect(gh.log.filter((l) => l.method === 'PATCH')).toHaveLength(1);
+  // Najpierw niewysłana zmiana w Markdownie, potem przejście — bez pojedynczych usunięć.
+  expect(
+    gh.log.filter((l) => l.method === 'PUT' || l.method === 'DELETE').map((l) => l.body?.message),
+  ).toEqual([`diurnus: ${TODAY}.md`]);
+  expect(texts(app.S.items)).toEqual(['niewysłane']);
+  expect(sync.sync.status).toMatchObject({ phase: 'idle', pending: false, migrating: false });
+  const saved = JSON.parse(localStorage.getItem('diurnus.sync')!);
+  expect(Object.keys(saved.state.docs).sort()).toEqual(
+    ['.diurnus.toml', 'BACKLOG.xit', DAY].sort(),
+  );
 });
