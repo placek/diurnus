@@ -65,7 +65,7 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
 - **Projekty.** Kategoria albo podkategoria oznaczona w ustawieniach jako „projekt" zbiera swoje
   pozycje backlogu we własnej sekcji pod resztą, z nagłówkiem i licznikiem. Pusty wiersz sekcji
   dodaje pozycję od razu do projektu, a `Enter` w pozycji projektu — następną w tym samym.
-  W `BACKLOG.md` sekcja to nagłówek `## Nazwa projektu`.
+  W `BACKLOG.xit` sekcja to grupa z nazwą projektu jako tytułem.
 
 ### Powtarzanie
 
@@ -138,24 +138,30 @@ w **prywatnym repozytorium** i łączy urządzenia:
 
 Szczegóły: [projekt synchronizacji](docs/superpowers/specs/2026-09-25-diurnus-sync-design.md).
 
-Dziennik to archiwum ZIP ze zwykłymi plikami markdown, czytelnymi i edytowalnymi w dowolnym
-edytorze:
+Dziennik to archiwum ZIP ze zwykłymi plikami [[x]it!](https://xit.jotaen.net/), czytelnymi
+i edytowalnymi w dowolnym edytorze (a podświetlanymi przez każde narzędzie [x]it!):
 
-```markdown
-# 2026-09-25
-
-* [x] 10:30 #praca Raport
-* [ ] 09:00 #nauka Czytanie
-      rozdział 3, notatki na marginesie
-* [ ] Kupić chleb
-* Notatka z rozmowy
+```
+[x] Raport -> 2026-10-23T08:00 #praca
+[~] Siłownia -> 2026-10-23T07:00
+[ ] Czytanie -> 2026-10-23T09:00 #nauka
+    rozdział 3, notatki na marginesie
+    [x] wstęp
+    [ ] streszczenie
+[?] Notatka z rozmowy
+[ ] Kupić chleb
 ```
 
-Opis pozycji to linie wcięte pod jej tekstem, a kroki zadania — wcięte `* [ ]` pod opisem. `RRRR-MM-DD.md` na dziś i każdy miniony dzień, `BACKLOG.md` (z regułami w klamrach, np.
-`{FREQ=WEEKLY;BYDAY=MO}`) oraz ustawienia `.diurnus.toml`. Format opisuje
-[specyfikacja](docs/superpowers/specs/2026-09-25-diurnus-markdown-files-design.md). Wczytać
-można to archiwum, te pliki zaznaczone razem albo starszą kopię JSON; plik, którego nie da
-się przedstawić jako stan, jest odrzucany w całości z numerem linii i powodem.
+`[ ]` to otwarte zadanie, `[x]` wykonane, `[~]` nieudane, `[?]` notatka; godzina to termin
+z czasem (`-> 2026-10-23T09:00`), opis i kroki — linie wcięte czterema spacjami.
+`RRRR-MM-DD.xit` na dziś i każdy miniony dzień, `BACKLOG.xit` (z regułami w tagu, np.
+`#repeat="FREQ=WEEKLY;BYDAY=MO"`) oraz ustawienia `.diurnus.toml`. Format opisuje
+[specyfikacja](docs/superpowers/specs/2026-10-23-diurnus-xit-files-design.md). Wczytać
+można to archiwum, te pliki zaznaczone razem, starsze archiwum w Markdownie
+([dawny format](docs/superpowers/specs/2026-09-25-diurnus-markdown-files-design.md)) albo kopię
+JSON; plik, którego nie da się przedstawić jako stan, jest odrzucany w całości z numerem linii
+i powodem. Repozytorium synchronizowane jeszcze w Markdownie przechodzi na [x]it! samo, jednym
+commitem.
 
 ## Uruchomienie
 
