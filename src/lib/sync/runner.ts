@@ -1,5 +1,5 @@
 import type { Files } from '../md/files';
-import { overwrite, pending, pull, push } from './engine';
+import { adopt, convert, isLegacy, overwrite, pending, pull, push } from './engine';
 import type { Accept, Conflict, Outcome, SyncState } from './engine';
 import { StoreError } from './store';
 import type { Store, StoreErrorKind } from './store';
@@ -20,6 +20,9 @@ import type { Store, StoreErrorKind } from './store';
  * - Brak sieci i inne błędy → ponowienia co 5 s, 10 s, 20 s… do 5 minut;
  *   powrót sieci → od razu. Limit → czekanie tyle, ile każe magazyn.
  *   Token bez dostępu → koniec prób, aż ktoś poprawi ustawienia.
+ * - Uzgodnienie z czasów plików Markdown najpierw przechodzi na [x]it!: gdy
+ *   magazyn już przeszedł — przejmuje jego dokumenty (`adopt`); gdy nie — kończy
+ *   synchronizację w Markdownie i przenosi magazyn jednym commitem (`convert`).
  */
 
 export const PUSH_DELAY = 2000;
@@ -61,6 +64,8 @@ export interface SyncStatus {
   remoteAt: number | null;
   /** zmiany z magazynu, których nie przyjęto */
   rejected: { names: string[]; errors: string[] } | null;
+  /** trwa przejście magazynu z plików Markdown na [x]it! */
+  migrating: boolean;
 }
 
 export const initialStatus = (phase: Phase = 'idle'): SyncStatus => ({
@@ -73,6 +78,7 @@ export const initialStatus = (phase: Phase = 'idle'): SyncStatus => ({
   rejected: null,
   localAt: null,
   remoteAt: null,
+  migrating: false,
 });
 
 export type SyncNotice =
@@ -80,8 +86,15 @@ export type SyncNotice =
 
 export interface RunnerDeps {
   store: Store;
-  /** dokumenty bieżącego stanu (`renderFiles`) */
+  /**
+   * dokumenty bieżącego stanu w formacie uzgodnienia: [x]it!, a dopóki
+   * uzgodnienie jest z czasów Markdownu (`isLegacy`) — Markdown
+   */
   files(): Files;
+  /** dokumenty bieżącego stanu w [x]it! — cel przejścia z Markdownu */
+  target(): Files;
+  /** dokumenty [x]it! jako Markdown; `null`, gdy się nie czytają */
+  legacyOf(files: Files): Files | null;
   /** czy dokumenty dają się przyjąć (`parseFiles`) */
   accept: Accept;
   /** zastępuje stan dokumentami, które `accept` przyjął */
@@ -231,6 +244,11 @@ export class SyncRunner {
    */
   private async cycle(): Promise<StoreError | null> {
     clearTimeout(this.pushTimer);
+    if (isLegacy(this.deps.load())) {
+      const e = await this.migrate();
+      if (e || isLegacy(this.deps.load())) return e;
+      this.wantPull = true; // przejęte uzgodnienie trzeba sprawdzić z magazynem
+    }
     if (this.wantPull || pending(this.deps.files(), this.deps.load())) {
       this.wantPull = false;
       const e = await this.op((files, st) => pull(this.deps.store, files, st, this.deps.accept));
@@ -241,6 +259,41 @@ export class SyncRunner {
     }
     if (!pending(this.deps.files(), this.deps.load())) return null;
     return this.op((files, st) => push(this.deps.store, files, st, this.deps.accept));
+  }
+
+  /**
+   * Przejście na [x]it!. Magazyn już przeszedł — przejęcie jego dokumentów.
+   * Nie — pobranie i wysłanie w Markdownie, a gdy wszystko uzgodnione, jeden
+   * commit z dokumentami [x]it!. Niedokończone przejście (konflikt, odrzucone
+   * zmiany, błąd) czeka do następnej tury; do tego czasu Markdown działa jak dotąd.
+   */
+  private async migrate(): Promise<StoreError | null> {
+    const { store, accept } = this.deps;
+    this.set({ migrating: true, phase: 'busy' });
+    try {
+      let e = await this.op((files, st) =>
+        adopt(store, files, this.deps.target(), st, this.deps.legacyOf),
+      );
+      if (e || !isLegacy(this.deps.load())) return e;
+      e = await this.op((files, st) => pull(store, files, st, accept));
+      if (e) {
+        this.wantPull = true;
+        return e;
+      }
+      if (pending(this.deps.files(), this.deps.load())) {
+        e = await this.op((files, st) => push(store, files, st, accept));
+        if (e) return e;
+      }
+      const st = this.deps.load();
+      if (pending(this.deps.files(), st) || Object.keys(st.blocked).length) return null;
+      e = await this.op((files, st) => convert(store, files, this.deps.target(), st));
+      if (!e && !isLegacy(this.deps.load()))
+        // Konflikty dotyczyły dokumentów Markdown, których już nie ma.
+        this.set({ conflicts: this.status.conflicts.filter((c) => !c.name.endsWith('.md')) });
+      return e;
+    } finally {
+      this.set({ migrating: false });
+    }
   }
 
   /** `asked` — wprost na życzenie użytkownika: zawsze rozmowa z magazynem. */

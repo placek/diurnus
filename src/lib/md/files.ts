@@ -370,7 +370,7 @@ export function parseFiles(files: Files): ParseResult {
 }
 
 // Brak pliku ustawień: domyślne kategorie i doba, z tagami z nazw.
-function defaultConfig(): { ok: true; config: Config } {
+export function defaultConfig(): { ok: true; config: Config } {
   const s = normalize(null);
   const tags = tagsFor(s.cats);
   const cats = s.cats.map((c) => ({

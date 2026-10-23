@@ -4,7 +4,7 @@ import type { Accept, SyncState } from '../src/lib/sync/engine';
 import { MemoryStore } from '../src/lib/sync/memory';
 import { PULL_EVERY, PUSH_DELAY, RETRY_FIRST, RETRY_MAX, SyncRunner } from '../src/lib/sync/runner';
 import type { SyncStatus } from '../src/lib/sync/runner';
-import type { Store } from '../src/lib/sync/store';
+import type { Change, Store } from '../src/lib/sync/store';
 import type { Files } from '../src/lib/md/files';
 
 /*
@@ -13,11 +13,11 @@ import type { Files } from '../src/lib/md/files';
  * w prawdziwej aplikacji — zgłasza zmianę.
  */
 
-const DAY = '2026-09-25.md';
+const DAY = '2026-09-25.xit';
 const base: Files = {
   '.diurnus.toml': '[day]\nstart = 6\n',
-  'BACKLOG.md': '# Backlog\n',
-  [DAY]: '# 2026-09-25\n\n* [ ] A\n',
+  'BACKLOG.xit': '# Backlog\n',
+  [DAY]: '# 2026-09-25\n\n[ ] A\n',
 };
 
 /** Przyjmuje wszystko poza dokumentem oznaczonym jako popsuty. */
@@ -56,6 +56,10 @@ class GatedStore implements Store {
   async remove(name: string, b: string) {
     await this.wait();
     return this.inner.remove(name, b);
+  }
+  async commit(changes: Change[], message: string) {
+    await this.wait();
+    return this.inner.commit(changes, message);
   }
 }
 
@@ -99,6 +103,8 @@ async function rig(
   r.runner = new SyncRunner({
     store: opts.wrap ? opts.wrap(store) : store,
     files: () => r.files,
+    target: () => r.files,
+    legacyOf: () => null,
     accept: strict,
     apply: (f) => {
       r.applied++;
@@ -110,12 +116,17 @@ async function rig(
     onStatus: (s) => (r.status = s),
     notify: (m) => r.notes.push(JSON.stringify(m)),
   });
-  store.calls.list = store.calls.read = store.calls.write = store.calls.remove = 0;
+  store.calls.list =
+    store.calls.read =
+    store.calls.write =
+    store.calls.remove =
+    store.calls.commit =
+      0;
   return r;
 }
 
-const v2 = '# 2026-09-25\n\n* [ ] A\n* [ ] B\n';
-const v3 = '# 2026-09-25\n\n* [ ] A\n* [ ] B\n* [ ] C\n';
+const v2 = '# 2026-09-25\n\n[ ] A\n[ ] B\n';
+const v3 = '# 2026-09-25\n\n[ ] A\n[ ] B\n[ ] C\n';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -146,7 +157,7 @@ describe('wysyłanie po chwili ciszy', () => {
     r.runner.changed();
     await vi.advanceTimersByTimeAsync(PUSH_DELAY);
     await r.settle();
-    expect(r.store.calls).toEqual({ list: 0, read: 0, write: 0, remove: 0 });
+    expect(r.store.calls).toEqual({ list: 0, read: 0, write: 0, remove: 0, commit: 0 });
     expect(r.status?.phase ?? 'idle').toBe('idle');
   });
 
@@ -164,10 +175,10 @@ describe('wysyłanie po chwili ciszy', () => {
 
   test('usunięty dokument znika z magazynu', async () => {
     const r = await rig();
-    r.edit('BACKLOG.md', null);
+    r.edit('BACKLOG.xit', null);
     await vi.advanceTimersByTimeAsync(PUSH_DELAY);
     await r.settle();
-    expect(r.store.snapshot()).not.toHaveProperty('BACKLOG.md');
+    expect(r.store.snapshot()).not.toHaveProperty('BACKLOG.xit');
   });
 });
 
@@ -176,7 +187,7 @@ describe('pobieranie', () => {
     const r = await rig();
     r.runner.pull();
     await r.settle();
-    expect(r.store.calls).toEqual({ list: 1, read: 0, write: 0, remove: 0 });
+    expect(r.store.calls).toEqual({ list: 1, read: 0, write: 0, remove: 0, commit: 0 });
     expect(r.applied).toBe(0);
 
     r.store.put(DAY, v2);
@@ -193,11 +204,11 @@ describe('pobieranie', () => {
 
   test('po pobraniu od razu idzie to, co czekało lokalnie', async () => {
     const r = await rig();
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] z telefonu\n');
     r.edit(DAY, v2);
     r.runner.pull();
     await r.settle();
-    expect(r.files['BACKLOG.md']).toContain('z telefonu');
+    expect(r.files['BACKLOG.xit']).toContain('z telefonu');
     expect(r.store.snapshot()[DAY]).toBe(v2);
     expect(r.status.pending).toBe(false);
   });
@@ -209,7 +220,7 @@ describe('pobieranie', () => {
     r.edit(DAY, v2);
     r.runner.flush();
     await vi.advanceTimersByTimeAsync(0);
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] nowe\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] nowe\n');
     r.runner.pull();
     r.runner.pull();
     await vi.advanceTimersByTimeAsync(0);
@@ -220,20 +231,20 @@ describe('pobieranie', () => {
     // Każda tura zaczyna od magazynu: pierwsza (wysłanie) i druga (prośby zgłoszone w jej trakcie).
     expect(r.store.calls.write).toBe(1);
     expect(r.store.calls.list).toBe(2);
-    expect(r.files['BACKLOG.md']).toContain('nowe');
+    expect(r.files['BACKLOG.xit']).toContain('nowe');
   });
 
   test('edycja w trakcie pobrania zostaje; dokument z magazynu wchodzi na bieżący stan', async () => {
     let gated!: GatedStore;
     const r = await rig({ wrap: (s) => (gated = new GatedStore(s)) });
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] z telefonu\n');
     gated.hold();
     r.runner.pull();
     await vi.advanceTimersByTimeAsync(0);
     r.edit(DAY, v2); // w czasie rozmowy z magazynem
     gated.release();
     await r.settle();
-    expect(r.files['BACKLOG.md']).toContain('z telefonu');
+    expect(r.files['BACKLOG.xit']).toContain('z telefonu');
     expect(r.files[DAY]).toBe(v2);
     await vi.advanceTimersByTimeAsync(PUSH_DELAY);
     await r.settle();
@@ -263,7 +274,7 @@ describe('pobieranie', () => {
   test('gdy dokument z magazynu nie pasuje do stanu zmienionego w trakcie, nic nie wchodzi, a pobranie ocenia go od nowa', async () => {
     let gated!: GatedStore;
     const r = await rig({ wrap: (s) => (gated = new GatedStore(s)) });
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] z telefonu\n');
     gated.hold();
     r.runner.pull();
     await vi.advanceTimersByTimeAsync(0);
@@ -277,10 +288,10 @@ describe('pobieranie', () => {
     // Edycja w trakcie pobrania (i cofnięte uzgodnienie) nie gubi swojej chwili.
     expect(r.st.localAt).toBe(editedAt);
     expect(r.status.localAt).toBe(editedAt);
-    expect(r.files['BACKLOG.md']).toBe(base['BACKLOG.md']);
+    expect(r.files['BACKLOG.xit']).toBe(base['BACKLOG.xit']);
     // Drugie pobranie ocenia backlog na bieżącym stanie i blokuje go jak każdy nieprzyjęty dokument.
-    expect(r.st.blocked).toHaveProperty('BACKLOG.md');
-    expect(r.status.rejected?.names).toEqual(['BACKLOG.md']);
+    expect(r.st.blocked).toHaveProperty('BACKLOG.xit');
+    expect(r.status.rejected?.names).toEqual(['BACKLOG.xit']);
   });
 });
 
@@ -326,7 +337,7 @@ describe('konflikty', () => {
     expect(r.status.rejected).toEqual({ names: [DAY], errors: [`${DAY}:1: popsute`] });
     expect(r.notes.at(-1)).toContain('popsute');
 
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] X\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] X\n');
     const reads = r.store.calls.read;
     r.runner.pull();
     await r.settle();
@@ -442,12 +453,12 @@ describe('bez sieci i błędy', () => {
 describe('magazyn jest źródłem prawdy', () => {
   test('przed wysłaniem tura sprawdza magazyn i wpuszcza jego zmiany', async () => {
     const r = await rig();
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] z telefonu\n');
     r.edit(DAY, v2);
     await vi.advanceTimersByTimeAsync(PUSH_DELAY);
     await r.settle();
     // Zmiana z telefonu weszła w tej samej turze, a nie dopiero przy następnym sprawdzeniu.
-    expect(r.files['BACKLOG.md']).toContain('z telefonu');
+    expect(r.files['BACKLOG.xit']).toContain('z telefonu');
     expect(r.store.snapshot()[DAY]).toBe(v2);
     expect(r.store.calls.list).toBe(1);
     expect(r.status).toMatchObject({ phase: 'idle', pending: false, conflicts: [] });
@@ -478,7 +489,7 @@ describe('magazyn jest źródłem prawdy', () => {
 
     // Zmiana z innego urządzenia przesuwa chwilę magazynu, nie lokalną.
     vi.setSystemTime(new Date(2026, 9, 21, 12, 30));
-    r.store.put('BACKLOG.md', '# Backlog\n\n* [ ] z telefonu\n');
+    r.store.put('BACKLOG.xit', '# Backlog\n\n[ ] z telefonu\n');
     r.runner.pull();
     await r.settle();
     expect(r.status.remoteAt).toBe(new Date(2026, 9, 21, 12, 30).getTime());
@@ -492,6 +503,8 @@ test('po odświeżeniu strony chwile ostatnich zmian są widoczne od razu, przed
   const runner = new SyncRunner({
     store: new MemoryStore(),
     files: () => base,
+    target: () => base,
+    legacyOf: () => null,
     accept: strict,
     apply: () => {},
     load: () => st,

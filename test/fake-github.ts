@@ -5,7 +5,9 @@ import { contentHash } from '../src/lib/sync/hash';
  * z ETagiem, API treści z `sha` jako wersją. Zachowuje się jak GitHub tam, gdzie
  * to ważne dla synchronizacji: `sha` wynika z treści, zapis na starym `sha` to
  * 409, utworzenie istniejącego pliku bez `sha` to 422, puste repozytorium nie ma
- * drzewa (409), wyczerpany limit to 403 z nagłówkami limitu.
+ * drzewa (409), wyczerpany limit to 403 z nagłówkami limitu. API danych gita
+ * (ref, commit, drzewo, przesunięcie gałęzi) — tyle, ile trzeba na jeden commit
+ * z wieloma plikami; przesunięcie gałęzi, która nie jest już rodzicem, to 422.
  */
 export class FakeGitHub {
   readonly owner = 'ola';
@@ -23,6 +25,13 @@ export class FakeGitHub {
   truncated = false;
   /** Nagłówek z datą wygaśnięcia tokenu, jak przy tokenach fine-grained. */
   tokenExpires: string | null = null;
+  /** Wołane tuż przed przesunięciem gałęzi — tu „inne urządzenie" może zdążyć. */
+  beforeRefUpdate: (() => void) | null = null;
+
+  /** Drzewa i commity zbudowane przez API danych gita, jeszcze nie na gałęzi. */
+  private trees = new Map<string, Map<string, { body: string; sha: string }>>();
+  private pendingCommits = new Map<string, { tree: string; parent: string; message: string }>();
+  private made = 0;
 
   private files = new Map<string, { body: string; sha: string; raw?: Uint8Array }>();
   private rev = 0;
@@ -74,6 +83,26 @@ export class FakeGitHub {
   /** `sha` jak w gicie: z samej treści. */
   private sha(body: string): string {
     return (contentHash(body) + contentHash(`blob:${body}`)).padEnd(40, '0').slice(0, 40);
+  }
+
+  private get head(): string {
+    return `c${this.rev}`;
+  }
+
+  private treeJson(sha: string, files: Map<string, { sha: string }>, truncated = false) {
+    const dirs = new Set<string>();
+    for (const path of files.keys()) {
+      const parts = path.split('/');
+      for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join('/'));
+    }
+    return {
+      sha,
+      truncated,
+      tree: [
+        ...[...dirs].map((d) => ({ path: d, type: 'tree', sha: `dir-${d}` })),
+        ...[...files].map(([path, f]) => ({ path, type: 'blob', sha: f.sha })),
+      ],
+    };
   }
 
   private json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -149,26 +178,70 @@ export class FakeGitHub {
     const tree = /^\/git\/trees\/(.+)$/.exec(rest);
     if (tree && method === 'GET') {
       if (this.empty) return this.json(409, { message: 'Git Repository is empty.' });
-      if (tree[1] !== this.defaultBranch) return this.json(404, { message: 'Not Found' });
+      const built = this.trees.get(tree[1]!);
+      if (built) return this.json(200, this.treeJson(tree[1]!, built));
+      if (tree[1] !== this.defaultBranch && tree[1] !== `tree${this.rev}`)
+        return this.json(404, { message: 'Not Found' });
       const etag = `W/"t${this.rev}"`;
       if (headers['if-none-match'] === etag) return this.json(304, null, { etag });
-      const dirs = new Set<string>();
-      for (const path of this.files.keys()) {
-        const parts = path.split('/');
-        for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join('/'));
+      return this.json(200, this.treeJson(`tree${this.rev}`, this.files, this.truncated), {
+        etag,
+      });
+    }
+
+    if (rest === `/git/ref/heads/${this.defaultBranch}` && method === 'GET') {
+      if (this.empty) return this.json(409, { message: 'Git Repository is empty.' });
+      return this.json(200, { object: { type: 'commit', sha: this.head } });
+    }
+
+    const commit = /^\/git\/commits\/(.+)$/.exec(rest);
+    if (commit && method === 'GET') {
+      if (commit[1] !== this.head) return this.json(404, { message: 'Not Found' });
+      return this.json(200, { sha: this.head, tree: { sha: `tree${this.rev}` } });
+    }
+
+    if (this.readOnly && rest.startsWith('/git/') && method !== 'GET')
+      return this.json(403, { message: 'Resource not accessible by personal access token' });
+
+    if (rest === '/git/trees' && method === 'POST') {
+      if (body?.['base_tree'] !== `tree${this.rev}`)
+        return this.json(422, { message: 'base_tree is not the current tree' });
+      const next = new Map(this.files);
+      for (const e of body['tree'] as { path: string; sha?: null; content?: string }[]) {
+        if (e.content !== undefined)
+          next.set(e.path, { body: e.content, sha: this.sha(e.content) });
+        else if (e.sha === null) {
+          if (!next.has(e.path)) return this.json(422, { message: `${e.path} not in base_tree` });
+          next.delete(e.path);
+        }
       }
-      return this.json(
-        200,
-        {
-          sha: `tree${this.rev}`,
-          truncated: this.truncated,
-          tree: [
-            ...[...dirs].map((d) => ({ path: d, type: 'tree', sha: `dir-${d}` })),
-            ...[...this.files].map(([path, f]) => ({ path, type: 'blob', sha: f.sha })),
-          ],
-        },
-        { etag },
-      );
+      const sha = `ntree${++this.made}`;
+      this.trees.set(sha, next);
+      return this.json(201, { sha });
+    }
+
+    if (rest === '/git/commits' && method === 'POST') {
+      const t = String(body?.['tree']);
+      if (!this.trees.has(t)) return this.json(422, { message: 'tree not found' });
+      const sha = `nc${++this.made}`;
+      const parent = (body?.['parents'] as string[])[0]!;
+      this.pendingCommits.set(sha, { tree: t, parent, message: String(body?.['message']) });
+      return this.json(201, { sha, committer: { date: new Date().toISOString() } });
+    }
+
+    if (rest === `/git/refs/heads/${this.defaultBranch}` && method === 'PATCH') {
+      this.beforeRefUpdate?.();
+      this.beforeRefUpdate = null;
+      const c = this.pendingCommits.get(String(body?.['sha']));
+      if (!c) return this.json(422, { message: 'Object does not exist' });
+      if (body?.['force'] !== false || c.parent !== this.head)
+        return this.json(422, { message: 'Update is not a fast forward' });
+      this.files = new Map(this.trees.get(c.tree)!);
+      this.rev++;
+      this.commits++;
+      this.lastCommitAt = new Date().toISOString();
+      this.messages.push(c.message);
+      return this.json(200, { object: { type: 'commit', sha: this.head } });
     }
 
     // Ostatni commit gałęzi (z `path` — dotykający katalogu; tu zawsze ten sam).

@@ -1,9 +1,9 @@
 import { app, onStateChange, replaceState, ui } from './state.svelte';
-import { parseFiles, renderFiles } from './lib/md/files';
+import { legacyOf, parseJournal, renderJournal, renderLegacy } from './lib/journal';
 import type { FileError, Files } from './lib/md/files';
 import { readJSON, writeJSON } from './lib/persist';
 import { keepIdentity } from './lib/reuse';
-import { emptySync, planFirst, sendMine, takeRemote } from './lib/sync/engine';
+import { emptySync, isLegacy, planFirst, sendMine, takeRemote } from './lib/sync/engine';
 import type { Accept, Conflict, FirstPlan, SyncState } from './lib/sync/engine';
 import { GitHubStore, checkRepo, parseRepo } from './lib/sync/github';
 import type { GitHubConfig, RepoCheck } from './lib/sync/github';
@@ -55,11 +55,21 @@ export function makeStore(cfg: StoreConfig): Store {
 
 const where = (e: FileError) => (e.file ? `${e.file}${e.line !== null ? `:${e.line}` : ''}: ` : '');
 
-const current = (): Files => renderFiles($state.snapshot(app.S) as State);
+const snapshot = () => $state.snapshot(app.S) as State;
 
-/** Dokumenty dają się przyjąć, gdy `parseFiles` je czyta; błędy jako `plik:linia: powód`. */
+/** Dokumenty stanu w [x]it! — cel i format dziennika. */
+const target = (): Files => renderJournal(snapshot());
+
+/**
+ * Dokumenty stanu w formacie uzgodnienia z magazynem: dopóki synchronizacja
+ * nie przeszła na [x]it!, porównuje i wysyła w Markdownie.
+ */
+const current = (): Files =>
+  isLegacy(loadSaved().state) ? renderLegacy(snapshot()) : renderJournal(snapshot());
+
+/** Dokumenty dają się przyjąć, gdy `parseJournal` je czyta; błędy jako `plik:linia: powód`. */
 const accept: Accept = (files) => {
-  const p = parseFiles(files);
+  const p = parseJournal(files);
   return p.ok ? true : p.errors.map((e) => `${where(e)}${e.message}`);
 };
 
@@ -69,7 +79,7 @@ const accept: Accept = (files) => {
  * ich wiersze się nie przerysowują, a fokus i karetka zostają, gdzie były.
  */
 function apply(files: Files): void {
-  const p = parseFiles(files);
+  const p = parseJournal(files);
   if (p.ok) replaceState(keepIdentity(p.state, $state.snapshot(app.S) as State));
 }
 
@@ -154,6 +164,8 @@ function drive(cfg: StoreConfig): () => void {
   const r = new SyncRunner({
     store: makeStore(cfg),
     files: current,
+    target,
+    legacyOf,
     accept,
     apply,
     load: () => loadSaved().state,
@@ -278,7 +290,7 @@ export async function prepare(form: ConnectForm): Promise<Prepared> {
 
 /** Co jest w magazynie i co z tym zrobić przy pierwszym połączeniu. */
 export function planConnect(cfg: StoreConfig): Promise<FirstPlan> {
-  return planFirst(makeStore(cfg), current());
+  return planFirst(makeStore(cfg), target());
 }
 
 /**
@@ -294,7 +306,7 @@ export async function finishConnect(
   const out =
     choice === 'pull'
       ? takeRemote(plan.snapshot, accept)
-      : await sendMine(makeStore(cfg), current(), plan.snapshot, accept);
+      : await sendMine(makeStore(cfg), target(), plan.snapshot, accept);
   if (out.error) return [out.error.message];
   if (out.rejected) return out.rejected.errors;
   // Uzgodnienie przed stanem — jak w runnerze.

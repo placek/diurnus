@@ -2,14 +2,16 @@
 
 **Status:** decyzje zaakceptowane w rozmowie, projekt do akceptacji przed wdrożeniem ·
 **Data:** 2026-09-27 (pierwsza wersja 2026-09-25: własny serwer) ·
-**Format dokumentów:** [pliki markdown](2026-09-25-diurnus-markdown-files-design.md) ·
+**Format dokumentów:** [pliki [x]it!](2026-10-23-diurnus-xit-files-design.md) (wcześniej
+[pliki markdown](2026-09-25-diurnus-markdown-files-design.md)) ·
 **Maszyna stanów:** [projekt](2026-09-25-diurnus-state-machine-design.md)
 
 ## 1. Cel
 
 Opcjonalna synchronizacja dziennika z magazynem poza przeglądarką. Dziennik jest zapisywany
-jako te same dokumenty, które aplikacja już umie zapisać i odczytać: `RRRR-MM-DD.md`,
-`BACKLOG.md` i `.diurnus.toml`. Dzięki temu ten sam dziennik jest na kilku urządzeniach,
+jako te same dokumenty, które aplikacja już umie zapisać i odczytać: `RRRR-MM-DD.xit`,
+`BACKLOG.xit` i `.diurnus.toml` (do 2026-10-23 — pliki `.md`;
+[przejście](#przejście-na-xit)). Dzięki temu ten sam dziennik jest na kilku urządzeniach,
 a dane nie giną razem z pamięcią przeglądarki. `.diurnus.toml` niesie całą wspólną
 konfigurację — kategorie, dobę z porami dnia i motyw — więc nowe urządzenie dostaje ją razem
 z pozycjami. Token i połączenie z magazynem zostają w przeglądarce (`diurnus.sync`) i nigdy
@@ -18,7 +20,7 @@ nie trafiają do repozytorium.
 Zasady:
 
 - **Całe dokumenty.** Magazyn nie zna pozycji ani stanu — przyjmuje i oddaje całe pliki.
-  Generuje je i czyta wyłącznie aplikacja (`renderFiles` / `parseFiles`).
+  Generuje je i czyta wyłącznie aplikacja (`renderJournal` / `parseJournal`).
 - **Mały ruch.** Przesyła się tylko dokumenty, które się zmieniły; sprawdzenie „czy coś się
   zmieniło" kosztuje kilkaset bajtów.
 - **Wymienny magazyn.** Logika synchronizacji jest jedna; pod nią stoi mały adapter
@@ -46,7 +48,7 @@ Zasady:
 
 ## 3. Adapter magazynu
 
-Każdy magazyn to cztery operacje. Wersja dokumentu jest dla synchronizacji nieprzezroczystym
+Każdy magazyn to pięć operacji. Wersja dokumentu jest dla synchronizacji nieprzezroczystym
 napisem — adapter sam wie, czym jest (skrót bloba w gicie, `rev` w Dropboksie, `ETag`
 własnego serwera).
 
@@ -62,7 +64,19 @@ interface Store {
   write(name: string, body: string, base: Version | null): Promise<WriteResult>;
   /** Usunięcie na wersji `base`. */
   remove(name: string, base: Version): Promise<WriteResult>;
+  /** Wiele zmian jednym commitem: wszystkie albo żadna; każda na swojej wersji `base`. */
+  commit(changes: Change[], message: string): Promise<CommitResult>;
 }
+
+interface Change {
+  name: string;
+  body: string | null; // null — usunięcie
+  base: Version | null; // null — dokumentu nie ma
+}
+
+type CommitResult =
+  | { ok: true; versions: Record<string, Version> } // wersje zapisanych dokumentów
+  | { ok: false; moved: true }; // któraś wersja się nie zgadza albo magazyn zmienił się w trakcie
 
 type WriteResult =
   | { ok: true; version: Version | null } // null po usunięciu
@@ -73,9 +87,11 @@ Błędy sieci, logowania i limitów adapter zgłasza jako wyjątki z rodzajem (`
 `rate-limit` z czasem ponowienia, `other`) — synchronizacja reaguje na nie jednakowo dla
 wszystkich magazynów.
 
-**Dozwolone nazwy:** `RRRR-MM-DD.md` z prawdziwą datą, `BACKLOG.md`, `.diurnus.toml`.
-Wszystko inne w magazynie jest pomijane w spisie i nigdy nie jest zapisywane ani usuwane —
-repozytorium może więc mieć też własne README czy inne pliki.
+**Dozwolone nazwy:** `RRRR-MM-DD.xit` z prawdziwą datą, `BACKLOG.xit`, `.diurnus.toml`.
+Wszystko inne w magazynie jest pomijane i nigdy nie jest zapisywane ani usuwane —
+repozytorium może więc mieć też własne README czy inne pliki. Spis podaje też dawne
+`RRRR-MM-DD.md` i `BACKLOG.md`, ale synchronizacja używa ich tylko do
+[przejścia na [x]it!](#przejście-na-xit); po nim są obce jak README.
 
 ## 4. Synchronizacja (wspólna dla magazynów)
 
@@ -123,7 +139,7 @@ Obie leżą w uzgodnieniu (`diurnus.sync`) i pokazują się w ustawieniach pod s
    a komunikat proponuje „Nadpisz moją wersją" — ponowny zapis własnej treści na świeżej
    wersji.
 
-W typowym dniu zmienia się tylko dzisiejszy plik i `BACKLOG.md`; o północy dochodzi plik
+W typowym dniu zmienia się tylko dzisiejszy plik i `BACKLOG.xit`; o północy dochodzi plik
 minionego dnia (już tylko do archiwum).
 
 ### Pobieranie
@@ -159,6 +175,33 @@ GitHuba; ukryta karta nie sprawdza wcale (sprawdza po powrocie).
 
 „Wyślij moje" zapisuje własne dokumenty na wersjach z magazynu i usuwa te, których lokalnie
 nie ma — magazyn staje się kopią tego urządzenia.
+
+### Przejście na [x]it!
+
+Uzgodnienie zapisane jeszcze z dokumentami `.md` (urządzenie połączone przed aktualizacją)
+najpierw przechodzi na [x]it!; dopóki to się nie uda, synchronizacja działa w Markdownie
+jak dotąd (dokumenty stanu w Markdownie, te same reguły).
+
+1. **Magazyn już w [x]it!** (przeszło inne urządzenie) — przejęcie. Treść dokumentów `.xit`
+   z magazynu, przepisana z powrotem na Markdown, porównana z odciskami z uzgodnienia, mówi,
+   czy dokument zmienił się w magazynie od ostatniego uzgodnienia; lokalne dokumenty
+   Markdown — czy zmienił się tutaj. Uzgodnienie przechodzi na nazwy `.xit` tak, żeby zwykłe
+   pobranie i wysłanie zrobiły resztę: zmienione tylko tutaj — idzie, tylko tam — przychodzi,
+   po obu stronach — konflikt (wygrywa magazyn).
+2. **Magazyn jeszcze w Markdownie** — najpierw zwykłe pobranie i wysłanie w Markdownie, aż nic
+   nie czeka i nic nie jest zablokowane. Potem jeden `commit` z wiadomością
+   `diurnus: przejście na [x]it!`: usunięcie uzgodnionych `.md` (na ich wersjach), zapis
+   dokumentów `.xit` i ustawień ze znacznikiem `format = "xit"`. Uzgodnienie przechodzi na
+   wersje z commita.
+3. **Magazyn zmienił się w trakcie** (`moved`) — nic nie weszło; ponowienie po zwykłym
+   odstępie zaczyna od kroku 1.
+
+W ustawieniach widać wtedy „Przechodzę na [x]it!…". Konflikty o dokumenty `.md` po przejściu
+znikają z listy — tych dokumentów już nie ma. Karta starszej wersji aplikacji nie zna klucza
+`format` i odrzuca nowe ustawienia, więc niczego w repozytorium nie nadpisze.
+
+Pierwsze połączenie z repozytorium w Markdownie czyta je dawnym czytnikiem, a przejście
+przychodzi w następnej turze; z repozytorium w [x]it! bierze tylko pliki `.xit`.
 
 ### Bez sieci i błędy
 
@@ -261,6 +304,7 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
 | `read` | `GET /repos/{o}/{r}/contents/{ścieżka}?ref={gałąź}` → treść w base64 i `sha` | `sha` |
 | `write` | `PUT /repos/{o}/{r}/contents/{ścieżka}` z `content` (base64), `sha: base` (przy zmianie), `branch`, `message` | `content.sha` z odpowiedzi |
 | `remove` | `DELETE /repos/{o}/{r}/contents/{ścieżka}` z `sha: base`, `branch`, `message` | — |
+| `commit` | `GET git/ref/heads/{gałąź}` → `GET git/commits/{sha}` → `GET git/trees/{drzewo}?recursive=1` (sprawdzenie wersji) → `POST git/trees` z `base_tree` (treść wprost, `sha: null` przy usunięciu) → `POST git/commits` → `PATCH git/refs/heads/{gałąź}` z `force: false` → `GET git/trees/{nowe}?recursive=1` | `sha` blobów z nowego drzewa |
 
 - **Spis przez drzewo, nie przez katalog.** Lista katalogu w API treści zwraca najwyżej
   1000 plików — dziennik prowadzony codziennie przekroczyłby to przed upływem trzech lat.
@@ -273,9 +317,10 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
 - **Tekst.** Treść koduje się i dekoduje jako UTF-8 (`TextEncoder` / `TextDecoder` + base64),
   żeby polskie znaki przeszły bez zmian.
 - **Commit na plik.** API treści zapisuje jeden plik w jednym commicie, z wiadomością
-  `diurnus: 2026-09-25.md`. W typowym wysłaniu to jeden lub dwa commity. Zapis kilku plików
-  jednym commitem (Git Data API: bloby, drzewo, commit, przesunięcie gałęzi) jest możliwy, ale
-  to kilka żądań na raz i konflikt na poziomie całej gałęzi zamiast dokumentu — nie tu.
+  `diurnus: 2026-09-25.xit`. W typowym wysłaniu to jeden lub dwa commity. Zapis kilku plików
+  jednym commitem (Git Data API) to kilka żądań i konflikt na poziomie całej gałęzi zamiast
+  dokumentu — dlatego służy tylko przejściu na [x]it!, które musi być jednym commitem.
+  Przesunięcie gałęzi bez wymuszania odrzuca GitHub (`422`), gdy ktoś zdążył wcześniej.
 - **Historia za darmo.** Każda wersja każdego dnia zostaje w historii repozytorium.
 - **Chwila ostatniej zmiany.** Data `commit.committer.date` ostatniego commita — z odpowiedzi
   na `PUT`/`DELETE` albo z API commitów, gdy drzewo się zmieniło. Gdy jej nie da się pobrać,
@@ -296,7 +341,7 @@ i `X-GitHub-Api-Version`. API GitHuba pozwala na wywołania z przeglądarki (COR
 - Sprawdzenie bez zmian: jedno żądanie drzewa → `304`, kilkaset bajtów. Tyle samo kosztuje
   sprawdzenie przed każdym wysłaniem.
 - Zmiana w ciągu dnia: jeden `PUT` dzisiejszego pliku (1–3 KB treści, w base64 o jedną trzecią
-  więcej), czasem `BACKLOG.md`.
+  więcej), czasem `BACKLOG.xit`.
 - Pobranie zmiany z innego urządzenia: drzewo (dziesiątki bajtów na plik, rośnie z liczbą dni)
   plus zmienione dokumenty.
 - Nowe urządzenie pobiera wszystko raz; potem tylko różnice.

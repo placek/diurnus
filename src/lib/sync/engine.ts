@@ -1,7 +1,8 @@
+import { CONFIG } from '../md/files';
 import type { Files } from '../md/files';
 import { contentHash } from './hash';
-import { StoreError, isDocName } from './store';
-import type { Store, Version, WriteResult } from './store';
+import { StoreError, isAnyDocName, isDocName } from './store';
+import type { Change, DocFormat, Store, Version, WriteResult } from './store';
 
 /*
  * Synchronizacja dziennika z magazynem (projekt synchronizacji, §4). Czysta
@@ -83,9 +84,33 @@ const seen = (st: SyncState, at: number | undefined) => {
   if (at !== undefined && at > (st.remoteAt ?? 0)) st.remoteAt = at;
 };
 
+/* ───────────── Format dokumentów ───────────── */
+
+/** Dokument dziennika poza ustawieniami — dzień albo backlog. */
+const isJournalDoc = (name: string, format: DocFormat) =>
+  name !== CONFIG && isDocName(name, format);
+
+/**
+ * Uzgodnienie z czasów plików Markdown: synchronizacja jeszcze nie przeszła na
+ * [x]it! i najpierw musi to zrobić (`adopt` albo `convert`).
+ */
+export const isLegacy = (st: SyncState): boolean =>
+  Object.keys(st.docs).some((n) => isJournalDoc(n, 'md'));
+
+const formatOf = (st: SyncState): DocFormat => (isLegacy(st) ? 'md' : 'xit');
+
+/** Format dziennika w magazynie: [x]it!, gdy jest choć jeden taki dokument. */
+function remoteFormat(names: Iterable<string>): DocFormat {
+  for (const n of names) if (isJournalDoc(n, 'xit')) return 'xit';
+  return 'md';
+}
+
+const toXit = (name: string) => name.replace(/\.md$/, '.xit');
+const toMd = (name: string) => name.replace(/\.xit$/, '.md');
+
 /** Tylko dokumenty dziennika — reszta nie jest sprawą synchronizacji. */
-const docsOf = (files: Files): Files =>
-  Object.fromEntries(Object.entries(files).filter(([n]) => isDocName(n)));
+const docsOf = (files: Files, format: DocFormat = 'xit'): Files =>
+  Object.fromEntries(Object.entries(files).filter(([n]) => isDocName(n, format)));
 
 const asStoreError = (e: unknown): StoreError =>
   e instanceof StoreError ? e : new StoreError('other', e instanceof Error ? e.message : String(e));
@@ -99,8 +124,12 @@ function locallyChanged(files: Files, st: SyncState, name: string): boolean {
 }
 
 /** Lokalne zmiany do wysłania: zmienione albo nowe dokumenty i usunięte. */
-export function localChanges(files: Files, st: SyncState): { dirty: string[]; gone: string[] } {
-  const docs = docsOf(files);
+export function localChanges(
+  files: Files,
+  st: SyncState,
+  format: DocFormat = formatOf(st),
+): { dirty: string[]; gone: string[] } {
+  const docs = docsOf(files, format);
   const dirty = Object.keys(docs)
     .filter((n) => !(n in st.blocked) && locallyChanged(docs, st, n))
     .sort();
@@ -112,7 +141,7 @@ export function localChanges(files: Files, st: SyncState): { dirty: string[]; go
 
 /** Czy są lokalne zmiany, które czekają na wysłanie. */
 export const pending = (files: Files, st: SyncState): boolean => {
-  const { dirty, gone } = localChanges(files, st);
+  const { dirty, gone } = localChanges(files, st, formatOf(st));
   return dirty.length + gone.length > 0;
 };
 
@@ -174,7 +203,7 @@ export async function push(
   accept: Accept,
 ): Promise<Outcome> {
   const st = clone(state);
-  const { dirty, gone } = localChanges(files, st);
+  const { dirty, gone } = localChanges(files, st, formatOf(st));
   const remote: Record<string, { body: string; version: Version } | null> = {};
   const conflicts: Conflict[] = [];
   let error: StoreError | null = null;
@@ -229,6 +258,7 @@ export async function pull(
   accept: Accept,
 ): Promise<Outcome> {
   const st = clone(state);
+  const format = formatOf(st);
   const remote: Record<string, { body: string; version: Version } | null> = {};
   const conflicts: Conflict[] = [];
   let error: StoreError | null = null;
@@ -236,7 +266,7 @@ export async function pull(
   try {
     const listing = await store.list(st.mark);
     if (!('unchanged' in listing)) {
-      const there = new Map([...listing.docs].filter(([n]) => isDocName(n)));
+      const there = new Map([...listing.docs].filter(([n]) => isDocName(n, format)));
       for (const [name, version] of [...there].sort(([a], [b]) => a.localeCompare(b))) {
         if (st.docs[name]?.version === version || st.blocked[name] === version) continue;
         remote[name] = await store.read(name);
@@ -249,7 +279,8 @@ export async function pull(
         const mine = files[name] ?? null;
         // Obie strony doszły do tego samego — nie ma o co się spierać.
         if ((r?.body ?? null) === mine) continue;
-        if (locallyChanged(docsOf(files), st, name)) conflicts.push({ name, remote: r, mine });
+        if (locallyChanged(docsOf(files, format), st, name))
+          conflicts.push({ name, remote: r, mine });
       }
       st.mark = listing.mark;
       seen(st, listing.at);
@@ -316,10 +347,13 @@ export interface Summary {
 
 /** Krótki opis dziennika do pytania przy pierwszym połączeniu. */
 export function summarize(files: Files): Summary {
-  const docs = docsOf(files);
+  const docs = Object.fromEntries(Object.entries(files).filter(([n]) => isAnyDocName(n)));
   let items = 0;
-  for (const [name, body] of Object.entries(docs))
-    if (name.endsWith('.md')) items += body.split('\n').filter((l) => /^\*( |$)/.test(l)).length;
+  for (const [name, body] of Object.entries(docs)) {
+    const lines = body.split('\n');
+    if (name.endsWith('.xit')) items += lines.filter((l) => /^\[[ x@~?]\]( |$)/.test(l)).length;
+    if (name.endsWith('.md')) items += lines.filter((l) => /^\*( |$)/.test(l)).length;
+  }
   const days = Object.keys(docs)
     .filter((n) => /^\d{4}-/.test(n))
     .map((n) => n.slice(0, 10))
@@ -355,8 +389,10 @@ export async function planFirst(store: Store, files: Files): Promise<FirstPlan> 
     mark: listing.mark,
     ...(listing.at !== undefined ? { at: listing.at } : {}),
   };
+  // Repozytorium już w [x]it! bierze tylko te pliki; inaczej — starszy Markdown.
+  const format = remoteFormat(listing.docs.keys());
   for (const name of [...listing.docs.keys()].sort()) {
-    if (!isDocName(name)) continue;
+    if (!isDocName(name, format)) continue;
     const doc = await store.read(name);
     if (!doc) continue;
     // Wersja z odczytu, nie ze spisu: między jednym a drugim ktoś mógł zapisać.
@@ -422,4 +458,138 @@ export async function sendMine(
     ...(snap.at !== undefined ? { remoteAt: snap.at } : {}),
   };
   return push(store, files, st, accept);
+}
+
+/* ───────────── Przejście na [x]it! ───────────── */
+
+export const MIGRATION_MESSAGE = 'diurnus: przejście na [x]it!';
+
+/** Wersja, której magazyn nigdy nie poda: dokument na pewno trzeba pobrać. */
+const STALE = 'przed-xit';
+
+/** Wynik bez zmian w dokumentach — tylko nowe uzgodnienie albo błąd. */
+const quiet = (st: SyncState, files: Files, error: StoreError | null): Outcome => ({
+  state: st,
+  files,
+  changed: false,
+  conflicts: [],
+  rejected: null,
+  error,
+});
+
+/**
+ * Magazyn już w [x]it! (przeszło inne urządzenie), a tu uzgodnienie jest jeszcze
+ * z plików Markdown. Uzgodnienie przechodzi na dokumenty [x]it!, dokument po
+ * dokumencie, tak żeby zwykłe pobranie i wysłanie zrobiły resztę: treść
+ * magazynu przepisana z powrotem na Markdown (`legacyOf`) mówi, czy od
+ * uzgodnienia zmienił się magazyn, a lokalne dokumenty Markdown — czy zmieniło
+ * się tu. Zmienione tylko tu — idzie do magazynu; tylko tam — przychodzi;
+ * po obu stronach — konflikt, jak zawsze.
+ *
+ * Magazyn bez dokumentów [x]it! — nic się nie zmienia (`state` jak wejście).
+ */
+export async function adopt(
+  store: Store,
+  legacy: Files,
+  target: Files,
+  state: SyncState,
+  legacyOf: (files: Files) => Files | null,
+): Promise<Outcome> {
+  const st = clone(state);
+  try {
+    const listing = await store.list();
+    if ('unchanged' in listing)
+      throw new StoreError('other', 'spis bez znacznika nie może być „bez zmian"');
+    const names = [...listing.docs.keys()].filter((n) => isDocName(n, 'xit')).sort();
+    if (remoteFormat(names) !== 'xit') return quiet(state, legacy, null);
+
+    const remote: Files = {};
+    const versions: Record<string, Version> = {};
+    for (const n of names) {
+      const doc = await store.read(n);
+      if (!doc) continue;
+      remote[n] = doc.body;
+      versions[n] = doc.version;
+    }
+    const base = legacyOf(remote);
+    const mine = docsOf(target);
+    const all = new Set([
+      ...Object.keys(st.docs)
+        .filter((n) => isDocName(n, 'md'))
+        .map(toXit),
+      ...Object.keys(remote),
+      ...Object.keys(mine),
+    ]);
+    const docs: SyncState['docs'] = {};
+    for (const n of all) {
+      const agreed = st.docs[toMd(n)];
+      const same = (body: string | undefined) =>
+        body === undefined ? agreed === undefined : agreed?.hash === contentHash(body);
+      const remoteSame = base !== null && same(base[toMd(n)]);
+      const localSame = same(legacy[toMd(n)]);
+      if (remoteSame) {
+        // Magazyn bez zmian: jego treść to uzgodnienie, a lokalna różnica — do wysłania.
+        if (versions[n] !== undefined)
+          docs[n] = { version: versions[n]!, hash: contentHash(remote[n]!) };
+      } else if (localSame) {
+        // Zmienił się tylko magazyn: pobranie weźmie jego wersję bez sporu.
+        if (mine[n] !== undefined) docs[n] = { version: STALE, hash: contentHash(mine[n]!) };
+      } else docs[n] = { version: STALE, hash: '' };
+    }
+    st.docs = docs;
+    st.blocked = {};
+    delete st.mark;
+    seen(st, listing.at);
+    return quiet(st, legacy, null);
+  } catch (e) {
+    return quiet(state, legacy, asStoreError(e));
+  }
+}
+
+/**
+ * Przejście magazynu na [x]it! jednym commitem: usunięcie uzgodnionych
+ * dokumentów Markdown i zapis dokumentów [x]it! z ustawieniami ze znacznikiem
+ * formatu. Wołane, gdy w Markdownie wszystko jest uzgodnione. Magazyn, który
+ * zmienił się w międzyczasie, nie przyjmuje niczego — wtedy błąd i ponowienie
+ * od pobrania.
+ */
+export async function convert(
+  store: Store,
+  legacy: Files,
+  target: Files,
+  state: SyncState,
+): Promise<Outcome> {
+  const st = clone(state);
+  const docs = docsOf(target);
+  const changes: Change[] = [
+    ...Object.keys(st.docs)
+      .filter((n) => isJournalDoc(n, 'md'))
+      .sort()
+      .map((n) => ({ name: n, body: null, base: st.docs[n]!.version })),
+    ...Object.keys(docs)
+      .sort()
+      .map((n) => ({
+        name: n,
+        body: docs[n]!,
+        base: n === CONFIG ? (st.docs[n]?.version ?? null) : null,
+      })),
+  ];
+  try {
+    const r = await store.commit(changes, MIGRATION_MESSAGE);
+    if (!r.ok)
+      return quiet(
+        state,
+        legacy,
+        new StoreError('other', 'repozytorium zmieniło się w trakcie przejścia na [x]it!'),
+      );
+    st.docs = {};
+    for (const [n, body] of Object.entries(docs))
+      st.docs[n] = { version: r.versions[n]!, hash: contentHash(body) };
+    st.blocked = {};
+    delete st.mark;
+    seen(st, r.at);
+    return quiet(st, legacy, null);
+  } catch (e) {
+    return quiet(state, legacy, asStoreError(e));
+  }
 }

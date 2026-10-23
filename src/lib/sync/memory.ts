@@ -1,5 +1,13 @@
 import { StoreError } from './store';
-import type { Listing, Store, StoreErrorKind, Version, WriteResult } from './store';
+import type {
+  Change,
+  CommitResult,
+  Listing,
+  Store,
+  StoreErrorKind,
+  Version,
+  WriteResult,
+} from './store';
 
 /**
  * Magazyn w pamięci — ta sama umowa co prawdziwe adaptery, bez sieci.
@@ -14,7 +22,9 @@ export class MemoryStore implements Store {
   private at: number | null = null;
   private failures: StoreErrorKind[] = [];
   /** Liczba wywołań każdej operacji — do sprawdzania ruchu w testach. */
-  readonly calls = { list: 0, read: 0, write: 0, remove: 0 };
+  readonly calls = { list: 0, read: 0, write: 0, remove: 0, commit: 0 };
+  /** Opisy commitów zrobionych przez `commit`. */
+  readonly messages: string[] = [];
 
   constructor(initial: Record<string, string> = {}) {
     for (const [name, body] of Object.entries(initial)) this.put(name, body);
@@ -84,5 +94,24 @@ export class MemoryStore implements Store {
     if (cur.version !== base) return { ok: false, conflict: { ...cur } };
     this.put(name, null);
     return { ok: true, version: null, at: this.at! };
+  }
+
+  async commit(changes: Change[], message: string): Promise<CommitResult> {
+    this.calls.commit++;
+    this.maybeFail();
+    for (const c of changes)
+      if ((this.docs.get(c.name)?.version ?? null) !== c.base) return { ok: false, moved: true };
+    const versions: Record<string, Version> = {};
+    for (const c of changes) {
+      if (c.body === null) this.docs.delete(c.name);
+      else {
+        this.docs.set(c.name, { body: c.body, version: `v${++this.seq}` });
+        versions[c.name] = this.docs.get(c.name)!.version;
+      }
+    }
+    this.rev++;
+    this.at = Date.now();
+    this.messages.push(message);
+    return { ok: true, versions, at: this.at };
   }
 }

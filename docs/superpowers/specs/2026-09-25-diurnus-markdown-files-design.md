@@ -1,7 +1,9 @@
 # Diurnus — stan w plikach markdown: projekt
 
-**Status:** decyzje zaakceptowane, format zaimplementowany i używany przez eksport i import
-w ustawieniach · **Data:** 2026-09-25 · **Kod:** [`src/lib/md/`](../../../src/lib/md/) ·
+**Status:** **dawny format — tylko do odczytu.** Od 2026-10-23 dziennik zapisuje się
+w [plikach [x]it!](2026-10-23-diurnus-xit-files-design.md); te pliki nadal się wczytują
+(stare archiwa, repozytorium przed przejściem) · **Data:** 2026-09-25 ·
+**Kod:** [`src/lib/md/`](../../../src/lib/md/) ·
 **Zastępuje:** [format markdown dziennika](2026-09-24-gridday-markdown-format-design.md) ·
 **Maszyna stanów:** [projekt](2026-09-25-diurnus-state-machine-design.md)
 

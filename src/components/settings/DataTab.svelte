@@ -2,7 +2,7 @@
   import { app, closeAll, replaceState } from '../../state.svelte';
   import { bundleParse } from '../../lib/backup';
   import { collect, filesToZip } from '../../lib/md/archive';
-  import { parseFiles, renderFiles } from '../../lib/md/files';
+  import { parseJournal, renderJournal } from '../../lib/journal';
   import type { FileError } from '../../lib/md/files';
   import type { State } from '../../lib/types';
   import { sync } from '../../sync.svelte';
@@ -37,7 +37,7 @@
   function download() {
     let files: Record<string, string>;
     try {
-      files = renderFiles($state.snapshot(app.S) as State);
+      files = renderJournal($state.snapshot(app.S) as State);
     } catch (err) {
       app.toast = {
         msg: err instanceof Error ? err.message : 'Nie udało się zapisać',
@@ -97,7 +97,7 @@
       errors = got.errors;
       return;
     }
-    const parsed = parseFiles(got.files);
+    const parsed = parseJournal(got.files);
     if (!parsed.ok) {
       errors = parsed.errors.map((x) => `${where(x)}${x.message}`);
       return;
@@ -126,7 +126,7 @@
   {/if}
 
   <button class="btn ce-add" onclick={download}>
-    <Icon name="download" fallback="↓" />Pobierz dziennik (Markdown)
+    <Icon name="download" fallback="↓" />Pobierz dziennik ([x]it!)
   </button>
   <button class="btn ce-add" onclick={() => fileInput?.click()}>
     <Icon name="upload" fallback="↑" />Wczytaj dziennik
@@ -135,7 +135,7 @@
     bind:this={fileInput}
     type="file"
     multiple
-    accept=".zip,.md,.toml,.json,application/zip"
+    accept=".zip,.xit,.md,.toml,.json,application/zip"
     hidden
     onchange={onPick}
   />
@@ -151,9 +151,12 @@
   {/if}
 
   <p class="hint">
-    Archiwum ZIP zawiera plik dziś (<code>RRRR-MM-DD.md</code>), <code>BACKLOG.md</code>, pliki
-    minionych dni i ustawienia <code>.diurnus.toml</code>. Wczytać można to archiwum albo te pliki
-    zaznaczone razem; wczyta się też starsza kopia JSON.
+    Archiwum ZIP zawiera pliki <a href="https://xit.jotaen.net/" target="_blank" rel="noopener"
+      >[x]it!</a
+    >: dziś (<code>RRRR-MM-DD.xit</code>), <code>BACKLOG.xit</code>, pliki minionych dni i
+    ustawienia
+    <code>.diurnus.toml</code>. Wczytać można to archiwum albo te pliki zaznaczone razem; wczyta się
+    też starsze archiwum w Markdownie (<code>.md</code>) i kopia JSON.
   </p>
   <p class="hint">Wczytanie <b>zastąpi</b> cały bieżący stan.</p>
 </div>

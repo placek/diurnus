@@ -479,6 +479,7 @@ kbd{
 .import-errors ul{margin:6px 0 0;padding-left:18px;font-family:var(--mono);font-size:12px}
 .import-errors p{margin:4px 0 0}
 .hint{margin:0 0 10px;font:400 14px/1.45 var(--sans);color:var(--fg-dim)}
+.hint a{color:var(--fg)}
 
 /* Ustawienia → Dane → Synchronizacja */
 .sync{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;padding:0 0 14px;border-bottom:1px solid var(--line-2)}

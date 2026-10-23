@@ -14,14 +14,14 @@ import {
   takeRemote,
 } from '../src/lib/sync/engine';
 import type { Accept } from '../src/lib/sync/engine';
-import { parseFiles, renderFiles } from '../src/lib/md/files';
+import { parseJournal as parseFiles, renderJournal as renderFiles } from '../src/lib/journal';
 import type { Files } from '../src/lib/md/files';
 import { normalize } from '../src/lib/model';
 import { step } from '../src/lib/machine';
 import type { State } from '../src/lib/types';
 import { FakeGitHub } from './fake-github';
 
-const DAY = '2026-09-25.md';
+const DAY = '2026-09-25.xit';
 
 const cfg = (gh: FakeGitHub, over: Partial<GitHubConfig> = {}): GitHubConfig => ({
   owner: gh.owner,
@@ -90,23 +90,118 @@ describe.each(harnesses)('umowa magazynu: %s', (_name, make) => {
 
   test('spis: znacznik bez zmian daje „bez zmian", zmiana z zewnątrz — nowy spis', async () => {
     const { store, external } = make();
-    await store.write('BACKLOG.md', '# Backlog\n', null);
+    await store.write('BACKLOG.xit', '# Backlog\n', null);
     const first = await store.list();
     if (!('docs' in first)) throw new Error('pierwszy spis nie może być „bez zmian"');
-    expect([...first.docs.keys()]).toEqual(['BACKLOG.md']);
+    expect([...first.docs.keys()]).toEqual(['BACKLOG.xit']);
     expect(await store.list(first.mark)).toEqual({ unchanged: true });
     external(DAY, '# 2026-09-25\n');
     const second = await store.list(first.mark);
     expect('docs' in second && [...second.docs.keys()].sort()).toEqual([
-      '2026-09-25.md',
-      'BACKLOG.md',
+      '2026-09-25.xit',
+      'BACKLOG.xit',
     ]);
+  });
+  test('commit: wiele zmian naraz — wszystkie albo żadna', async () => {
+    const { store, external } = make();
+    const old = ((await store.write('2026-09-24.md', 'stary', null)) as { version: string })
+      .version;
+    const r = await store.commit(
+      [
+        { name: '2026-09-24.md', body: null, base: old },
+        { name: DAY, body: '[ ] A\n', base: null },
+        { name: 'BACKLOG.xit', body: '', base: null },
+      ],
+      'diurnus: przejście na [x]it!',
+    );
+    if (!r.ok) throw new Error('commit odrzucony');
+    expect(Object.keys(r.versions).sort()).toEqual(['2026-09-25.xit', 'BACKLOG.xit']);
+    expect(await store.read(DAY)).toEqual({ body: '[ ] A\n', version: r.versions[DAY] });
+    expect(await store.read('2026-09-24.md')).toBeNull();
+    const listing = await store.list();
+    expect('docs' in listing && listing.docs.get('BACKLOG.xit')).toBe(r.versions['BACKLOG.xit']);
+
+    // Jedna wersja się nie zgadza — nic nie wchodzi.
+    external(DAY, '[x] A\n');
+    const moved = await store.commit(
+      [
+        { name: 'BACKLOG.xit', body: '[ ] B\n', base: r.versions['BACKLOG.xit']! },
+        { name: DAY, body: '[ ] C\n', base: r.versions[DAY]! },
+      ],
+      'x',
+    );
+    expect(moved).toEqual({ ok: false, moved: true });
+    expect((await store.read('BACKLOG.xit'))!.body).toBe('');
+    expect((await store.read(DAY))!.body).toBe('[x] A\n');
   });
 });
 
 /* ───────────── GitHub: szczegóły ───────────── */
 
 describe('GitHubStore', () => {
+  test('commit przez API danych gita: drzewo na bieżącym, commit, gałąź bez wymuszania', async () => {
+    const gh = new FakeGitHub({
+      'README.md': 'o repozytorium',
+      'dziennik/2026-09-25.md': '# 2026-09-25\n',
+    });
+    const store = new GitHubStore(cfg(gh, { dir: 'dziennik' }), gh.fetch);
+    const listing = await store.list();
+    if (!('docs' in listing)) throw new Error('spis');
+    gh.log.length = 0;
+    const r = await store.commit(
+      [
+        { name: '2026-09-25.md', body: null, base: listing.docs.get('2026-09-25.md')! },
+        { name: DAY, body: '[ ] Zażółć 🌱\n', base: null },
+      ],
+      'diurnus: przejście na [x]it!',
+    );
+    expect(r.ok).toBe(true);
+    expect(gh.log.map((l) => `${l.method} ${l.path.replace(/\?.*$/, '')}`)).toEqual([
+      'GET /repos/ola/diurnus-data/git/ref/heads/main',
+      'GET /repos/ola/diurnus-data/git/commits/c2',
+      'GET /repos/ola/diurnus-data/git/trees/tree2',
+      'POST /repos/ola/diurnus-data/git/trees',
+      'POST /repos/ola/diurnus-data/git/commits',
+      'PATCH /repos/ola/diurnus-data/git/refs/heads/main',
+      'GET /repos/ola/diurnus-data/git/trees/ntree1',
+    ]);
+    expect(gh.log[3]!.body).toEqual({
+      base_tree: 'tree2',
+      tree: [
+        { path: 'dziennik/2026-09-25.md', mode: '100644', type: 'blob', sha: null },
+        {
+          path: 'dziennik/2026-09-25.xit',
+          mode: '100644',
+          type: 'blob',
+          content: '[ ] Zażółć 🌱\n',
+        },
+      ],
+    });
+    expect(gh.log[5]!.body).toEqual({ sha: 'nc2', force: false });
+    expect(gh.paths()).toEqual(['README.md', 'dziennik/2026-09-25.xit']);
+    expect(gh.messages).toEqual(['diurnus: przejście na [x]it!']);
+    expect(r.ok && r.versions[DAY]).toBe((await store.read(DAY))!.version);
+  });
+
+  test('commit: gałąź przesunięta w trakcie — 422 i nic nie wchodzi', async () => {
+    const gh = new FakeGitHub({ [DAY]: 'a' });
+    const store = new GitHubStore(cfg(gh), gh.fetch);
+    gh.beforeRefUpdate = () => gh.put('BACKLOG.xit', 'z telefonu');
+    const r = await store.commit([{ name: 'BACKLOG.xit', body: 'moje', base: null }], 'x');
+    expect(r).toEqual({ ok: false, moved: true });
+    expect(gh.text('BACKLOG.xit')).toBe('z telefonu');
+    expect(gh.log.at(-1)).toMatchObject({ method: 'PATCH', status: 422 });
+  });
+
+  test('commit: puste repozytorium nie ma gałęzi — „przesunięte"', async () => {
+    const gh = new FakeGitHub();
+    const store = new GitHubStore(cfg(gh), gh.fetch);
+    expect(await store.commit([{ name: DAY, body: 'x', base: null }], 'x')).toEqual({
+      ok: false,
+      moved: true,
+    });
+  });
+
   test('polskie znaki i emoji przechodzą przez base64 jako UTF-8', async () => {
     const gh = new FakeGitHub();
     const store = new GitHubStore(cfg(gh), gh.fetch);
@@ -125,13 +220,13 @@ describe('GitHubStore', () => {
     const store = new GitHubStore(cfg(gh), gh.fetch);
     await store.list();
     await store.read(DAY);
-    await store.write('BACKLOG.md', '# Backlog\n', null);
+    await store.write('BACKLOG.xit', '# Backlog\n', null);
     for (const r of gh.log) {
       expect(r.headers['authorization']).toBe(`Bearer ${gh.token}`);
       expect(r.headers['x-github-api-version']).toBe('2022-11-28');
       expect(r.cache).toBe('no-store');
     }
-    expect(gh.messages).toEqual(['diurnus: BACKLOG.md']);
+    expect(gh.messages).toEqual(['diurnus: BACKLOG.xit']);
   });
 
   test('spis idzie przez drzewo gałęzi, a sprawdzenie bez zmian to 304', async () => {
@@ -158,7 +253,7 @@ describe('GitHubStore', () => {
     expect(gh.log[1]!.path).toBe(
       '/repos/ola/diurnus-data/commits?sha=main&per_page=1&path=dziennik',
     );
-    const w = await store.write('BACKLOG.md', '# Backlog\n', null);
+    const w = await store.write('BACKLOG.xit', '# Backlog\n', null);
     expect(w.ok && w.at).toBe(Date.parse(gh.lastCommitAt!));
     // Bez daty (błąd API commitów) spis i tak się udaje — data służy tylko do pokazania.
     gh.failWith = null;
@@ -176,24 +271,24 @@ describe('GitHubStore', () => {
   test('katalog w repozytorium: tylko jego bezpośrednie dokumenty; inne pliki nie istnieją', async () => {
     const gh = new FakeGitHub({
       'README.md': 'o repozytorium',
-      'diurnus/BACKLOG.md': '# Backlog\n',
+      'diurnus/BACKLOG.xit': '# Backlog\n',
       'diurnus/notatki.txt': 'obce',
-      'diurnus/stare/2026-01-01.md': 'głębiej',
-      '2026-09-24.md': 'poza katalogiem',
+      'diurnus/stare/2026-01-01.xit': 'głębiej',
+      '2026-09-24.xit': 'poza katalogiem',
     });
     const store = new GitHubStore(cfg(gh, { dir: '/diurnus/' }), gh.fetch);
     const listing = await store.list();
-    expect('docs' in listing && [...listing.docs.keys()]).toEqual(['BACKLOG.md']);
+    expect('docs' in listing && [...listing.docs.keys()]).toEqual(['BACKLOG.xit']);
     await store.write(DAY, '# 2026-09-25\n', null);
-    expect(gh.paths()).toContain('diurnus/2026-09-25.md');
-    expect(await store.read('BACKLOG.md')).toMatchObject({ body: '# Backlog\n' });
+    expect(gh.paths()).toContain('diurnus/2026-09-25.xit');
+    expect(await store.read('BACKLOG.xit')).toMatchObject({ body: '# Backlog\n' });
   });
 
   test('puste repozytorium: pusty spis, a pierwszy zapis zakłada gałąź domyślną', async () => {
     const gh = new FakeGitHub();
     const store = new GitHubStore(cfg(gh), gh.fetch);
     expect(await store.list()).toEqual({ docs: new Map(), mark: '' });
-    await store.write('BACKLOG.md', '# Backlog\n', null);
+    await store.write('BACKLOG.xit', '# Backlog\n', null);
     await store.write(DAY, '# 2026-09-25\n', null);
     const puts = gh.log.filter((r) => r.method === 'PUT');
     expect(puts[0]!.body).not.toHaveProperty('branch');
@@ -222,7 +317,7 @@ describe('GitHubStore', () => {
     expect(await kind(new GitHubStore({ ...cfg(gh), token: 'zły' }, gh.fetch).list())).toBe('auth');
 
     gh.readOnly = true;
-    expect(await kind(store.write('BACKLOG.md', 'x', null))).toBe('auth');
+    expect(await kind(store.write('BACKLOG.xit', 'x', null))).toBe('auth');
     gh.readOnly = false;
 
     gh.rateLimited = true;
@@ -236,11 +331,11 @@ describe('GitHubStore', () => {
     expect(await kind(store.list())).toBe('other');
     gh.truncated = false;
 
-    gh.put('BACKLOG.md', 'x'.repeat(1_000_001));
-    expect(await kind(store.read('BACKLOG.md'))).toBe('other');
+    gh.put('BACKLOG.xit', 'x'.repeat(1_000_001));
+    expect(await kind(store.read('BACKLOG.xit'))).toBe('other');
 
-    gh.putRaw('2026-09-24.md', new Uint8Array([0xff, 0xfe, 0x00]));
-    expect(await kind(store.read('2026-09-24.md'))).toBe('other');
+    gh.putRaw('2026-09-24.xit', new Uint8Array([0xff, 0xfe, 0x00]));
+    expect(await kind(store.read('2026-09-24.xit'))).toBe('other');
   });
 
   test('429 z Retry-After podaje czas oczekiwania', async () => {
@@ -380,7 +475,7 @@ describe('synchronizacja przez GitHuba', () => {
     const planA = await planFirst(storeA, renderFiles(a));
     expect(planA.kind).toBe('push');
     let aSync = (await push(storeA, renderFiles(a), emptySync(), accept)).state;
-    expect(gh.paths()).toEqual(['.diurnus.toml', `${TODAY}.md`, 'BACKLOG.md', 'README.md']);
+    expect(gh.paths()).toEqual(['.diurnus.toml', `${TODAY}.xit`, 'BACKLOG.xit', 'README.md']);
 
     // B łączy się z pustym stanem i dostaje dziennik A.
     const planB = await planFirst(storeB, renderFiles(normalize(null, TODAY)));
@@ -401,7 +496,7 @@ describe('synchronizacja przez GitHuba', () => {
     bSync = (await push(storeB, renderFiles(b), bSync, accept)).state;
     a = create(a, 'a2', 'Podlać kwiaty');
     const lost = await push(storeA, renderFiles(a), aSync, accept);
-    expect(lost.conflicts.map((c) => c.name)).toEqual([`${TODAY}.md`]);
+    expect(lost.conflicts.map((c) => c.name)).toEqual([`${TODAY}.xit`]);
     a = stateOf(lost.files);
     aSync = lost.state;
     expect(a.items.map((i) => i.text).sort()).toEqual(['Kupić chleb', 'Zadzwonić']);
@@ -411,7 +506,7 @@ describe('synchronizacja przez GitHuba', () => {
     a = stateOf(o.files);
     aSync = o.state;
     expect(a.items.map((i) => i.text).sort()).toEqual(['Kupić chleb', 'Podlać kwiaty']);
-    expect(gh.text(`${TODAY}.md`)).toContain('Podlać kwiaty');
+    expect(gh.text(`${TODAY}.xit`)).toContain('Podlać kwiaty');
     expect(pending(renderFiles(a), aSync)).toBe(false);
 
     // B pobiera wynik; README zostaje nietknięte przez cały czas.

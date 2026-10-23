@@ -18,6 +18,9 @@ test('stan po ludzku, z godziną i terminem następnej próby', () => {
     text: 'Synchronizuję…',
     tone: 'busy',
   });
+  expect(describeStatus(s({ phase: 'busy', migrating: true }), NOW).text).toBe(
+    'Przechodzę na [x]it!…',
+  );
   expect(describeStatus(s({ phase: 'standby' }), NOW).text).toContain('inna karta');
   expect(describeStatus(s({ phase: 'offline', retryAt: at(12, 46) }), NOW)).toEqual({
     text: 'Brak połączenia — zmiany czekają — następna próba o 12:46',
