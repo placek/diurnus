@@ -29,7 +29,7 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
 
 - **Bullet journal:** zadanie `·`, wykonane `×`, nieudane `⊘`, notatka `–`. Pisze się od razu
   w pustym wierszu; `Enter` dodaje kolejny, `Tab` zmienia znacznik, `⌫` na pustym usuwa.
-- **Nieudane** (`⊘`, czerwone jak minięty slot): każde zadanie można tak zamknąć — menu
+- **Nieudane** (`⊘`; wygląda jak wykonane, różni je tylko znacznik): każde zadanie można tak zamknąć — menu
   znacznika, `Tab` albo arkusz edycji; z backlogu trafia do dziś. Nieudanego nie odhacza się
   kliknięciem: najpierw wraca do zadań („Zadanie" w menu, „Przywróć" w arkuszu). Minięty slot
   to co innego — nadal odhacza się jednym kliknięciem. W pliku dnia to `* [-]`.
@@ -47,6 +47,8 @@ zmienia tylko kolor — nigdy stan. Wykonanie oznacza zawsze człowiek.
   kategoria i znacznik.
 - **Kolejność:** na górze wykonane, w kolejności odhaczania; pod nimi zadania z godziną
   według godzin; potem reszta w kolejności, którą ustawia się przeciąganiem.
+- **Czerwień to „teraz":** godzina na siatce, trwający blok, data i zegar — i czerwona kreska na
+  liście dnia, która oddziela zamknięte (wykonane i nieudane) od tego, co jeszcze zostało.
 - **Kategorie** widać jako ikonę na końcu wiersza; pozycja z godziną ma tło w kolorze
   kategorii, jak blok.
 

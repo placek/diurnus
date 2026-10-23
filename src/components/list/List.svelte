@@ -45,6 +45,8 @@
     {#each done as item (item.id)}
       <ListItem {item} />
     {/each}
+    <!-- Granica: nad nią zamknięte, pod nią to, co jeszcze zostało. -->
+    {#if done.length}<div class="done-line" role="separator" aria-label="Pozostałe"></div>{/if}
 
     {#each linked as item (item.id)}
       <ListItem {item} />

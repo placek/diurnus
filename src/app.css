@@ -86,12 +86,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--fg-dim);outline
 .ib:hover{background:var(--line);color:var(--fg)}
 a.ib{text-decoration:none}
 /* Data nie jest przyciskiem: nie ma dokąd prowadzić, więc nie udaje, że ma. */
+/* Data i zegar w czerwieni „teraz" — tej samej co godzina i trwający blok na siatce. */
 #date{
-  font:600 20px var(--sans);white-space:nowrap;color:var(--fg);
+  font:600 20px var(--sans);white-space:nowrap;color:var(--now);
   text-transform:uppercase;letter-spacing:.03em;
 }
 #clock{
-  font:500 20px var(--sans);color:var(--fg-dim);
+  font:500 20px var(--sans);color:var(--now);
   white-space:nowrap;font-variant-numeric:tabular-nums;
 }
 
@@ -227,13 +228,14 @@ a.ib{text-decoration:none}
 .st-confirmed .t{text-decoration:line-through}
 .st-confirmed .ic{color:var(--fg-faint)}
 
-/* Nieudane: zamknięte jak wykonane, ale w czerwieni minionego slotu — porażka
-   jest zapisem, nie zobowiązaniem, więc blok nie świeci kolorem kategorii. */
+/* Nieudane wygląda jak wykonane: to też zamknięty zapis, nie zobowiązanie.
+   Czerwień należy do tego, co teraz. */
 .st-failed{
-  background:color-mix(in srgb,var(--red) 12%,transparent);
-  border-color:color-mix(in srgb,var(--red) 45%,transparent);color:var(--red);
+  background:color-mix(in srgb,var(--c) 10%,transparent);
+  border-color:transparent;color:var(--fg-faint);
 }
-.st-failed .ic{color:var(--red)}
+.st-failed .t{text-decoration:line-through}
+.st-failed .ic{color:var(--fg-faint)}
 
 .st-planned{
   background:color-mix(in srgb,var(--c) 26%,transparent);
@@ -656,6 +658,17 @@ textarea.item-desc:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);
 .item-text::placeholder{color:var(--fg-faint)}
 .bullet{touch-action:none}                 /* przeciąganie zamiast przewijania */
 .item.is-dragging{opacity:.4}
+/* Granica „teraz" na liście dnia: nad nią zamknięte (wykonane i nieudane), pod
+   nią to, co zostało. Czerwień i kropka jak kreska teraz na siatce; kropka stoi
+   w kolumnie znaczników. */
+.done-line{
+  position:relative;height:2px;margin:6px 6px 6px 16px;border-radius:2px;
+  background:var(--now);box-shadow:0 0 6px color-mix(in srgb,var(--now) 45%,transparent);
+}
+.done-line::before{
+  content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;
+  background:var(--now);
+}
 .drop-line{
   height:0;border-top:2px solid var(--blue);border-radius:2px;
   margin:1px 0 1px 37px;                   /* wyrównanie do tekstu, nie do znacznika */
@@ -681,11 +694,15 @@ textarea.item-desc:focus{background:color-mix(in srgb,var(--fg) 4%,transparent);
 .item.tone-missed .item-text,
 .item.tone-missed .item-text::placeholder{color:var(--red)}
 
-/* Nieudane: jak minięty slot — czerwień — ze znacznikiem ⊘ w tej samej barwie. */
-.item.tone-failed .item-text,
-.item.tone-failed .item-text::placeholder{color:var(--red)}
+/* Nieudane wygląda jak wykonane — różni je tylko znacznik ⊘. */
 .item .bullet.t-failed,
-.item.is-linked .bullet.t-failed{color:var(--red)}
+.item.is-linked .bullet.t-failed{color:var(--fg-dim)}
+.item.tone-failed .item-text,
+.item.tone-failed .item-text::placeholder{color:var(--fg-faint)}
+.item.tone-failed .item-text{text-decoration:line-through}
+.item.tone-failed .item-desc,
+.item.tone-failed .step-text,
+.item.tone-failed .item-cat{color:var(--fg-faint)}
 
 .item.tone-done .item-text,
 .item.tone-done .item-text::placeholder{color:var(--fg-faint)}
