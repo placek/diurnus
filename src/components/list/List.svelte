@@ -37,11 +37,14 @@
   <!-- Na szerokim ekranie sekcja dziś zachodzi na pasek u góry i niesie nagłówek
        dnia; przewija się tylko lista pod nim. -->
   {#if !ui.narrow}
-    <header class="today-head"><TodayHead /><MeditationLine /><RosaryLine /></header>
+    <header class="today-head">
+      <TodayHead />
+      <div class="medit-row"><MeditationLine /><RosaryLine /></div>
+    </header>
   {/if}
   <div class="list-body">
     <!-- Na wąskim ekranie data jest w pasku u góry, więc medytacja otwiera listę. -->
-    {#if ui.narrow}<MeditationLine /><RosaryLine expandable />{/if}
+    {#if ui.narrow}<div class="medit-row"><MeditationLine /><RosaryLine expandable /></div>{/if}
     {#each done as item (item.id)}
       <ListItem {item} />
     {/each}

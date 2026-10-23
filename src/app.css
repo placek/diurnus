@@ -151,11 +151,18 @@ a.ib{text-decoration:none}
 }
 .medit-ref{font-weight:600;color:var(--fg-dim);font-variant-numeric:tabular-nums}
 .medit-theme{color:var(--fg-faint)}
-.list-body > .medit{padding:2px 8px 0;white-space:normal;text-wrap:balance}
-.list-body > .medit:last-of-type{padding-bottom:8px}
-/* W nagłówku dnia trzy linie muszą zmieścić się w wysokości paska. */
+/* Medytacja po lewej, różaniec po prawej — jedna linia pod datą. */
+.medit-row{display:flex;align-items:baseline;gap:12px;width:100%;min-width:0}
+.medit-row .medit{flex:1 1 0;text-align:left}
+.medit-row .rosary{flex:0 0 auto;text-align:right}
+.list-body > .medit-row{box-sizing:border-box;padding:2px 8px 8px;flex-wrap:wrap}
+.list-body > .medit-row .medit:not(.rosary){white-space:normal}
+/* Rozwinięte tajemnice na wąskim ekranie: cała szerokość pod medytacją. */
+.list-body > .medit-row .rosary:has([aria-expanded="true"]){flex-basis:100%;white-space:normal}
+/* W nagłówku dnia data i linia medytacji mieszczą się w wysokości paska; nad datą
+   zostaje oddech od ramy sekcji. */
 .today-head .medit{font-size:12px;line-height:14px}
-.today-head:has(.medit){gap:1px}
+.today-head:has(.medit-row){justify-content:flex-end;gap:4px;padding-bottom:6px}
 .rosary .medit-ref{cursor:help}
 .rosary-toggle + .medit-theme{margin-left:.3em}
 .rosary-toggle{
