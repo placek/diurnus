@@ -79,6 +79,11 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 
 ### Dni
 
+- **Medytacja poranna** pod datą: rozdział *De Imitatione Christi* i dobrany Psalm na dzisiejszy
+  dzień roku, z myślą przewodnią rozdziału — według planu rotacji (114 rozdziałów, indeks
+  `(dzień_roku − 1) mod 114`, Psalmy w numeracji Wulgaty z hebrajską w nawiasie). Plan jest
+  w `src/lib/meditation.ts`.
+
 - **O północy** otwarte zadania przechodzą na nowy dzień (bez godziny), a wykonane, nieudane
   i notatki zostają w archiwum swojego dnia.
 - Stan zapisany dawno dogania kalendarz dzień po dniu, z przyjściami każdego świtu po drodze.
