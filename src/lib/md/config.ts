@@ -5,13 +5,16 @@ import type { Category, DaySettings, Theme } from '../types';
 import { TAG, tagsFor } from './slug';
 
 /*
- * `.diurnus.toml`: kategorie, ustawienia doby i motyw — wszystko, co jest
- * wspólne dla urządzeń. Token magazynu tu nie trafia nigdy. Zapis jest ręczny, żeby był
- * bajt w bajt powtarzalny; odczyt idzie przez `smol-toml` i ścisłą walidację —
- * nieznany klucz to błąd, a nie cicho pominięta literówka.
+ * `.diurnus.toml`: format dziennika, kategorie, ustawienia doby i motyw —
+ * wszystko, co jest wspólne dla urządzeń. Token magazynu tu nie trafia nigdy.
+ * Zapis jest ręczny, żeby był bajt w bajt powtarzalny; odczyt idzie przez
+ * `smol-toml` i ścisłą walidację — nieznany klucz to błąd, a nie cicho
+ * pominięta literówka.
  */
 
 export interface Config {
+  /** `xit` — dziennik w plikach [x]it!; brak — w starszych plikach Markdown */
+  format?: 'xit';
   cats: Category[];
   day: DaySettings;
   /** wspólny motyw; brak — każde urządzenie zostaje przy swoim */
@@ -23,7 +26,10 @@ const str = (s: string) => JSON.stringify(s); // podstawowy łańcuch TOML
 export function renderConfig(cfg: Config): string {
   const tags = tagsFor(cfg.cats);
   // Klucze bez tabeli muszą stać w TOML przed pierwszą tabelą.
-  const out: string[] = cfg.theme !== undefined ? [`theme = ${str(cfg.theme)}`, ''] : [];
+  const top: string[] = [];
+  if (cfg.format !== undefined) top.push(`format = ${str(cfg.format)}`);
+  if (cfg.theme !== undefined) top.push(`theme = ${str(cfg.theme)}`);
+  const out: string[] = top.length ? [...top, ''] : [];
   out.push('[day]', `start = ${cfg.day.start}`, `end = ${cfg.day.end}`);
   for (const b of [...cfg.day.bands].sort((a, b) => a.from - b.from)) {
     out.push(
@@ -66,7 +72,9 @@ export function parseConfig(text: string): ConfigResult {
   }
   const errors: string[] = [];
   if (!isObj(raw)) return { ok: false, errors: ['plik nie jest tabelą TOML'] };
-  onlyKeys(raw, ['theme', 'day', 'categories'], 'plik', errors);
+  onlyKeys(raw, ['format', 'theme', 'day', 'categories'], 'plik', errors);
+  const format = raw['format'];
+  if (format !== undefined && format !== 'xit') errors.push('format: jedyna wartość to „xit"');
   const theme = raw['theme'];
   if (theme !== undefined && !isTheme(theme)) errors.push('theme: „auto", „light" albo „dark"');
 
@@ -161,5 +169,13 @@ export function parseConfig(text: string): ConfigResult {
 
   return errors.length
     ? { ok: false, errors }
-    : { ok: true, config: { cats, day, ...(isTheme(theme) ? { theme } : {}) } };
+    : {
+        ok: true,
+        config: {
+          ...(format === 'xit' ? { format } : {}),
+          cats,
+          day,
+          ...(isTheme(theme) ? { theme } : {}),
+        },
+      };
 }
