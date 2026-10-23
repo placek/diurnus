@@ -5,6 +5,7 @@
   import ListItem from './ListItem.svelte';
   import TodayHead from '../TodayHead.svelte';
   import MeditationLine from '../MeditationLine.svelte';
+  import RosaryLine from '../RosaryLine.svelte';
 
   // Trzy grupy: najpierw wykonane w kolejności odhaczenia, potem nieodhaczone zadania
   // ze slotem według godzin, potem reszta w kolejności własnej.
@@ -36,11 +37,11 @@
   <!-- Na szerokim ekranie sekcja dziś zachodzi na pasek u góry i niesie nagłówek
        dnia; przewija się tylko lista pod nim. -->
   {#if !ui.narrow}
-    <header class="today-head"><TodayHead /><MeditationLine /></header>
+    <header class="today-head"><TodayHead /><MeditationLine /><RosaryLine /></header>
   {/if}
   <div class="list-body">
     <!-- Na wąskim ekranie data jest w pasku u góry, więc medytacja otwiera listę. -->
-    {#if ui.narrow}<MeditationLine />{/if}
+    {#if ui.narrow}<MeditationLine /><RosaryLine expandable />{/if}
     {#each done as item (item.id)}
       <ListItem {item} />
     {/each}
