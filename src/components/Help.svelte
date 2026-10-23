@@ -141,11 +141,16 @@
     <dt>Nieudane ⊘</dt>
     <dd>
       zadanie zamknięte bez wykonania (menu znacznika, <kbd>Tab</kbd> albo arkusz edycji),
-      czerwone jak minięty slot. Kliknięcie go nie odhacza — najpierw „Zadanie" w menu znacznika
+      wygląda jak wykonane, różni je tylko znacznik. Kliknięcie go nie odhacza — najpierw „Zadanie" w menu znacznika
       albo „Przywróć" w arkuszu. Minięty slot odhacza się normalnie
     </dd>
     <dt>Prawy przycisk albo przytrzymanie znacznika</dt>
     <dd>typ pozycji, opis, krok i kategoria</dd>
+    <dt>Czerwona kreska</dt>
+    <dd>
+      na liście dnia oddziela zamknięte (wykonane i nieudane) od tego, co zostało; czerwień to
+      w całym interfejsie „teraz" — data, zegar, bieżąca godzina i trwający blok
+    </dd>
     <dt>Kolejność</dt>
     <dd>
       na górze wykonane, w kolejności odhaczania — odhaczone dołącza na koniec wykonanych. Pod

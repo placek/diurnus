@@ -117,6 +117,24 @@ test('znacznik wykonanego jest zawsze szary — bez koloru kategorii i bez ziele
   const linked = css.indexOf('.item.is-linked .bullet{');
   const done = css.indexOf('.item.is-linked .bullet.t-done');
   expect(done).toBeGreaterThan(linked);
-  expect(css).toMatch(/\.item \.bullet\.t-done,\s*\.item\.is-linked \.bullet\.t-done\{color:var\(--fg-dim\)\}/);
+  expect(css).toMatch(
+    /\.item \.bullet\.t-done,\s*\.item\.is-linked \.bullet\.t-done\{color:var\(--fg-dim\)\}/,
+  );
   expect(css).not.toMatch(/\.bullet\.t-done\{color:var\(--green\)\}/);
+});
+
+test('nieudane wygląda jak wykonane — czerwień należy tylko do „teraz"', () => {
+  expect(css).toMatch(
+    /\.item \.bullet\.t-failed,\s*\.item\.is-linked \.bullet\.t-failed\{color:var\(--fg-dim\)\}/,
+  );
+  expect(css).toMatch(/\.item\.tone-failed \.item-text::placeholder\{color:var\(--fg-faint\)\}/);
+  expect(css).toMatch(/\.item\.tone-failed \.item-text\{text-decoration:line-through\}/);
+  expect(css).toMatch(/\.st-failed\{[^}]*color:var\(--fg-faint\)/);
+  const failedRules = css.match(/[^}]*(tone-failed|t-failed|st-failed)[^{]*\{[^}]*\}/g) ?? [];
+  expect(failedRules.length).toBeGreaterThan(0);
+  for (const r of failedRules) expect(r, r).not.toMatch(/--red|--now/);
+  // Data, zegar i kreska zamkniętych — w czerwieni „teraz".
+  expect(css).toMatch(/#date\{[^}]*color:var\(--now\)/);
+  expect(css).toMatch(/#clock\{[^}]*color:var\(--now\)/);
+  expect(css).toMatch(/\.done-line\{[^}]*background:var\(--now\)/);
 });

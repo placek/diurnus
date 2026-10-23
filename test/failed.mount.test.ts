@@ -99,3 +99,20 @@ test('nieudane z backlogu trafia do dziś jako zamknięte', async () => {
   });
   expect(document.querySelector('#list .item[data-id="b"]')).not.toBeNull();
 });
+
+test('czerwona kreska oddziela zamknięte od pozostałych; bez zamkniętych jej nie ma', async () => {
+  seed([task('a'), task('b'), task('c', 36)]);
+  const { flush } = await mountApp();
+  const children = () =>
+    [
+      ...document.querySelectorAll<HTMLElement>(
+        '#list .list-body > .item[data-id], #list .list-body > .done-line',
+      ),
+    ].map((el) => (el.classList.contains('done-line') ? '—' : el.dataset.id));
+  expect(children()).toEqual(['c', 'a', 'b']);
+  bullet('a').click();
+  flush();
+  pick(menu('b', flush), 'Nieudane').click();
+  flush();
+  expect(children()).toEqual(['a', 'b', '—', 'c']);
+});
