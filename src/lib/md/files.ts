@@ -53,13 +53,18 @@ function lineOf(i: Item, tags: Map<string, string>, inProject?: string): Line {
   switch (s.tag) {
     case 'today-task':
       return {
-        marker: s.done ? 'done' : 'open',
+        marker: s.failed ? 'failed' : s.done ? 'done' : 'open',
         ...(s.slot !== null ? { slot: s.slot } : {}),
         ...base,
         ...from,
       };
     case 'past-done':
-      return { marker: 'done', ...(s.slot !== null ? { slot: s.slot } : {}), ...base, ...from };
+      return {
+        marker: s.failed ? 'failed' : 'done',
+        ...(s.slot !== null ? { slot: s.slot } : {}),
+        ...base,
+        ...from,
+      };
     case 'today-note':
     case 'backlog-note':
     case 'past-note':
@@ -153,16 +158,18 @@ function stateOf(l: Line, ctx: Ctx): { state: ItemState; patternId?: string } | 
   }
 
   const slot = l.slot ?? null;
+  const failed = l.marker === 'failed' ? { failed: true as const } : {};
   if (kind.type === 'today')
-    return { state: { tag: 'today-task', done: l.marker === 'done', slot } };
+    return { state: { tag: 'today-task', done: l.marker === 'done', slot, ...failed } };
   if (kind.type === 'past') {
     if (l.marker === 'open')
       return 'otwarte zadanie nie zostaje w minionym dniu — o północy przechodzi dalej';
-    return { state: { tag: 'past-done', day: kind.day, slot } };
+    return { state: { tag: 'past-done', day: kind.day, slot, ...failed } };
   }
 
   // Backlog.
   if (l.marker === 'done') return 'wykonane nie mieszka w backlogu — odhaczone trafia do dziś';
+  if (l.marker === 'failed') return 'nieudane nie mieszka w backlogu — zamknięte trafia do dziś';
   if (slot !== null && !slotFits(slot, ctx.hours))
     return 'godzina nie mieści się w dniu z ustawień';
   if (l.pattern) {

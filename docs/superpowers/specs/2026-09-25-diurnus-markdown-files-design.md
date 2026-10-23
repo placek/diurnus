@@ -47,7 +47,7 @@ Jedna pozycja to jedna linia. Człony stoją zawsze w tej kolejności, każdy op
 
 | Człon | Postać | Znaczenie |
 |---|---|---|
-| znacznik | `[ ]` / `[x]` / brak | otwarte zadanie / wykonane / notatka |
+| znacznik | `[ ]` / `[x]` / `[-]` / brak | otwarte zadanie / wykonane / nieudane / notatka |
 | data | `RRRR-MM-DD` | tylko backlog: termin, a przy wzorcu — najbliższe wystąpienie |
 | wzorzec | `{FREQ=…}` | tylko backlog; reguła RRULE, zawsze razem z datą |
 | czas | `GG:MM` na pełnym kwadransie | slot 30 minut |
@@ -168,12 +168,14 @@ cicho zamienić zadania ze slotem w zadanie bez niego.
 ```
 
 - Nagłówek `# RRRR-MM-DD` musi zgadzać się z nazwą pliku.
-- Dozwolone: `[ ]` i `[x]` z czasem albo bez, notatki. Notatka nie ma czasu. Data i wzorzec są
-  błędem.
-- Wykonane stoją na górze w kolejności odhaczenia. Czasu wykonania plik nie zapisuje —
-  kolejność linii jest jedynym zapisem tej kolejności.
+- Dozwolone: `[ ]`, `[x]` i `[-]` z czasem albo bez, notatki. Notatka nie ma czasu. Data
+  i wzorzec są błędem.
+- `[-]` to **nieudane**: zadanie zamknięte bez wykonania. Jak wykonane zostaje w swoim dniu
+  i trzyma swój czas; kroki pod nim są dozwolone.
+- Zamknięte (wykonane i nieudane) stoją na górze w kolejności zamknięcia. Czasu zamknięcia plik
+  nie zapisuje — kolejność linii jest jedynym zapisem tej kolejności.
 - **Dziś** to plik dnia o najpóźniejszej dacie. Pozostałe pliki dni to archiwum: w nich
-  dozwolone są tylko `[x]` i notatki, bo otwarte zadania przeszły o północy dalej.
+  dozwolone są tylko `[x]`, `[-]` i notatki, bo otwarte zadania przeszły o północy dalej.
 
 ### `BACKLOG.md`
 
@@ -189,7 +191,7 @@ cicho zamienić zadania ze slotem w zadanie bez niego.
 
 - Nagłówek `# Backlog`.
 - Dozwolone: `[ ]` bez terminu, z datą, z datą i czasem, z datą i wzorcem (czas opcjonalny);
-  notatki bez terminu. `[x]` jest błędem — wykonane nie mieszka w backlogu.
+  notatki bez terminu. `[x]` i `[-]` są błędem — zamknięte nie mieszka w backlogu.
 - Wzorzec zawsze niesie `^id`. Wzorzec wpisany ręcznie bez niego dostaje identyfikator
   z pozycji w pliku; wzorzec bez daty — datę najbliższego wystąpienia po dniu dzisiejszym.
 - Czas pozycji backlogu musi mieścić się w dniu z ustawień.

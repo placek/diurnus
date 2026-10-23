@@ -111,6 +111,7 @@ test('menu pozycji backlogu: typy | bez daty, wybierz datę… | opis, kategoria
   );
   expect(seq).toEqual([
     '·Zadanie',
+    '⊘Nieudane',
     '–Notatka',
     '—',
     '→Bez daty',
@@ -134,6 +135,7 @@ test('menu pozycji dzisiejszej: typy | opis, kategoria, bez terminów', async ()
   expect(seq).toEqual([
     '·Zadanie',
     '×Wykonane',
+    '⊘Nieudane',
     '–Notatka',
     '—',
     '¶Opis',

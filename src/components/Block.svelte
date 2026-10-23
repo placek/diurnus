@@ -37,6 +37,7 @@
   const tone = $derived(itemTone(item, day, app.now));
   const STATUS_CLASS: Record<Tone, string> = {
     done: 'st-confirmed',
+    failed: 'st-failed',
     active: 'st-active',
     missed: 'st-planned',
     incoming: 'st-planned',
@@ -44,6 +45,7 @@
   };
   const TONE_LABEL: Record<Tone, string> = {
     done: 'wykonane',
+    failed: 'nieudane',
     active: 'teraz',
     missed: 'minęło',
     incoming: 'plan',

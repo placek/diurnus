@@ -560,6 +560,7 @@ function randomEvent(r: () => number, m: Machine, n: number): Event {
   const events: Event[] = [
     { type: 'create', id: `n${n}`, text: `n${n}`, place: pick(['today', 'backlog'] as const) },
     { type: 'markDone', id, copyId: `c${n}` },
+    { type: 'markFailed', id, copyId: `f${n}` },
     { type: 'markOpen', id },
     { type: 'toNote', id },
     { type: 'toTask', id },
@@ -736,6 +737,79 @@ test('kroki: zadanie z krokami nie zostaje notatką, a notatka z krokami łamie 
   // Pusta lista kroków nie przeszkadza.
   const empty = { ...m, items: m.items.map((i) => ({ ...i, steps: [] })) };
   expect(step(empty, { type: 'toNote', id: 'a' }, DAY).ok).toBe(true);
+});
+
+describe('nieudane', () => {
+  const tFailed = (slot: number | null = null): State => ({
+    tag: 'today-task',
+    done: false,
+    slot,
+    failed: true,
+  });
+
+  test('każde otwarte zadanie może być nieudane; trzyma swój slot i staje na końcu zamkniętych', () => {
+    const m = run(machine(['a', tTask(S9)], ['b', tTask()]), { type: 'markFailed', id: 'a', copyId: 'c' });
+    expect(stateOf(m)).toEqual(tFailed(S9));
+    expect(m.items.map((i) => i.id)).toEqual(['b', 'a']);
+  });
+
+  test('nieudanego nie da się odhaczyć ani zamknąć drugi raz — najpierw wraca do otwartych', () => {
+    const m = machine(['a', tFailed(S9)]);
+    expect(refusal(m, { type: 'markDone', id: 'a', copyId: 'c' })).toBe('not-allowed');
+    expect(refusal(m, { type: 'markFailed', id: 'a', copyId: 'c' })).toBe('not-allowed');
+    const back = run(m, { type: 'markOpen', id: 'a' });
+    expect(stateOf(back)).toEqual(tTask(S9));
+    expect(stateOf(run(back, { type: 'markDone', id: 'a', copyId: 'c' }))).toEqual(tDone(S9));
+  });
+
+  test('wykonane może stać się nieudanym tylko przez otwarte', () => {
+    const m = machine(['a', tDone()]);
+    expect(refusal(m, { type: 'markFailed', id: 'a', copyId: 'c' })).toBe('not-allowed');
+    const m2 = run(m, { type: 'markOpen', id: 'a' }, { type: 'markFailed', id: 'a', copyId: 'c' });
+    expect(stateOf(m2)).toEqual(tFailed());
+  });
+
+  test('zamknięte jak wykonane: nie zmienia godziny, nie jest notatką, nie wraca do backlogu', () => {
+    const m = machine(['a', tFailed(S9)]);
+    expect(refusal(m, { type: 'setSlot', id: 'a', slot: S10 })).toBe('not-allowed');
+    expect(refusal(m, { type: 'toNote', id: 'a' })).toBe('not-allowed');
+    expect(refusal(m, { type: 'move', id: 'a', to: 'backlog' })).toBe('not-allowed');
+    // Slot zostaje zajęty — nikt inny go nie weźmie.
+    const other = machine(['a', tFailed(S9)], ['b', tTask()]);
+    expect(refusal(other, { type: 'setSlot', id: 'b', slot: S9 })).toBe('slot-taken');
+  });
+
+  test('z backlogu: nieudane trafia do dziś jak odhaczone; wzorzec daje nieudaną kopię i idzie dalej', () => {
+    expect(stateOf(run(machine(['a', bTask()]), { type: 'markFailed', id: 'a', copyId: 'c' }))).toEqual(
+      tFailed(),
+    );
+    expect(
+      stateOf(run(machine(['a', bDateSlot()]), { type: 'markFailed', id: 'a', copyId: 'c' })),
+    ).toEqual(tFailed(S9));
+    const m = run(machine(['a', bRec(S10, TODAY)]), { type: 'markFailed', id: 'a', copyId: 'c' });
+    expect(stateOf(m, 'c')).toEqual(tFailed(S10));
+    expect(m.items.find((i) => i.id === 'c')!.from).toBe('a');
+    expect(stateOf(m)).toEqual(bRec(S10, '2026-09-26'));
+  });
+
+  test('o północy nieudane zostaje w swoim dniu; nieudana kopia nie blokuje następnej', () => {
+    let m = machine(['a', bRec(null, '2026-09-26')]);
+    m = run(m, { type: 'advance', to: '2026-09-26' });
+    m = run(m, { type: 'markFailed', id: 'a@2026-09-26', copyId: 'x' });
+    m = run(m, { type: 'advance', to: '2026-09-27' });
+    expect(stateOf(m, 'a@2026-09-26')).toEqual({
+      tag: 'past-done',
+      day: '2026-09-26',
+      slot: null,
+      failed: true,
+    });
+    expect(m.items.some((i) => i.id === 'a@2026-09-27')).toBe(true);
+  });
+
+  test('niezmiennik: zadanie nie jest naraz wykonane i nieudane', () => {
+    const bad = machine(['a', { tag: 'today-task', done: true, slot: null, failed: true }]);
+    expect(violations(bad, DAY)).toContain('a: wykonane i nieudane naraz');
+  });
 });
 
 describe('reguły iCal we wzorcach', () => {

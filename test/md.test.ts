@@ -642,6 +642,7 @@ function randomState(seed: number): State {
       create,
       create,
       { type: 'markDone', id, copyId: `c${n}` },
+      { type: 'markFailed', id, copyId: `f${n}` },
       { type: 'markOpen', id },
       { type: 'toNote', id },
       { type: 'toTask', id },
@@ -709,6 +710,8 @@ describe('obieg losowych stanów maszyny', () => {
     const all = SEEDS.map(randomState);
     const items = all.flatMap((s) => s.items);
     expect(items.some((i) => i.state.tag === 'past-done')).toBe(true);
+    expect(items.some((i) => i.state.tag === 'past-done' && i.state.failed)).toBe(true);
+    expect(items.some((i) => i.state.tag === 'today-task' && i.state.failed)).toBe(true);
     expect(items.some((i) => i.from !== undefined)).toBe(true);
     expect(
       items.some((i) => i.state.tag === 'backlog-task' && i.state.when?.type === 'recurring'),
@@ -945,5 +948,49 @@ describe('kroki zadania', () => {
     const out = renderFiles(s);
     expect(out[BACKLOG]).toContain('Rano ^r\n      * [ ] rozciąganie\n      * [ ] dziennik\n');
     expect(out[dayFile('2026-09-20')]).toBe(files[dayFile('2026-09-20')]);
+  });
+});
+
+describe('nieudane', () => {
+  test('„* [-]" w pliku dnia i w archiwum; w backlogu to błąd', () => {
+    expect(renderLine({ marker: 'failed', slot: 36, text: 'Siłownia' })).toBe(
+      '* [-] 09:00 Siłownia',
+    );
+    const files = {
+      [CONFIG]: SPEC_CONFIG,
+      [dayFile('2026-09-20')]: '# 2026-09-20\n\n* [-] 10:00 Basen\n',
+      [dayFile(TODAY)]: `# ${TODAY}\n\n* [-] 09:00 Siłownia\n      * [x] rozgrzewka\n* [ ] Dalej\n`,
+    };
+    const s = parsed(files);
+    const by = (t: string) => s.items.find((i) => i.text === t)!;
+    expect(by('Siłownia').state).toEqual({
+      tag: 'today-task',
+      done: false,
+      slot: 36,
+      failed: true,
+    });
+    expect(by('Siłownia').steps).toEqual([{ text: 'rozgrzewka', done: true }]);
+    expect(by('Basen').state).toEqual({
+      tag: 'past-done',
+      day: '2026-09-20',
+      slot: 40,
+      failed: true,
+    });
+    const out = renderFiles(s);
+    expect(out[dayFile(TODAY)]).toContain('* [-] 09:00 Siłownia\n');
+    expect(out[dayFile('2026-09-20')]).toBe(files[dayFile('2026-09-20')]);
+    expect(
+      errorsOf({
+        [CONFIG]: SPEC_CONFIG,
+        [dayFile(TODAY)]: `# ${TODAY}\n`,
+        [BACKLOG]: '# Backlog\n\n* [-] X\n',
+      }),
+    ).toEqual([
+      {
+        file: BACKLOG,
+        line: 3,
+        message: 'nieudane nie mieszka w backlogu — zamknięte trafia do dziś',
+      },
+    ]);
   });
 });

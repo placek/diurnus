@@ -106,8 +106,9 @@
     <dd>tworzy pozycję od pierwszego znaku</dd>
     <dt class="kb"><kbd>Enter</kbd> <kbd>Tab</kbd></dt>
     <dd class="kb">
-      nowa pozycja pod bieżącą; zmiana znacznika zadanie → wykonane → notatka
-      (<kbd>Shift</kbd> wstecz). Zadanie z godziną albo krokami pomija notatkę
+      nowa pozycja pod bieżącą; zmiana znacznika zadanie → wykonane → nieudane → notatka
+      (<kbd>Shift</kbd> wstecz). Zadanie z godziną albo krokami pomija notatkę, nieudane
+      nie przechodzi od razu w wykonane
     </dd>
     <dt class="kb"><kbd>⌫</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Esc</kbd></dt>
     <dd class="kb">
@@ -137,6 +138,12 @@
     </dd>
     <dt>Klik w znacznik</dt>
     <dd>zadanie ↔ wykonane</dd>
+    <dt>Nieudane ⊘</dt>
+    <dd>
+      zadanie zamknięte bez wykonania (menu znacznika, <kbd>Tab</kbd> albo arkusz edycji),
+      czerwone jak minięty slot. Kliknięcie go nie odhacza — najpierw „Zadanie" w menu znacznika
+      albo „Przywróć" w arkuszu. Minięty slot odhacza się normalnie
+    </dd>
     <dt>Prawy przycisk albo przytrzymanie znacznika</dt>
     <dd>typ pozycji, opis, krok i kategoria</dd>
     <dt>Kolejność</dt>

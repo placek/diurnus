@@ -22,7 +22,8 @@ import { TAG } from './slug';
  */
 
 export interface Line {
-  marker: 'note' | 'open' | 'done';
+  /** `failed` — nieudane: `* [-]` */
+  marker: 'note' | 'open' | 'done' | 'failed';
   date?: string;
   pattern?: RRule;
   /** kwant początku slotu */
@@ -47,7 +48,7 @@ export function descLines(desc: string | undefined): string[] {
   return lines;
 }
 
-const MARKER = { open: '[ ]', done: '[x]' } as const;
+const MARKER = { open: '[ ]', done: '[x]', failed: '[-]' } as const;
 
 /** Wcięta linia kroku, już bez wcięcia: `* [ ] tekst`, `* [x] tekst`. */
 export const STEP = /^\* \[( |x)\](?: (.*))?$/;
@@ -99,7 +100,7 @@ export function renderLine(l: Line): string {
   const steps = (l.steps ?? []).map((st) => {
     if (/[\r\n]/.test(st.text)) throw new Error('Krok musi mieścić się w jednej linii');
     const text = st.text.trim();
-    return `${pad}* ${MARKER[st.done ? 'done' : 'open']}${text ? ' ' + text : ''}`;
+    return `${pad}* ${st.done ? MARKER.done : MARKER.open}${text ? ' ' + text : ''}`;
   });
   return [parts.join(' '), ...desc, ...steps].join('\n');
 }
@@ -133,8 +134,8 @@ export function parseLine(src: string): LineResult {
     return m;
   };
 
-  const marker = take(/^\[( |x)\](?= |$)/);
-  if (marker) line.marker = marker[1] === 'x' ? 'done' : 'open';
+  const marker = take(/^\[( |x|-)\](?= |$)/);
+  if (marker) line.marker = marker[1] === 'x' ? 'done' : marker[1] === '-' ? 'failed' : 'open';
 
   const date = take(/^\d{4}-\d{2}-\d{2}(?= |$)/);
   if (date) {

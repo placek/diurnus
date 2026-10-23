@@ -26,6 +26,7 @@ problemy usunąć z założenia, nie łatać.
 | Tworzenie | W dziś albo w backlogu, zawsze jako otwarte zadanie |
 | Odhaczenie | W dziś; odhaczone w backlogu przenosi się do dziś |
 | Cofnięcie odhaczenia | Każde wykonane zadanie może znów stać się otwarte |
+| Nieudane | Każde otwarte zadanie (dziś albo w backlogu) można zamknąć jako **nieudane** (`markFailed`). Jak wykonane: zostaje w swoim dniu ze slotem, z backlogu trafia do dziś, wzorzec daje nieudaną kopię i idzie dalej. **Nieudane nie staje się wykonanym** — najpierw `markOpen`. Upływ slotu nieudanym nie czyni |
 | Notatka | W obu polach; notatka może wrócić do zadania; **notatka nigdy nie ma czasu** |
 | Czas w dziś | Slot: godzina i kwadrans; **slot trwa zawsze 30 minut** |
 | Czas w backlogu | Data, data ze slotem albo wzorzec; wzorzec może mieć slot |
@@ -42,7 +43,7 @@ problemy usunąć z założenia, nie łatać.
 | Odmowa przyjścia o świcie | Pozycja zostaje w backlogu z datą i **ponawia o kolejnym świcie** |
 | Upływ slotu | Nie zmienia stanu; wykonanie oznacza wyłącznie użytkownik |
 | Północ | Otwarte zadania przechodzą do nowego dnia; notatki zostają w swoim dniu |
-| Wykonane zadania | Nie ruszają się nigdzie: ani do backlogu, ani o północy |
+| Wykonane zadania | Nie ruszają się nigdzie: ani do backlogu, ani o północy. To samo dotyczy nieudanych (`past-done` z `failed`) |
 
 ## 3. Graf
 

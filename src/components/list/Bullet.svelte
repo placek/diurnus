@@ -59,10 +59,12 @@
 
   // Znaczniki w miejscu. Notatka nie ma czasu, więc zadanie ze slotem jej nie
   // proponuje; w backlogu „wykonane" nie jest znacznikiem, tylko kliknięciem,
-  // które przenosi rzecz do dziś.
+  // które przenosi rzecz do dziś. „Nieudane" w backlogu też przenosi do dziś —
+  // jako zamknięte. Nieudane nie proponuje „wykonanego": najpierw wraca do zadań.
   const IN_PLACE: { type: ItemType; label: string }[] = [
     { type: 'task', label: 'Zadanie' },
     { type: 'done', label: 'Wykonane' },
+    { type: 'failed', label: 'Nieudane' },
     { type: 'note', label: 'Notatka' },
   ];
 
@@ -70,6 +72,7 @@
     IN_PLACE.filter(
       (t) =>
         !(inBacklog && t.type === 'done') &&
+        !(kind === 'failed' && t.type === 'done') &&
         // Notatka nie ma czasu ani kroków.
         !(
           t.type === 'note' &&

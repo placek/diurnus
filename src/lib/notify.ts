@@ -1,6 +1,6 @@
 import type { Item } from './machine';
 import { fmtQ, qTime } from './time';
-import { isDone, slotOf, timedToday } from './view';
+import { isClosed, slotOf, timedToday } from './view';
 
 export type NotifyKind = 'soon' | 'start';
 
@@ -38,7 +38,7 @@ export function dueNotifications(
 
   for (const i of timedToday(items)) {
     // Tylko otwarte: wykonane nie potrzebuje przypomnienia.
-    if (isDone(i)) continue;
+    if (isClosed(i)) continue;
     const slot = slotOf(i)!;
     const start = qTime(day, slot);
     const label = i.text.trim() || 'Blok czasu';

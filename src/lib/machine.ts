@@ -42,12 +42,17 @@ export type WhenInput =
   | { type: 'recurring'; rule: RRule; slot: Slot | null; start: string };
 
 export type ItemState =
-  | { tag: 'today-task'; done: boolean; slot: Slot | null }
+  /**
+   * `failed` — nieudane: zamknięte bez wykonania (wtedy `done` jest `false`).
+   * Jak wykonane zostaje w swoim dniu i trzyma swój slot; wykonanym staje się
+   * dopiero po powrocie do otwartych (`markOpen`).
+   */
+  | { tag: 'today-task'; done: boolean; slot: Slot | null; failed?: true }
   | { tag: 'today-note' }
   | { tag: 'backlog-task'; when: When | null }
   | { tag: 'backlog-note' }
   /** Zadania wykonane i notatki zostają w swoim dniu; tylko do odczytu. */
-  | { tag: 'past-done'; day: string; slot: Slot | null }
+  | { tag: 'past-done'; day: string; slot: Slot | null; failed?: true }
   | { tag: 'past-note'; day: string };
 
 export interface Item {
@@ -94,6 +99,8 @@ export type Event =
     }
   /** `copyId` nazywa kopię, gdy odhaczana jest pozycja powtarzalna. */
   | { type: 'markDone'; id: string; copyId: string }
+  /** Nieudane: zamknięcie bez wykonania — tak samo jak `markDone`, z `copyId` dla wzorca. */
+  | { type: 'markFailed'; id: string; copyId: string }
   | { type: 'markOpen'; id: string }
   | { type: 'toNote'; id: string }
   | { type: 'toTask'; id: string }
@@ -194,10 +201,13 @@ export function step(m: Machine, e: Event, day: DayHours): Result {
 
   switch (e.type) {
     case 'markDone':
-      return markDone(m, item, e.copyId, day);
+      return markClosed(m, item, e.copyId, day, 'done');
+    case 'markFailed':
+      return markClosed(m, item, e.copyId, day, 'failed');
     case 'markOpen':
-      return item.state.tag === 'today-task' && item.state.done
-        ? ok(put(m, item.id, { ...item.state, done: false }))
+      // Wykonane i nieudane wracają do otwartych z tym samym slotem.
+      return item.state.tag === 'today-task' && closed(item.state)
+        ? ok(put(m, item.id, { tag: 'today-task', done: false, slot: item.state.slot }))
         : no('not-allowed');
     case 'toNote':
       return toNote(m, item);
@@ -236,19 +246,36 @@ function create(m: Machine, e: Extract<Event, { type: 'create' }>): Result {
   return ok({ ...m, items: [...m.items, item] });
 }
 
-function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result {
+/** Zadanie dziś zamknięte: wykonane albo nieudane. */
+export const closed = (s: Extract<ItemState, { tag: 'today-task' }>): boolean =>
+  s.done || s.failed === true;
+
+/**
+ * Wykonanie albo nieudane — to samo przejście, inny koniec. Zamknięte zadanie
+ * nie zamyka się drugi raz: nieudane staje się wykonanym dopiero przez otwarte.
+ */
+function markClosed(
+  m: Machine,
+  item: Item,
+  copyId: string,
+  day: DayHours,
+  how: 'done' | 'failed',
+): Result {
+  const end = (slot: Slot | null): ItemState =>
+    how === 'done'
+      ? { tag: 'today-task', done: true, slot }
+      : { tag: 'today-task', done: false, slot, failed: true };
   const s = item.state;
   switch (s.tag) {
     case 'today-task':
-      return s.done ? no('not-allowed') : ok(putLast(m, item.id, { ...s, done: true }));
+      return closed(s) ? no('not-allowed') : ok(putLast(m, item.id, end(s.slot)));
     case 'backlog-task': {
       const w = s.when;
-      // Odhaczone w backlogu ląduje w dziś jako wykonane.
-      if (w === null || w.type === 'date')
-        return ok(putLast(m, item.id, { tag: 'today-task', done: true, slot: null }));
+      // Odhaczone (albo nieudane) w backlogu ląduje w dziś jako zamknięte.
+      if (w === null || w.type === 'date') return ok(putLast(m, item.id, end(null)));
       if (w.type === 'dateSlot') {
         const r = claim(m.items, w.slot, day, item.id);
-        return r ? no(r) : ok(putLast(m, item.id, { tag: 'today-task', done: true, slot: w.slot }));
+        return r ? no(r) : ok(putLast(m, item.id, end(w.slot)));
       }
       // Powtarzalna: wykonana kopia idzie do dziś, wzorzec zostaje i przesuwa
       // się za odhaczone wystąpienie. Zaległe (next ≤ dziś) przeskakuje za dziś;
@@ -263,7 +290,7 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
       const copy: Item = {
         id: copyId,
         text: item.text,
-        state: { tag: 'today-task', done: true, slot: w.slot },
+        state: end(w.slot),
         from: item.id,
         ...catOf(item),
       };
@@ -286,7 +313,7 @@ function markDone(m: Machine, item: Item, copyId: string, day: DayHours): Result
 function toNote(m: Machine, item: Item): Result {
   const s = item.state;
   if (item.steps?.length) return no('not-allowed');
-  if (s.tag === 'today-task' && !s.done && s.slot === null)
+  if (s.tag === 'today-task' && !closed(s) && s.slot === null)
     return ok(put(m, item.id, { tag: 'today-note' }));
   if (s.tag === 'backlog-task' && s.when === null)
     return ok(put(m, item.id, { tag: 'backlog-note' }));
@@ -295,7 +322,7 @@ function toNote(m: Machine, item: Item): Result {
 
 function setSlot(m: Machine, item: Item, slot: Slot | null, day: DayHours): Result {
   const s = item.state;
-  if (s.tag !== 'today-task' || s.done) return no('not-allowed');
+  if (s.tag !== 'today-task' || closed(s)) return no('not-allowed');
   if (slot !== null) {
     const r = claim(m.items, slot, day, item.id);
     if (r) return no(r);
@@ -338,7 +365,7 @@ function setWhen(m: Machine, item: Item, when: WhenInput | null, day: DayHours):
 function toBacklog(m: Machine, item: Item): Result {
   const s = item.state;
   if (s.tag === 'today-note') return ok(put(m, item.id, { tag: 'backlog-note' }));
-  if (s.tag !== 'today-task' || s.done) return no('not-allowed');
+  if (s.tag !== 'today-task' || closed(s)) return no('not-allowed');
   // Zadanie ze slotem zabiera go ze sobą, z dzisiejszą datą.
   const when: When | null =
     s.slot === null ? null : { type: 'dateSlot', date: m.today, slot: s.slot };
@@ -379,7 +406,16 @@ function midnight(m: Machine): Machine {
       const s = i.state;
       if (s.tag === 'today-note') return { ...i, state: { tag: 'past-note', day: prev } };
       if (s.tag !== 'today-task') return i;
-      if (s.done) return { ...i, state: { tag: 'past-done', day: prev, slot: s.slot } };
+      if (closed(s))
+        return {
+          ...i,
+          state: {
+            tag: 'past-done',
+            day: prev,
+            slot: s.slot,
+            ...(s.failed ? { failed: true } : {}),
+          },
+        };
       return s.slot === null ? i : { ...i, state: { ...s, slot: null } };
     }),
   };
@@ -455,12 +491,12 @@ function stepPattern(
   return items.map((i) => (i.id === pattern.id ? { ...i, state } : i));
 }
 
-/** Otwarta kopia to zadanie niewykonane, w dziś albo odłożone do backlogu. */
+/** Otwarta kopia to zadanie niezamknięte, w dziś albo odłożone do backlogu. */
 export const hasOpenCopy = (items: readonly Item[], templateId: string): boolean =>
   items.some(
     (i) =>
       i.from === templateId &&
-      ((i.state.tag === 'today-task' && !i.state.done) || i.state.tag === 'backlog-task'),
+      ((i.state.tag === 'today-task' && !closed(i.state)) || i.state.tag === 'backlog-task'),
   );
 
 /* ───────────── Niezmienniki ───────────── */
@@ -477,6 +513,7 @@ export function violations(m: Machine, day: DayHours): string[] {
     const s = i.state;
     switch (s.tag) {
       case 'today-task':
+        if (s.done && s.failed) out.push(`${i.id}: wykonane i nieudane naraz`);
         if (s.slot !== null) {
           if (!slotFits(s.slot, day)) out.push(`${i.id}: slot poza dniem`);
           slots.push(s.slot);
