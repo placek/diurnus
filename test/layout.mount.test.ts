@@ -20,6 +20,10 @@ test('szeroki ekran: nagłówek dnia stoi na górze sekcji dziś, nie w pasku', 
   expect(head).not.toBeNull();
   expect(head.querySelector('#date')).not.toBeNull();
   expect(head.querySelector('#clock')).not.toBeNull();
+  // Pod datą jeden wiersz: medytacja po lewej, różaniec po prawej.
+  const row = head.querySelector(':scope > .medit-row')!;
+  expect([...row.children].map((e) => e.className)).toEqual(['medit', 'medit rosary']);
+  expect(css).toMatch(/\.medit-row \.rosary\{[^}]*text-align:right/);
   // Paska postępu nie ma — tylko data i zegar.
   expect(document.querySelector('#pips, .pip')).toBeNull();
   expect(document.querySelector('#top #date')).toBeNull();
