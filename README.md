@@ -81,11 +81,16 @@ lub ostatni dzień powszedni miesiąca; wybrane miesiące; koniec po N razach al
 
 ### Dni
 
-- **Medytacja poranna** pod datą: rozdział *De Imitatione Christi* i dobrany Psalm na dzisiejszy
+Pod datą stoi jeden wiersz: medytacja po lewej, perykopa Jana pośrodku, różaniec po prawej.
+
+- **Medytacja poranna**: rozdział *De Imitatione Christi* i dobrany Psalm na dzisiejszy
   dzień roku, z myślą przewodnią rozdziału — według planu rotacji (114 rozdziałów, indeks
   `(dzień_roku − 1) mod 114`, Psalmy w numeracji Wulgaty z hebrajską w nawiasie). Plan jest
   w `src/lib/meditation.ts`.
-- **Tajemnice różańca** na dziś, po łacinie, pod medytacją: część według dnia tygodnia (*Rosarium
+- **Perykopa Ewangelii według św. Jana** na ten tydzień — „Ioannes 44": numer 1–45 z numeru
+  tygodnia ISO 8601 (od poniedziałku), a po 45. tygodniu cykl od nowa (tydzień 46 to 1).
+  Liczy go `src/lib/pericope.ts`.
+- **Tajemnice różańca** na dziś, po łacinie: część według dnia tygodnia (*Rosarium
   Virginis Mariae*: pon. i sob. *gaudiosa*, wt. i pt. *dolorosa*, śr. i nd. *gloriosa*, czw.
   *luminosa*), a pięć tajemnic — każda jednym słowem, gdzie się da — w podpowiedzi; na telefonie
   dotknięcie rozwija je w linii. Dane w `src/lib/rosary.ts`.

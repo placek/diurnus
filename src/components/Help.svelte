@@ -246,9 +246,11 @@
     </dd>
     <dt>Pod datą</dt>
     <dd>
-      medytacja poranna: rozdział <i>De Imitatione Christi</i> i Psalm na dzisiejszy dzień roku,
-      z myślą przewodnią (pełny opis w podpowiedzi), a pod nią dzisiejsza część różańca po łacinie
-      — pięć tajemnic w podpowiedzi, na telefonie po dotknięciu
+      po lewej medytacja poranna: rozdział <i>De Imitatione Christi</i> i Psalm na dzisiejszy
+      dzień roku, z myślą przewodnią (pełny opis w podpowiedzi); pośrodku perykopa Ewangelii
+      według św. Jana na ten tydzień (1–45, z numeru tygodnia, zmienia się w poniedziałek); po
+      prawej dzisiejsza część różańca po łacinie — pięć tajemnic w podpowiedzi, na telefonie po
+      dotknięciu
     </dd>
     <dt>Motyw</dt>
     <dd>

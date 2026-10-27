@@ -86,10 +86,10 @@ test('kontener paneli dostaje klasę narrow', async () => {
   expect(document.querySelector('#panes')!.classList.contains('narrow')).toBe(true);
 });
 
-test('medytacja i różaniec stoją w jednym wierszu na górze listy: medytacja pierwsza', async () => {
+test('medytacja, perykopa i różaniec stoją w jednym wierszu na górze listy', async () => {
   await mountApp();
   const row = document.querySelector('.list-body > .medit-row')!;
   expect(row).not.toBeNull();
   const lines = [...row.children].map((e) => e.className);
-  expect(lines).toEqual(['medit', 'medit rosary']);
+  expect(lines).toEqual(['medit', 'medit pericope', 'medit rosary']);
 });
