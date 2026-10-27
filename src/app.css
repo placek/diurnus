@@ -151,14 +151,23 @@ a.ib{text-decoration:none}
 }
 .medit-ref{font-weight:600;color:var(--fg-dim);font-variant-numeric:tabular-nums}
 .medit-theme{color:var(--fg-faint)}
-/* Medytacja po lewej, różaniec po prawej — jedna linia pod datą. */
-.medit-row{display:flex;align-items:baseline;gap:12px;width:100%;min-width:0}
-.medit-row .medit{flex:1 1 0;text-align:left}
-.medit-row .rosary{flex:0 0 auto;text-align:right}
-.list-body > .medit-row{box-sizing:border-box;padding:2px 8px 8px;flex-wrap:wrap}
-.list-body > .medit-row .medit:not(.rosary){white-space:normal}
-/* Rozwinięte tajemnice na wąskim ekranie: cała szerokość pod medytacją. */
-.list-body > .medit-row .rosary:has([aria-expanded="true"]){flex-basis:100%;white-space:normal}
+/* Medytacja po lewej, perykopa Jana pośrodku, różaniec po prawej — jedna linia
+   pod datą. Boki to równe kolumny, więc perykopa stoi w samym środku. */
+.medit-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:baseline;column-gap:12px;width:100%;min-width:0;
+}
+.medit-row .medit{text-align:left}
+.medit-row .pericope{text-align:center}
+.medit-row .rosary{text-align:right}
+.pericope .medit-ref{cursor:help}
+.list-body > .medit-row{box-sizing:border-box;padding:2px 8px 8px}
+.list-body > .medit-row .medit:not(.rosary, .pericope){white-space:normal}
+/* Rozwinięte tajemnice na wąskim ekranie: cały wiersz pod spodem; perykopa
+   zostaje na środku. */
+.list-body > .medit-row .rosary:has([aria-expanded="true"]){
+  grid-column:1 / -1;white-space:normal;margin-top:4px;
+}
 /* W nagłówku dnia data i linia medytacji mieszczą się w wysokości paska; nad datą
    zostaje oddech od ramy sekcji. */
 .today-head .medit{font-size:12px;line-height:14px}
